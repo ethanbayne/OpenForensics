@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CudafyModule Version="1.29.5576.13786" Name="Engine" DebugInfo="false" HasCudaSourceCode="false" HasPTX="false" HasBinary="false">
+  <CudaSourceCode></CudaSourceCode>
+  <PTXMODULES />
+  <BinaryModules />
+  <SourceCodes>
+    <SourceCodeFile ID="114fc248-84df-4b89-870c-d7adf089b997" Language="OpenCL" Arch="OpenCL">I2lmIGRlZmluZWQoY2xfa2hyX2ZwNjQpDQojcHJhZ21hIE9QRU5DTCBFWFRFTlNJT04gY2xfa2hyX2ZwNjQ6IGVuYWJsZQ0KI2VsaWYgZGVmaW5lZChjbF9hbWRfZnA2NCkNCiNwcmFnbWEgT1BFTkNMIEVYVEVOU0lPTiBjbF9hbWRfZnA2NDogZW5hYmxlDQojZW5kaWYNCg0KLy8gT3BlbkZvcmVuc2ljcy5FbmdpbmUNCl9fa2VybmVsICB2b2lkIFBGQUNBbmFseXNlKGdsb2JhbCB1bnNpZ25lZCBjaGFyKiBidWZmZXIsIGludCBidWZmZXJMZW4wLCBpbnQgaW5pdGlhbFN0YXRlLCBpbnQgY2FydmVPcCwgZ2xvYmFsIGludCogbG9va3VwLCBpbnQgbG9va3VwTGVuMCwgaW50IGxvb2t1cExlbjEsIGludCBsb25nZXN0VGFyZ2V0LCBpbnQgZmlsZUxlbmd0aCwgZ2xvYmFsIHVuc2lnbmVkIGNoYXIqIHJlc3VsdHMsIGludCByZXN1bHRzTGVuMCwgZ2xvYmFsIHVuc2lnbmVkIGludCogcmVzdWx0Q291bnQsIGludCByZXN1bHRDb3VudExlbjApOw0KLy8gT3BlbkZvcmVuc2ljcy5FbmdpbmUNCl9fa2VybmVsICB2b2lkIEJydXRlQW5hbHlzZSh1bnNpZ25lZCBjaGFyIGhlYWRlciwgZ2xvYmFsIHVuc2lnbmVkIGNoYXIqIGJ1ZmZlciwgaW50IGJ1ZmZlckxlbjAsIGdsb2JhbCB1bnNpZ25lZCBjaGFyKiB0YXJnZXQsIGludCB0YXJnZXRMZW4wLCBpbnQgdGFyZ2V0Tm8sIGludCBmaWxlTGVuZ3RoLCBpbnQgb2Zmc2V0LCB1bnNpZ25lZCBpbnQgc2VhcmNoUmFuZ2UsIGdsb2JhbCB1bnNpZ25lZCBjaGFyKiByZXN1bHRzLCBpbnQgcmVzdWx0c0xlbjAsIGdsb2JhbCB1bnNpZ25lZCBpbnQqIHJlc3VsdENvdW50LCBpbnQgcmVzdWx0Q291bnRMZW4wKTsNCg0KLy8gT3BlbkZvcmVuc2ljcy5FbmdpbmUNCl9fa2VybmVsICB2b2lkIFBGQUNBbmFseXNlKGdsb2JhbCB1bnNpZ25lZCBjaGFyKiBidWZmZXIsIGludCBidWZmZXJMZW4wLCBpbnQgaW5pdGlhbFN0YXRlLCBpbnQgY2FydmVPcCwgZ2xvYmFsIGludCogbG9va3VwLCBpbnQgbG9va3VwTGVuMCwgaW50IGxvb2t1cExlbjEsIGludCBsb25nZXN0VGFyZ2V0LCBpbnQgZmlsZUxlbmd0aCwgZ2xvYmFsIHVuc2lnbmVkIGNoYXIqIHJlc3VsdHMsIGludCByZXN1bHRzTGVuMCwgZ2xvYmFsIHVuc2lnbmVkIGludCogcmVzdWx0Q291bnQsIGludCByZXN1bHRDb3VudExlbjApDQp7DQoJaW50IG51bSA9IGJ1ZmZlckxlbjA7DQoJaW50IGkgPSBnZXRfbG9jYWxfaWQoMCkgKyBnZXRfZ3JvdXBfaWQoMCkgKiBnZXRfbG9jYWxfc2l6ZSgwKTsNCglpbnQgbnVtMiA9IGdldF9sb2NhbF9zaXplKDApICogZ2V0X251bV9ncm91cHMoMCk7DQoJd2hpbGUgKGkgPCBudW0pDQoJew0KCQlpbnQgbnVtMyA9IGluaXRpYWxTdGF0ZTsNCgkJaW50IG51bTQ7DQoJCWZvciAoaW50IGogPSBpOyBqIDwgbnVtOyBqID0gbnVtNCArIDEpDQoJCXsNCgkJCW51bTMgPSBsb29rdXBbKG51bTMpICogbG9va3VwTGVuMSArICgoaW50KWJ1ZmZlclsoaildKV07DQoJCQlib29sIGZsYWcgPSBudW0zID09IDA7DQoJCQlpZiAoZmxhZykNCgkJCXsNCgkJCQlicmVhazsNCgkJCX0NCgkJCWJvb2wgZmxhZzIgPSBudW0zIDwgaW5pdGlhbFN0YXRlOw0KCQkJaWYgKGZsYWcyKQ0KCQkJew0KCQkJCWJvb2wgZmxhZzMgPSBjYXJ2ZU9wID09IDAgfHwgbnVtMyAlIDIgPiAwOw0KCQkJCWlmIChmbGFnMykNCgkJCQl7DQoJCQkJCWF0b21pY19hZGQoJnJlc3VsdENvdW50WyhudW0zIC0gMSldLCAxdSk7DQoJCQkJfQ0KCQkJCWJvb2wgZmxhZzQgPSBjYXJ2ZU9wID09IDE7DQoJCQkJaWYgKGZsYWc0KQ0KCQkJCXsNCgkJCQkJcmVzdWx0c1soaSldID0gKHVuc2lnbmVkIGNoYXIpbnVtMzsNCgkJCQl9DQoJCQl9DQoJCQludW00ID0gajsNCgkJfQ0KCQlpICs9IG51bTI7DQoJfQ0KCWJhcnJpZXIoQ0xLX0xPQ0FMX01FTV9GRU5DRSk7DQp9DQovLyBPcGVuRm9yZW5zaWNzLkVuZ2luZQ0KX19rZXJuZWwgIHZvaWQgQnJ1dGVBbmFseXNlKHVuc2lnbmVkIGNoYXIgaGVhZGVyLCBnbG9iYWwgdW5zaWduZWQgY2hhciogYnVmZmVyLCBpbnQgYnVmZmVyTGVuMCwgZ2xvYmFsIHVuc2lnbmVkIGNoYXIqIHRhcmdldCwgaW50IHRhcmdldExlbjAsIGludCB0YXJnZXRObywgaW50IGZpbGVMZW5ndGgsIGludCBvZmZzZXQsIHVuc2lnbmVkIGludCBzZWFyY2hSYW5nZSwgZ2xvYmFsIHVuc2lnbmVkIGNoYXIqIHJlc3VsdHMsIGludCByZXN1bHRzTGVuMCwgZ2xvYmFsIHVuc2lnbmVkIGludCogcmVzdWx0Q291bnQsIGludCByZXN1bHRDb3VudExlbjApDQp7DQoJaW50IG51bSA9IGdldF9sb2NhbF9pZCgwKSArIGdldF9ncm91cF9pZCgwKSAqIGdldF9sb2NhbF9zaXplKDApOw0KCWludCBudW0yID0gZ2V0X2xvY2FsX3NpemUoMCkgKiBnZXRfbnVtX2dyb3VwcygwKTsNCglfX2xvY2FsIHVuc2lnbmVkIGludCBhcnJheVsxMDI0XTsNCg0KCWludCBhcnJheUxlbjAgPSAxMDI0Ow0KCWFycmF5WyhnZXRfbG9jYWxfaWQoMCkpXSA9IDB1Ow0KCWJhcnJpZXIoQ0xLX0xPQ0FMX01FTV9GRU5DRSk7DQoJd2hpbGUgKChsb25nKW51bSA8IChsb25nKSgodWxvbmcpc2VhcmNoUmFuZ2UgLSAodWxvbmcpKChsb25nKSh0YXJnZXRMZW4wICsgMSkpKSkNCgl7DQoJCWJvb2wgZmxhZyA9IGJ1ZmZlclsobnVtKV0gPT0gdGFyZ2V0WygwKV07DQoJCWlmIChmbGFnKQ0KCQl7DQoJCQlib29sIGZsYWcyID0gdHJ1ZTsNCgkJCWludCBudW00Ow0KCQkJZm9yIChpbnQgbnVtMyA9IDE7IG51bTMgPD0gdGFyZ2V0TGVuMCAtIDE7IG51bTMgPSBudW00ICsgMSkNCgkJCXsNCgkJCQlib29sIGZsYWczID0gYnVmZmVyWyhudW0gKyBudW0zKV0gIT0gdGFyZ2V0WyhudW0zKV07DQoJCQkJaWYgKGZsYWczKQ0KCQkJCXsNCgkJCQkJZmxhZzIgPSBmYWxzZTsNCgkJCQkJYnJlYWs7DQoJCQkJfQ0KCQkJCW51bTQgPSBudW0zOw0KCQkJfQ0KCQkJYm9vbCBmbGFnNCA9IGZsYWcyOw0KCQkJaWYgKGZsYWc0KQ0KCQkJew0KCQkJCWFycmF5WyhnZXRfbG9jYWxfaWQoMCkpXSArPSAxdTsNCgkJCQlyZXN1bHRzWyhudW0pXSA9IGhlYWRlcjsNCgkJCQludW0gKz0gbnVtMjsNCgkJCX0NCgkJCWVsc2UNCgkJCXsNCgkJCQludW0gKz0gbnVtMjsNCgkJCX0NCgkJfQ0KCQllbHNlDQoJCXsNCgkJCW51bSArPSBudW0yOw0KCQl9DQoJfQ0KCWJhcnJpZXIoQ0xLX0xPQ0FMX01FTV9GRU5DRSk7DQoJYXRvbWljX2FkZCgmcmVzdWx0Q291bnRbKHRhcmdldE5vKV0sIGFycmF5WyhnZXRfbG9jYWxfaWQoMCkpXSk7DQp9DQo=</SourceCodeFile>
+  </SourceCodes>
+  <Functions>
+    <CudafyKernelMethod Name="PFACAnalyse" Type="Global" IsDummy="false" DummyBehaviour="Default">
+      <Type>OpenForensics.Engine</Type>
+      <Assembly>OpenForensics, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null</Assembly>
+      <AssemblyName>OpenForensics</AssemblyName>
+      <AssemblyPath>C:\Users\ethan\Dropbox\OpenForensics Development\OpenForensics\OpenForensics\bin\Debug\OpenForensics.exe</AssemblyPath>
+      <Checksum>593387179</Checksum>
+      <Parameters>
+        <ReturnType>System.Void</ReturnType>
+        <Parameter Type="Cudafy.GThread" Name="thread" Position="0" />
+        <Parameter Type="System.Byte[]" Name="buffer" Position="1" />
+        <Parameter Type="System.Int32" Name="initialState" Position="2" />
+        <Parameter Type="System.Int32" Name="carveOp" Position="3" />
+        <Parameter Type="System.Int32[,]" Name="lookup" Position="4" />
+        <Parameter Type="System.Int32" Name="longestTarget" Position="5" />
+        <Parameter Type="System.Int32" Name="fileLength" Position="6" />
+        <Parameter Type="System.Byte[]" Name="results" Position="7" />
+        <Parameter Type="System.UInt32[]" Name="resultCount" Position="8" />
+      </Parameters>
+    </CudafyKernelMethod>
+    <CudafyKernelMethod Name="BruteAnalyse" Type="Global" IsDummy="false" DummyBehaviour="Default">
+      <Type>OpenForensics.Engine</Type>
+      <Assembly>OpenForensics, Version=1.0.1.0, Culture=neutral, PublicKeyToken=null</Assembly>
+      <AssemblyName>OpenForensics</AssemblyName>
+      <AssemblyPath>C:\Users\ethan\Dropbox\OpenForensics Development\OpenForensics\OpenForensics\bin\Debug\OpenForensics.exe</AssemblyPath>
+      <Checksum>593387179</Checksum>
+      <Parameters>
+        <ReturnType>System.Void</ReturnType>
+        <Parameter Type="Cudafy.GThread" Name="thread" Position="0" />
+        <Parameter Type="System.Byte" Name="header" Position="1" />
+        <Parameter Type="System.Byte[]" Name="buffer" Position="2" />
+        <Parameter Type="System.Byte[]" Name="target" Position="3" />
+        <Parameter Type="System.Int32" Name="targetNo" Position="4" />
+        <Parameter Type="System.Int32" Name="fileLength" Position="5" />
+        <Parameter Type="System.Int32" Name="offset" Position="6" />
+        <Parameter Type="System.UInt32" Name="searchRange" Position="7" />
+        <Parameter Type="System.Byte[]" Name="results" Position="8" />
+        <Parameter Type="System.UInt32[]" Name="resultCount" Position="9" />
+      </Parameters>
+    </CudafyKernelMethod>
+  </Functions>
+  <Constants />
+  <Types />
+</CudafyModule>

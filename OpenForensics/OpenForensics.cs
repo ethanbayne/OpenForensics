@@ -1,0 +1,771 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Diagnostics;
+using System.Threading;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Xml;
+using Cudafy;
+using Cudafy.Host;
+using Cudafy.Translator;
+
+using System.Management;
+
+namespace OpenForensics
+{
+    public partial class OpenForensics : Form
+    {
+        public OpenForensics()
+        {
+            InitializeComponent();
+        }
+
+        // Version 1.02b - Introduced memory cache to store end of segment to reduce flushing storage device cache.
+        // Version 1.05b - Introduction of queued file reading to make optimal use of storage drive I/O.
+        // Version 1.10b - Files are only carved by the CPU if there are *actually* files to carve.
+        // Version 1.15b - Read queues tweaks for optimal storage device I/O. Fixed GPU PFAC searching where result could be part of a larger result, but terminated early.
+        // Version 1.16b - Introduced queue limiter to stop over-queuing instructions and overwhelming slower drives.
+        // Version 1.21b - Introduced GPU threading
+        // Version 1.22b - Fixed File carving after 1.21b patch (experimental - Analysis(line 1165)). Introduced more GPU optimisations.
+        // Version 1.23b - Small analysis interface change to cater for larger amounts of processors
+
+        private string version = "Tech Demo v. 1.23b";   // VERSION INFORMATION TO DISPLAY
+
+        private string TestType;             // Value for Platform Type Selected
+        private bool multiGPU = false;
+        private List<int> gpus = new List<int>();
+        private List<long> gpuMem = new List<long>();
+        private long maxGPUMem = 0;
+
+        private string CaseName = "";
+        private string EvidenceName = "";
+        private string saveLocation = "";
+        private string fileName = "";
+        //private int GPUTypeSeperator = 0;
+
+        // Arrays for all search target types
+        private List<string> targetName = new List<string>();
+        private List<string> targetHeader = new List<string>();
+        private List<string> targetFooter = new List<string>();
+
+        private List<string> imageNames = new List<string>();
+        private List<string> videoNames = new List<string>();
+        private List<string> audioNames = new List<string>();
+        private List<string> documentNames = new List<string>();
+        private List<string> miscNames = new List<string>();
+
+
+        private void OpenForensics_Load(object sender, EventArgs e)
+        {
+            if (Environment.Is64BitProcess)
+                lblMode.Text = "64-Bit Mode";
+            else
+                lblMode.Text = "32-Bit Mode";
+
+            lblVersion.Text = version;
+            OFTooltips();
+
+            try
+            {
+                Setup();                    // Attempt Initial GPGPU Interface Setup & Populate Formats
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), "Setup Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void Setup()
+        {
+            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;  // Sets Priority of Process to High
+            PopulateGPGPUComboBox();        // Populate GPGPU Selection Box
+            PopulateFileTypes();         // Get File Types from XML
+            //txtFile.Text = "\\\\.\\PhysicalDrive6";
+            //txtFile.Text = "C:\\Test Image\\JohnDoeImg.dd";
+            //cboFileType.SelectedIndex = cboFileType.Items.IndexOf("jpg");
+            cboFileType.SelectedIndex = 0;
+            cboKeywords.SelectedIndex = 0;  // Set Keywords to first entry on list
+            TargetTypeUpdate();             // Update Target Type
+            if(txtFile.Text!="")
+                if(txtFile.Text.StartsWith("\\\\.\\"))
+                    btnDriveOpen.BackColor = Color.DarkSeaGreen;
+                else
+                    btnFileOpen.BackColor = Color.DarkSeaGreen;
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            if (this.ClientRectangle.Width > 0 && this.ClientRectangle.Height > 0)
+            {
+                using (LinearGradientBrush brush = new LinearGradientBrush(this.ClientRectangle, Color.White, Color.Black, 90F))
+                {
+                    e.Graphics.FillRectangle(brush, this.ClientRectangle);
+                }
+            }
+        }
+
+
+        #region Interface Interactions
+
+        #region Tooltips
+
+        private void OFTooltips()
+        {
+            ToolTip OFToolTips = new ToolTip();
+
+            // Set up the delays for the ToolTip.
+            OFToolTips.AutoPopDelay = 5000;
+            OFToolTips.InitialDelay = 500;
+            OFToolTips.ReshowDelay = 500;
+            // Force the ToolTip text to be displayed whether or not the form is active.
+            OFToolTips.ShowAlways = true;
+
+            // Set up the ToolTip text for the Button and Checkbox.
+            OFToolTips.SetToolTip(this.txtCaseName, "Enter a reference for the case. If left null, program will store analysis results in 'OpenForensics Output'.");
+            OFToolTips.SetToolTip(this.txtEvidenceName, "Enter a unique reference for the data analysed. If left null, program will default to drive or file name.");
+            OFToolTips.SetToolTip(this.btnCustom, "Modify analysis technology settings.");
+            OFToolTips.SetToolTip(this.btnDefault, "Revert to recommended settings for performing analysis.");
+            OFToolTips.SetToolTip(this.btnAnalyse, "Analyse the drive or file for instances of file headers or keywords.");
+            OFToolTips.SetToolTip(this.btnCarve, "Analyse the drive or file and reconstruct any files found.");
+            OFToolTips.SetToolTip(this.btnAddKeyword, "Add the keyword to the keyword list.");
+            OFToolTips.SetToolTip(this.btnRemoveKeyword, "Remove the currently selected keyword from the keyword list.");
+            OFToolTips.SetToolTip(this.btnClearKeywords, "Clear all keywords in the keyword list.");
+            OFToolTips.SetToolTip(this.btnFileOpen, "Open file to analyse.");
+            OFToolTips.SetToolTip(this.btnDriveOpen, "Open physical drive to analyse.");
+        }
+
+        #endregion
+
+        #region Platform Selection
+
+        private void rdoGPU_CheckedChanged(object sender, EventArgs e)
+        {
+            PopulateGPGPUComboBox();
+        }
+
+        private void rdoCPU_CheckedChanged(object sender, EventArgs e)
+        {
+            PopulateGPGPUComboBox();
+        }
+
+        #endregion
+
+        #region Target Selection
+
+        private void rdoFile_CheckedChanged(object sender, EventArgs e)
+        {
+            TargetTypeUpdate();
+            btnAnalyse.Text = "Identify Files";
+        }
+
+        private void rdoKeyword_CheckedChanged(object sender, EventArgs e)
+        {
+            TargetTypeUpdate();
+            btnAnalyse.Text = "Identify Keywords";
+            if (cboKeywords.Items.Count == 1)
+                cboKeywords.Items[0] = "No keywords present - add keywords below";
+        }
+
+        private void TargetTypeUpdate()
+        {
+            if (rdoFile.Checked == true)
+            {
+                btnCarve.Enabled = true;
+                cboFileType.Enabled = true;
+                cboKeywords.Enabled = false;
+                txtInput.Enabled = false;
+                btnAddKeyword.Enabled = false;
+                btnRemoveKeyword.Enabled = false;
+                btnClearKeywords.Enabled = false;
+            }
+            else
+            {
+                btnCarve.Enabled = false;
+                cboFileType.Enabled = false;
+                cboKeywords.Enabled = true;
+                txtInput.Enabled = true;
+                btnAddKeyword.Enabled = true;
+                btnRemoveKeyword.Enabled = true;
+                btnClearKeywords.Enabled = true;
+            }
+        }
+
+        private void btnAddKeyword_Click(object sender, EventArgs e)
+        {
+            cboKeywords.Items.Add(txtInput.Text);
+            cboKeywords.SelectedIndex = cboKeywords.Items.Count - 1;
+            txtInput.Text = "";
+            txtInput.Focus();
+            if (cboKeywords.Items.Count > 1)
+                cboKeywords.Items[0] = "All Keywords";
+        }
+
+        private void btnRemoveKeyword_Click(object sender, EventArgs e)
+        {
+            if (cboKeywords.SelectedIndex != 0)
+            {
+                cboKeywords.Items.RemoveAt(cboKeywords.SelectedIndex);
+                cboKeywords.SelectedIndex = cboKeywords.Items.Count - 1;
+
+                if (cboKeywords.Items.Count == 1)
+                    cboKeywords.Items[0] = "No keywords present - add keywords below";
+            }
+        }
+
+        private void btnClearKeywords_Click(object sender, EventArgs e)
+        {
+            cboKeywords.Items.Clear();
+            cboKeywords.Items.Add("No keywords present - add keywords below");
+            cboKeywords.SelectedIndex = cboKeywords.Items.Count - 1;
+        }
+
+        #endregion
+
+        #region Buttons
+
+
+        private void btnCustom_Click(object sender, EventArgs e)
+        {
+            grpDefaultPlatform.Enabled = false;
+            grpCustomPlatform.Enabled = true;
+            grpCustomPlatform.BringToFront();
+        }
+
+        private void btnDefault_Click(object sender, EventArgs e)
+        {
+            rdoGPU.Checked = true;
+            PopulateGPGPUComboBox();
+            grpCustomPlatform.Enabled = false;
+            grpDefaultPlatform.Enabled = true;
+            grpDefaultPlatform.BringToFront();
+        }
+
+        private void btnAnalyse_Click(object sender, EventArgs e)
+        {
+            AnalysisSetup(false);
+        }
+
+
+        private void btnCarve_Click(object sender, EventArgs e)
+        {
+            AnalysisSetup(true);
+        }
+
+        private void btnDriveOpen_Click(object sender, EventArgs e)
+        {
+            PhysicalDriveDialog d = new PhysicalDriveDialog();
+            if (d.ShowDialog() == DialogResult.OK)
+            {
+                txtFile.Text = d.physicalDrive;
+                btnDriveOpen.BackColor = Color.DarkSeaGreen;
+                btnFileOpen.BackColor = SystemColors.Control;
+            }
+            d.Dispose();
+        }
+
+        private void btnFileOpen_Click(object sender, EventArgs e)
+        {
+            // File browser for DD Selection
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                txtFile.Text = openFileDialog.InitialDirectory + openFileDialog.FileName;
+                fileName = openFileDialog.FileName.ToString();
+                btnFileOpen.BackColor = Color.DarkSeaGreen;
+                btnDriveOpen.BackColor = SystemColors.Control;
+            }
+        }
+
+        #endregion
+
+        #region Reactive
+
+        private void OpenForensics_Resize(object sender, EventArgs e)
+        {
+            this.Invalidate();
+        }
+
+        private void PopulateGPGPUComboBox()
+        {
+            gpus.Clear();
+
+            if (rdoCPU.Checked == true)     // If CPU is Selected, disable GPGPU combo box and set TestType to CPU
+            {
+                cbGPGPU.Text = "Disabled";
+                cbGPGPU.Enabled = false;
+                TestType = "CPU";
+            }
+            if (rdoGPU.Checked == true)  // If OpenCL is Selected:
+            {
+                cbGPGPU.Items.Clear();                          // Clear GPGPU Selection box
+                multiGPU = false;
+
+                if (CudafyHost.GetDeviceCount(CudafyModes.Target = eGPUType.OpenCL) > 1)
+                {
+                    int gpuCount = 0;
+                    foreach (GPGPUProperties prop in CudafyHost.GetDeviceProperties(CudafyModes.Target = eGPUType.OpenCL))
+                        if (!prop.Name.Contains("CPU"))
+                            gpuCount++;
+
+                    if (gpuCount > 1)
+                    {
+                        cbGPGPU.Items.Add("Multi-GPU");
+                        multiGPU = true;
+                        cbGPGPU.SelectedIndex = 0;
+                        lblPlatformDefault.Text = "Recommended Default Settings (Multi-GPU)";
+                    }
+                    else if (gpuCount == 0)
+                    {
+                        cbGPGPU.Items.Add("No GPU detected on system");
+                        lblPlatformDefault.Text = "Recommended Default Settings (CPU)";
+                        cbGPGPU.Enabled = false;
+                        rdoGPU.Enabled = false;
+                        rdoCPU.Checked = true;
+                        return;
+                    }
+                }
+
+                foreach (GPGPUProperties prop in CudafyHost.GetDeviceProperties(CudafyModes.Target = eGPUType.OpenCL))
+                {
+                    // Add all GPGPUs to combo box belonging to OpenCL
+                    cbGPGPU.Items.Add(prop.Name.Trim() + "   ||   OpenCL platform: " + prop.PlatformName.Trim());
+                    if (multiGPU == false && !prop.Name.Contains("CPU"))
+                    {
+                        cbGPGPU.SelectedIndex = cbGPGPU.Items.Count - 1;
+                        lblPlatformDefault.Text = "Recommended Default Settings (" + prop.Name.Trim() + ")";
+                    }
+                    if (multiGPU == true && !prop.Name.Contains("CPU"))
+                        gpus.Add(prop.DeviceId);
+
+                    gpuMem.Add(prop.TotalGlobalMem);
+
+                    if (!prop.Name.Contains("CPU"))
+                        if (maxGPUMem == 0 || prop.TotalGlobalMem < maxGPUMem)
+                            maxGPUMem = prop.TotalGlobalMem;
+                        //MessageBox.Show(maxGPUMem.ToString());
+                }
+                cbGPGPU.Enabled = true;     // Enable combo box
+            }
+        }
+
+        private void cbGPGPU_SelectedIndexChanged(object sender, EventArgs e)
+        {
+                TestType = "OpenCL";        // Set TestType to OpenCL
+                CudafyModes.Target = eGPUType.OpenCL;           // Set Target to OpenCL
+                CudafyTranslator.Language = eLanguage.OpenCL;   // Set Cudafy Translator Language to OpenCL (Kernel Construction)
+                if(multiGPU)
+                    CudafyModes.DeviceId = cbGPGPU.SelectedIndex - 1;
+                else
+                    CudafyModes.DeviceId = cbGPGPU.SelectedIndex;
+        }
+
+        private void AnalysisSetup(bool carving)
+        {
+            if (InputCheck(carving))   // Check that inputs are present before test
+            {
+                DialogResult result = folderBrowserDialog.ShowDialog();
+                if (result == DialogResult.OK)
+                {
+                    CaseName = txtCaseName.Text;
+                    EvidenceName = txtEvidenceName.Text;
+                    if (CaseName == "")
+                        CaseName = "OpenForensics Output";
+                    if (EvidenceName == "")
+                        EvidenceName = Path.GetFileName(txtFile.Text);
+                    saveLocation = folderBrowserDialog.SelectedPath + "\\" + CaseName + "\\" + EvidenceName + "\\";
+                    //MessageBox.Show(pathCheck);
+                    if (!Directory.Exists(saveLocation))
+                    {
+                        Directory.CreateDirectory(saveLocation);
+                        BeginAnalysis(carving);
+                    }
+                    else
+                    {
+                        DialogResult dialogConfirm = MessageBox.Show("Output already exists in this location for " + Path.GetFileName(txtFile.Text) + "\nOutput will be overwritten, Continue?", "Overwrite?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                        if (dialogConfirm == DialogResult.Yes)
+                        {
+                            while(true)
+                            {
+                                try
+                                {
+                                    Directory.Delete(saveLocation, true);
+                                    break;
+                                }
+                                catch
+                                {
+                                    DialogResult dialogConfirm2 = MessageBox.Show("Cannot overwrite " + Path.GetFileName(txtFile.Text) + "!\nRetry overwrite?", "Error Overwriting", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                                    if (dialogConfirm2 == DialogResult.Yes)
+                                        Thread.Sleep(500);
+                                    else
+                                        return;
+                                }
+                            }
+                            Thread.Sleep(500);
+                            Directory.CreateDirectory(saveLocation);
+                            BeginAnalysis(carving);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Aborted, Returning to Main Menu", "Aborted", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        private bool InputCheck(bool carving)
+        {
+            if(txtFile.Text.StartsWith("\\\\.\\"))
+            {
+                ManagementObjectSearcher mosDisks = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive WHERE DeviceID = '" + txtFile.Text.Replace("\\", "\\\\") + "'");
+                if (mosDisks.Get().Count == 0)
+                {
+                    MessageBox.Show("Selected drive cannot be found - Check drive connection", "Cannot find selected drive", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+            else
+            {
+                if (File.Exists(txtFile.Text) == false)
+                {
+                    MessageBox.Show("Selected file cannot be found - Check if file exists", "Cannot find selected file", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+            }
+
+            if (rdoFile.Checked && carving)
+                if (cboFileType.SelectedIndex > 5)
+                    if (HasEOF(cboFileType.SelectedItem.ToString()) == false)
+                    {
+                        MessageBox.Show("Selected file has no known End of File, cannot Carve file", "No EOF", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return false;
+                    }
+
+            if (rdoGPU.Checked == true)
+                if (cbGPGPU.Items.Count < 1)
+                {
+                    MessageBox.Show("No compatible GPU found on Computer", "No GPU Detected", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+            if (rdoFile.Checked == true)
+                if (cboFileType.Items.Count < 7)
+                {
+                    MessageBox.Show("No File Types present - check FileType.xml", "File Target Import Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+            if (rdoKeyword.Checked == true)
+                if (cboKeywords.Items.Count <= 1)
+                {
+                    MessageBox.Show("No Keywords present", "Target Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
+            if (File.Exists(txtFile.Text))
+            {
+                return true;
+            }
+            else
+            {
+                //MessageBox.Show("File path invalid", "File Path Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return true; //changed to true for testing
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+
+        #region File Handling
+
+        private void PopulateFileTypes()
+        {
+            cboFileType.Items.Clear();                          // Clear File Type choices and add collections
+            cboFileType.Items.Add("All File Types");
+            cboFileType.Items.Add("All Image Files Types");
+            cboFileType.Items.Add("All Video Files Types");
+            cboFileType.Items.Add("All Audio Files Types");
+            cboFileType.Items.Add("All Document Files Types");
+            cboFileType.Items.Add("All Misc Files Types");
+
+            try
+            {
+                XmlDocument xmldoc = new XmlDocument();             // Read File Type list from XML
+                FileStream fs = new FileStream("FileTypes.xml", FileMode.Open, FileAccess.Read);
+                xmldoc.Load(fs);
+                XmlNodeList xmlnode = xmldoc.DocumentElement.ChildNodes;
+                foreach (XmlNode childnode in xmlnode)
+                {
+                    string fileType = childnode["Type"].InnerText.Trim();
+                    string fileName = childnode["Name"].InnerText.Trim();
+                    cboFileType.Items.Add(fileName);
+                    XmlNodeList values = childnode.SelectNodes("Value");
+
+                    switch (fileType)
+                    {
+                        case "Image":
+                            imageNames.Add(fileName);
+                            break;
+                        case "Video":
+                            videoNames.Add(fileName);
+                            break;
+                        case "Audio":
+                            audioNames.Add(fileName);
+                            break;
+                        case "Document":
+                            documentNames.Add(fileName);
+                            break;
+                        case "Misc":
+                            miscNames.Add(fileName);
+                            break;
+                        default:
+                            Console.WriteLine(" [!] XML File error - please check the file type of entry: " + childnode["Name"].InnerText.Trim());
+                            break;
+                    }
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Error loading FileType.xml config file. Please make sure it exists!", "Config File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            cboFileType.SelectedIndex = 0;  // Set File Type to first entry on list
+
+            if (cboFileType.Items.Count == 6)
+                cboFileType.Items[0] = "No filetypes present - please check FileTypes.xml config!";
+        }
+
+        private void GetFileType(bool carving)
+        {
+            int fileTypePos = 0;
+            string fileTypeValue = "";
+            int keywordCount = 0;
+            int keywordPos = 0;
+            string keywordValue = "";
+            this.Invoke((MethodInvoker)delegate()
+            {
+                fileTypePos = this.cboFileType.SelectedIndex;
+                fileTypeValue = this.cboFileType.SelectedItem.ToString();
+                keywordCount = this.cboKeywords.Items.Count;
+                keywordPos = this.cboKeywords.SelectedIndex;
+                keywordValue = this.cboKeywords.SelectedItem.ToString();
+            });
+
+            if (rdoFile.Checked == true)                            // If File Type Search Selected:
+            {
+                switch (fileTypePos)                  // If category selected, add ranges associated
+                {
+                    case 0:
+                        foreach (string fileType in imageNames)
+                            XmlLoad(fileType, carving);
+                        foreach (string fileType in videoNames)
+                            XmlLoad(fileType, carving);
+                        foreach (string fileType in audioNames)
+                            XmlLoad(fileType, carving);
+                        foreach (string fileType in documentNames)
+                            XmlLoad(fileType, carving);
+                        foreach (string fileType in miscNames)
+                            XmlLoad(fileType, carving);
+                        break;
+                    case 1:
+                        foreach (string imageType in imageNames)
+                            XmlLoad(imageType, carving);
+                        break;
+                    case 2:
+                        foreach (string fileType in videoNames)
+                            XmlLoad(fileType, carving);
+                        break;
+                    case 3:
+                        foreach (string fileType in audioNames)
+                            XmlLoad(fileType, carving);
+                        break;
+                    case 4:
+                        foreach (string fileType in documentNames)
+                            XmlLoad(fileType, carving);
+                        break;
+                    case 5:
+                        foreach (string fileType in miscNames)
+                            XmlLoad(fileType, carving);
+                        break;
+                    default:                                        // Else, import individual values from XML
+                        XmlLoad(fileTypeValue, carving);
+                        break;
+                }
+            }
+            else                                                    // If Keyword Search Selected
+            {
+                if (keywordPos == 0)                 // If All Keywords selected, generate Values for Keyword List
+                {
+                    for (int i = 1; i < keywordCount; i++)
+                    {
+                        this.Invoke((MethodInvoker)delegate()
+                        {
+                            keywordValue = this.cboKeywords.Items[i].ToString();
+                        });
+                        targetName.Add("\"" + keywordValue + "\"");
+                        targetHeader.Add(Engine.StringtoHex(keywordValue));
+                    }
+                }
+                else                                                // Generate Value for Individual Selected
+                {
+                    targetName.Add(keywordValue);
+                    targetHeader.Add(Engine.StringtoHex(keywordValue));
+                }
+            } 
+        }
+
+        private void XmlLoad(string fileType, bool carving)
+        {
+            XmlDocument xmldoc = new XmlDocument();
+            FileStream fs = new FileStream("FileTypes.xml", FileMode.Open, FileAccess.Read);
+            xmldoc.Load(fs);
+            XmlNodeList xmlnode = xmldoc.DocumentElement.ChildNodes;
+            foreach (XmlNode childnode in xmlnode)
+            {
+                string typeName = childnode["Name"].InnerText.Trim();
+                if (typeName == fileType)
+                {
+                    XmlNodeList values = childnode.SelectNodes("Value");
+
+                    if (carving)
+                    {
+                        string fileEOF = null;
+                        if (childnode.SelectSingleNode("EOF") != null)
+                            fileEOF = childnode["EOF"].InnerText.Trim();
+
+                        if (fileEOF != null)
+                        {
+                            foreach (XmlNode value in values)
+                            {
+                                targetName.Add(typeName);
+                                targetHeader.Add(value.InnerText);
+                                targetFooter.Add(fileEOF);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (XmlNode value in values)
+                        {
+                            targetName.Add(typeName);
+                            targetHeader.Add(value.InnerText);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        private bool HasEOF(string fileType)
+        {
+            XmlDocument xmldoc = new XmlDocument();
+            FileStream fs = new FileStream("FileTypes.xml", FileMode.Open, FileAccess.Read);
+            xmldoc.Load(fs);
+            XmlNodeList xmlnode = xmldoc.DocumentElement.ChildNodes;
+            foreach (XmlNode childnode in xmlnode)
+            {
+                string typeName = childnode["Name"].InnerText.Trim();
+                if (typeName == fileType)
+                {
+                    if (childnode.SelectSingleNode("EOF") != null)
+                        return true;
+                    else
+                        return false;
+                }
+            }
+
+            return false;
+        }
+
+        #endregion
+
+
+        private void BeginAnalysis(bool carving)
+        {
+            string gpuChoice = "";
+            string fileType = "";
+            string keyword = "";
+            int filePos = 0;
+            int keywordPos = 0;
+            Boolean fileChecked = false;
+
+            this.Invoke((MethodInvoker)delegate()
+            {
+                if (rdoGPU.Checked)
+                    gpuChoice = this.cbGPGPU.SelectedItem.ToString();
+                fileType = this.cboFileType.SelectedItem.ToString();
+                keyword = this.cboKeywords.SelectedItem.ToString();
+                filePos = cboFileType.SelectedIndex;
+                keywordPos = cboKeywords.SelectedIndex;
+                fileChecked = rdoFile.Checked;
+            });
+
+            targetName.Clear();
+            targetHeader.Clear();                               // Clear Search Targets
+            targetFooter.Clear();
+
+            if (rdoGPU.Checked)
+                if (gpuChoice.Contains("CPU"))
+                {
+                    DialogResult dialogResult = MessageBox.Show("Running OpenCL code on the CPU is extremely slow in most tested cases.\nAre you sure you want to continue?", "GPU Selection Check", MessageBoxButtons.YesNo,MessageBoxIcon.Question);
+                    if (dialogResult == DialogResult.No)
+                        return;
+                }
+
+            GetFileType(carving);                                      // Populate Search Targets
+
+
+            string gpuValue = "";
+            if (rdoGPU.Checked)
+            {
+                this.Invoke((MethodInvoker)delegate()
+                {
+                    gpuValue = this.cbGPGPU.SelectedItem.ToString();
+                });
+                gpuValue = gpuValue.Split('|')[0].Trim();
+            }
+
+            this.Hide();
+            Analysis anFrm = new Analysis();
+            anFrm.Owner = this;
+
+            Analysis.Input input = new Analysis.Input();
+            input.TestType = TestType;
+            input.carveOp = carving;
+            input.GPGPU = gpuValue;
+            if (gpuValue == "Multi-GPU")
+            {
+                input.gpus = gpus;
+                input.maxGPUMem = maxGPUMem;
+            }
+            else
+            {
+                if (multiGPU && rdoGPU.Checked == true)
+                {
+                    input.gpus = new List<int>() { (this.cbGPGPU.SelectedIndex - 1) };
+                    input.maxGPUMem = gpuMem[this.cbGPGPU.SelectedIndex - 1];
+                }
+                else
+                {
+                    input.gpus = new List<int>() { (this.cbGPGPU.SelectedIndex) };
+                    input.maxGPUMem = gpuMem[this.cbGPGPU.SelectedIndex];
+                }
+            }
+            input.FilePath = txtFile.Text;
+            input.CaseName = CaseName;
+            input.EvidenceName = EvidenceName;
+            input.saveLocation = saveLocation;
+            input.targetName = targetName;
+            input.targetHeader = targetHeader;
+            input.targetFooter = targetFooter;
+
+            anFrm.InputSet = input;
+            anFrm.Show();
+        }
+
+    }
+}
