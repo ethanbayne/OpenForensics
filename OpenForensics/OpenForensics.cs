@@ -25,13 +25,16 @@ namespace OpenForensics
         // Version 1.02b - Introduced memory cache to store end of segment to reduce flushing storage device cache.
         // Version 1.05b - Introduction of queued file reading to make optimal use of storage drive I/O.
         // Version 1.10b - Files are only carved by the CPU if there are *actually* files to carve.
-        // Version 1.15b - Read queues tweaks for optimal storage device I/O. Fixed GPU PFAC searching where result could be part of a larger result, but terminated early.
+        // Version 1.15b - Read queues tweaks for optimal storage device I/O. Fixed GPU PFAC searching where result could be part of a larger pattern, but terminated early.
         // Version 1.16b - Introduced queue limiter to stop over-queuing instructions and overwhelming slower drives.
-        // Version 1.21b - Introduced GPU threading
-        // Version 1.22b - Fixed File carving after 1.21b patch (experimental - Analysis(line 1165)). Introduced more GPU optimisations.
-        // Version 1.23b - Small analysis interface change to cater for larger amounts of processors
+        // Version 1.21b - Introduced GPU threading.
+        // Version 1.22b - Fixed File carving after 1.21b patch. Introduced more GPU optimisations.
+        // Version 1.23b - Small analysis interface change to cater for larger amounts of processors.
+        // Version 1.24b - Fixed small logic bug with GPU carving function - thread.atomicAdd(ref resultCount[(int)(state / 2) - 1], 1); > thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
+        // Version 1.25b - Incremental refactoring of code.
+        // Version 1.30b - Fixed non-Nvidia GPU flaw where multiple instanced use of GPU was mishandled. Implemented GPU locker so that only one thread can utilise the GPU at any given moment. 
 
-        private string version = "Tech Demo v. 1.23b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "Tech Demo v. 1.30b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
@@ -43,7 +46,6 @@ namespace OpenForensics
         private string EvidenceName = "";
         private string saveLocation = "";
         private string fileName = "";
-        //private int GPUTypeSeperator = 0;
 
         // Arrays for all search target types
         private List<string> targetName = new List<string>();
@@ -82,9 +84,6 @@ namespace OpenForensics
             Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;  // Sets Priority of Process to High
             PopulateGPGPUComboBox();        // Populate GPGPU Selection Box
             PopulateFileTypes();         // Get File Types from XML
-            //txtFile.Text = "\\\\.\\PhysicalDrive6";
-            //txtFile.Text = "C:\\Test Image\\JohnDoeImg.dd";
-            //cboFileType.SelectedIndex = cboFileType.Items.IndexOf("jpg");
             cboFileType.SelectedIndex = 0;
             cboKeywords.SelectedIndex = 0;  // Set Keywords to first entry on list
             TargetTypeUpdate();             // Update Target Type
@@ -711,7 +710,7 @@ namespace OpenForensics
             if (rdoGPU.Checked)
                 if (gpuChoice.Contains("CPU"))
                 {
-                    DialogResult dialogResult = MessageBox.Show("Running OpenCL code on the CPU is extremely slow in most tested cases.\nAre you sure you want to continue?", "GPU Selection Check", MessageBoxButtons.YesNo,MessageBoxIcon.Question);
+                    DialogResult dialogResult = MessageBox.Show("Running OpenCL on the CPU is slow.\nAre you sure you want to continue?", "GPU Selection Check", MessageBoxButtons.YesNo,MessageBoxIcon.Question);
                     if (dialogResult == DialogResult.No)
                         return;
                 }

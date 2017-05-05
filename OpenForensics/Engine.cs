@@ -10,6 +10,7 @@ namespace OpenForensics
 {
     public class Engine
     {
+        private int GPUid;
         private GPGPU gpu;
         private GPGPUProperties prop;
         public int gpuCoreCount;
@@ -29,6 +30,7 @@ namespace OpenForensics
 
         private bool carveOp;
 
+        private static object[] locker;
         private byte[][] dev_buffer;
         private byte[][] dev_target;
         private int[,] dev_lookup;
@@ -95,6 +97,7 @@ namespace OpenForensics
         // PFAC Algorithm Engine
         public Engine(int GPUid, int coreCount, byte[][] target, int[][] lookup, int longestTarget, int fileLength, uint size, bool carveOp)
         {
+            this.GPUid = GPUid;
             gpu = CudafyHost.GetDevice(CudafyModes.Target, GPUid);
             gpu.SetCurrentContext();
             gpu.FreeAll();
@@ -103,6 +106,10 @@ namespace OpenForensics
             gpu.EnableMultithreading();
             for (int i = 0; i < gpuCoreCount; i++)
                 gpu.CreateStream(i);
+
+            locker = new object[coreCount];
+            for (int i = 0; i < locker.Length; i++)
+                locker[i] = new Object();
 
             prop = gpu.GetDeviceProperties();
             gpuCoreCount = coreCount;
@@ -155,7 +162,8 @@ namespace OpenForensics
 
         #region CPU Operations
 
-        public static int[] CPUPFACAnalyse(bool carveOp, byte[] buffer, int[][] lookup, byte[] resultsLoc, int numTargets, int longestTarget, int fileLength, int initialState, ref int[] rewindCheck)
+        //CPU PFAC Analyse - using PFAC Algorithm for searching Bytes
+        public static int[] CPUPFACAnalyse(bool carveOp, byte[] buffer, int[][] lookup, byte[] resultsLoc, int numTargets, int longestTarget, int fileLength, int initialState)
         {
             int[] results = new int[numTargets];
             int n = buffer.Length;
@@ -183,6 +191,7 @@ namespace OpenForensics
             return results;
         }
 
+        //CPU PFAC Search - using PFAC Algorithm for searching Bytes
         public static int[] CPUPFACSearch(byte[] buffer, int[][] lookup, int initialState, int fileLength, int offset, List<string> targetName)
         {
             int i = offset;
@@ -212,7 +221,7 @@ namespace OpenForensics
                     if (state < initialState && state % 2 != 0)
                     {
                         headerType = state;
-                        fileIndex = ((headerType + 1) / 2) - 1;
+                        fileIndex = ((headerType + 1) / 2) - 1; 
                         for (int j = 0; j < targetName.Count; j++)
                         {
                             if (targetName[j] == targetName[fileIndex])
@@ -273,7 +282,7 @@ namespace OpenForensics
             return foundResult;
         }
 
-        //CPU Analyse - using typical Boyer-Moore Algorithm for searching Bytes
+        //CPU BM Analyse - using sequential Boyer-Moore Algorithm for searching Bytes
         public static int[] CPUBMAnalyse(byte[] buffer, byte[][] target, int[][] lookup)
         {
             int[] results = new int[target.Length];
@@ -320,7 +329,7 @@ namespace OpenForensics
             return results;
         }
 
-        //CPU Analyse - using typical Boyer-Moore Algorithm for searching Bytes
+        //CPU BM Search - using sequential Boyer-Moore Algorithm for searching Bytes
         public static int[] CPUBMSearch(bool header, byte[] buffer, byte[] target, int[] lookup, byte[] targetEnd, int[] lookupEnd, int fileLength, int offset)
         {
             int i = 0;
@@ -539,12 +548,14 @@ namespace OpenForensics
             FreeBuffers(gpuCore);
         }
 
+        //GPU PFAC Carving - using PFAC for searching Bytes
         public void LaunchPFACCarving(int gpuCore)
         {
             int isCarveOp = 0;
             if (carveOp)
                 isCarveOp = 1;
 
+            // EXPERIMENTAL -----------------------------------------
             //int size = Marshal.SizeOf(buffer[0]) * buffer.Length;
             //IntPtr bufferPtr = gpu.HostAllocate<int>(size);
             //IntPtr resultPtr = gpu.HostAllocate<int>(size);
@@ -559,11 +570,17 @@ namespace OpenForensics
             //gpu.HostFree(bufferPtr);
             //gpu.HostFree(resultPtr);
             //gpu.DestroyStream(1);
-            gpu.SetCurrentContext();
+            //----------------------------------------------------------
 
-            gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);
-            //gpu.Launch(gpuOperatingCores, blockSize, gpuCore).PFACAnalyse(dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);  // Start the analysis of the buffer
-            gpu.SynchronizeStream(gpuCore);
+            lock (locker[GPUid])
+            {
+                gpu.SetCurrentContext();
+
+                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);
+                //gpu.Launch(gpuOperatingCores, blockSize, gpuCore).PFACAnalyse(dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);  // Start the analysis of the buffer
+                gpu.SynchronizeStream(gpuCore);
+            }
+
             gpu.CopyFromDevice(dev_resultCount[gpuCore], resultCount[gpuCore]);
             if (carveOp)
                 for (int i = 0; i < resultCount[gpuCore].Length; i++)
@@ -579,7 +596,7 @@ namespace OpenForensics
             FreeBuffers(gpuCore);
         }
 
-        //GPU Analyse - using brute force for searching Bytes
+        //GPU PFAC Analyse - using PFAC for searching Bytes
         [Cudafy]
         public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int carveOp, int[,] lookup, int longestTarget, int fileLength, byte[] results, uint[] resultCount)
         {
@@ -603,8 +620,8 @@ namespace OpenForensics
                             thread.atomicAdd(ref resultCount[state - 1], 1);
                         else if (carveOp == 1)
                         {
-                            if((state - 1) % 2 == 0)
-                                thread.atomicAdd(ref resultCount[(int)(state / 2) - 1], 1);
+                            if ((state - 1) % 2 == 0)
+                                thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
                             results[i] = (byte)state;
                         }
                     }
@@ -725,7 +742,7 @@ namespace OpenForensics
 
             int[][] result = table.ToArray();       // Convert list to 2d array for returning
 
-            /* Logic Table Generation to CSV File
+            /* Logic Table Generation to CSV File for visualising logic table
             using (StreamWriter outfile = new StreamWriter(@"C:\Users\Ethan\Desktop\myfile.csv"))
             {
                 for (int x = 0; x < result.Length; x++)
