@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Cudafy;
@@ -691,7 +692,19 @@ namespace OpenForensics
             for (int i = 0; i < idx.Length; i++)
                 idx[i] = i;
 
+            ArrayList listofNull = new ArrayList();
+            for (int i = 0; i < target.Length; i++)
+                if (target[i] == null)
+                {
+                    listofNull.Add(i);
+                    target[i] = new byte[] { 0 };
+                }
+
             Array.Sort<int>(idx, (a, b) => target[a].Length.CompareTo(target[b].Length));       // Sort targets by element length, using idx to index shortest to longest target
+
+            for (int i = 0; i < listofNull.Count; i++)
+                target[(int)listofNull[i]] = null;
+            listofNull.Clear();
 
             List<int[]> table = new List<int[]>();
             table.Add(new int[256]);                   // Create Fail State row (row 0)
@@ -706,37 +719,40 @@ namespace OpenForensics
 
             for (int i = 0; i < target.Length; i++)     // Populate table with targets
             {
-                walkIndex = target.Length + 1;          // Set walk pointer to start point
-
-                if (table[walkIndex][target[idx[i]][0]] == 0)        // Check to see if first character already has a path, if not, set a new state to traverse to
+                if (target[idx[i]] != null)
                 {
-                    table[walkIndex][target[idx[i]][0]] = state;
-                    state++;
-                }
+                    walkIndex = target.Length + 1;          // Set walk pointer to start point
 
-                walkIndex = table[walkIndex][target[idx[i]][0]];    // Follow new, or existing state
-
-                for (int j = 1; j < target[idx[i]].Length; j++)     // For the rest of the characters of the target:
-                {
-                    if(table.Count <= walkIndex)                        // If the table doesn't have enough rows for any new states, create one
-                        table.Add(new int[256]);
-
-                    if (table[walkIndex][target[idx[i]][j]] == 0)       // Check to see if character already has a path, if not, set a new state to traverse to
+                    if (table[walkIndex][target[idx[i]][0]] == 0)        // Check to see if first character already has a path, if not, set a new state to traverse to
                     {
-                        if (j != target[idx[i]].Length - 1)                 // If it's not the last character, use a new state..
-                        {
-                            table[walkIndex][target[idx[i]][j]] = state;
-                            state++;
-                        }
-                        else                                                // Else, set the state to the row of the target index
-                            table[walkIndex][target[idx[i]][j]] = idx[i] + 1;
+                        table[walkIndex][target[idx[i]][0]] = state;
+                        state++;
                     }
-                    else if (j == target[idx[i]].Length - 1)
-                        if (i != 0 && (idx[i] + 1) % 2 == 0 && table[walkIndex][target[idx[i]][j]] > idx[i] + 1)
-                            table[walkIndex][target[idx[i]][j]] = idx[i] + 1;
 
-                    walkIndex = table[walkIndex][target[idx[i]][j]];    // Traverse to next state
+                    walkIndex = table[walkIndex][target[idx[i]][0]];    // Follow new, or existing state
 
+                    for (int j = 1; j < target[idx[i]].Length; j++)     // For the rest of the characters of the target:
+                    {
+                        if (table.Count <= walkIndex)                        // If the table doesn't have enough rows for any new states, create one
+                            table.Add(new int[256]);
+
+                        if (table[walkIndex][target[idx[i]][j]] == 0)       // Check to see if character already has a path, if not, set a new state to traverse to
+                        {
+                            if (j != target[idx[i]].Length - 1)                 // If it's not the last character, use a new state..
+                            {
+                                table[walkIndex][target[idx[i]][j]] = state;
+                                state++;
+                            }
+                            else                                                // Else, set the state to the row of the target index
+                                table[walkIndex][target[idx[i]][j]] = idx[i] + 1;
+                        }
+                        else if (j == target[idx[i]].Length - 1)
+                            if (i != 0 && (idx[i] + 1) % 2 == 0 && table[walkIndex][target[idx[i]][j]] > idx[i] + 1)
+                                table[walkIndex][target[idx[i]][j]] = idx[i] + 1;
+
+                        walkIndex = table[walkIndex][target[idx[i]][j]];    // Traverse to next state
+
+                    }
                 }
             }
 

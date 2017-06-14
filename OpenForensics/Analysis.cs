@@ -688,7 +688,7 @@ namespace OpenForensics
 
                 // Find longest header
                 for (int i = 0; i < target.Length; i++)
-                    if (target[i].Length > longestTarget)
+                    if (target[i] != null && target[i].Length > longestTarget)
                         longestTarget = target[i].Length;
 
                 // Create a GPU object for each GPU selected
@@ -1099,8 +1099,11 @@ namespace OpenForensics
                     for (int j = 0; j < targetHeader.Count; j++, i += 2)       // Translate Search Targets into Bytes
                     {
                         target[i] = Engine.GetBytes(targetHeader[j]);
-                        targetEnd[j] = Engine.GetBytes(targetFooter[j]);
-                        target[i + 1] = Engine.GetBytes(targetFooter[j]);
+                        if (targetFooter[j] != null)
+                        {
+                            targetEnd[j] = Engine.GetBytes(targetFooter[j]);
+                            target[i + 1] = Engine.GetBytes(targetFooter[j]);
+                        }
                     }
                 }
                 else
@@ -1156,41 +1159,28 @@ namespace OpenForensics
                         }
                     }
 
-                    int searchRange = i + fileLength;
-                    if (searchRange > buffer.Length)
-                        searchRange = buffer.Length;
-
-                    bool nextHeaderFound = false;
-                    int nextHeader = 0;
-                    int fileEnd = 0;
-
-                    for (int j = i + 1; j < searchRange; j++)
+                    if (targetEnd[fileIndex] != null)
                     {
-                        if (resultLoc[j] == headerType && !nextHeaderFound)
-                        {
-                            nextHeader = j - 1;
-                            nextHeaderFound = true;
-                        }
 
-                        if (targetName[fileIndex] == "sqldb")
+                        int searchRange = i + fileLength;
+                        if (searchRange > buffer.Length)
+                            searchRange = buffer.Length;
+
+                        bool nextHeaderFound = false;
+                        int nextHeader = 0;
+                        int fileEnd = 0;
+
+                        for (int j = i + 1; j < searchRange; j++)
                         {
-                            fileEnd = i + sqldbSearchLength(ref buffer, i);
-                            if (fileEnd > buffer.Length)
-                                fileEnd = 0;
-                            if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                            if (resultLoc[j] == headerType && !nextHeaderFound)
                             {
-                                CarveFile(buffer, count, fileIndex, i, fileEnd, "");
-                                break;
+                                nextHeader = j - 1;
+                                nextHeaderFound = true;
                             }
-                            else
-                                fileEnd = 0;
-                        }
-                        else
-                        {
-                            if ((int)resultLoc[j] == footerType)
+
+                            if (targetName[fileIndex] == "sqldb")
                             {
-                                fileEnd = j + targetEnd[fileIndex].Length;
-                                fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
+                                fileEnd = i + sqldbSearchLength(ref buffer, i);
                                 if (fileEnd > buffer.Length)
                                     fileEnd = 0;
                                 if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
@@ -1201,16 +1191,32 @@ namespace OpenForensics
                                 else
                                     fileEnd = 0;
                             }
+                            else
+                            {
+                                if ((int)resultLoc[j] == footerType)
+                                {
+                                    fileEnd = j + targetEnd[fileIndex].Length;
+                                    fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
+                                    if (fileEnd > buffer.Length)
+                                        fileEnd = 0;
+                                    if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                                    {
+                                        CarveFile(buffer, count, fileIndex, i, fileEnd, "");
+                                        break;
+                                    }
+                                    else
+                                        fileEnd = 0;
+                                }
+                            }
                         }
-                    }
 
-                    if (fileEnd == 0 && nextHeaderFound)
-                        CarveFile(buffer, count, fileIndex, i, nextHeader, "fragmented");
-                    else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
-                        CarveFile(buffer, count, fileIndex, i, searchRange, "partial");
+                        if (fileEnd == 0 && nextHeaderFound)
+                            CarveFile(buffer, count, fileIndex, i, nextHeader, "fragmented");
+                        else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
+                            CarveFile(buffer, count, fileIndex, i, searchRange, "partial");
 
+                    }                
                 }
-
                 i++;
             }
         }

@@ -630,30 +630,18 @@ namespace OpenForensics
                 {
                     XmlNodeList values = childnode.SelectNodes("Value");
 
-                    if (carving)
-                    {
-                        string fileEOF = null;
-                        if (childnode.SelectSingleNode("EOF") != null)
-                            fileEOF = childnode["EOF"].InnerText.Trim();
+                    string fileEOF = null;
+                    if (childnode.SelectSingleNode("EOF") != null)
+                        fileEOF = childnode["EOF"].InnerText.Trim();
 
-                        if (fileEOF != null)
-                        {
-                            foreach (XmlNode value in values)
-                            {
-                                targetName.Add(typeName);
-                                targetHeader.Add(value.InnerText);
-                                targetFooter.Add(fileEOF);
-                            }
-                        }
-                    }
-                    else
+
+                    foreach (XmlNode value in values)
                     {
-                        foreach (XmlNode value in values)
-                        {
-                            targetName.Add(typeName);
-                            targetHeader.Add(value.InnerText);
-                        }
+                        targetName.Add(typeName);
+                        targetHeader.Add(value.InnerText);
+                        targetFooter.Add(fileEOF);
                     }
+
                     break;
                 }
             }
