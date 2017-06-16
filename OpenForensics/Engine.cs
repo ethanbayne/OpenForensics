@@ -599,6 +599,42 @@ namespace OpenForensics
 
         //GPU PFAC Analyse - using PFAC for searching Bytes
         [Cudafy]
+        public static void ProcessResults(GThread thread, byte[] results, uint[] resultCount)
+        {
+            int n = results.Length;
+
+            int t = thread.threadIdx.x;
+            int i = thread.threadIdx.x + thread.blockIdx.x * thread.blockDim.x;     // Counter for i
+            int stride = thread.blockDim.x * thread.gridDim.x;                      // Stride is the next byte for the thread to go to
+            //int resultSize = 0;
+            //for (int z = 0; z < resultCount.Length; z += stride)
+            //    resultSize += (int)resultCount[z];
+            int[] resultID = thread.AllocateShared<int>("dev_resultID", thread.blockDim.x);
+            int[] resultSOF = thread.AllocateShared<int>("dev_resultSOF", thread.blockDim.x);
+            int[] resultEOF = thread.AllocateShared<int>("dev_resultEOF", thread.blockDim.x);
+
+            for (; i < n; i += stride)                    // Loop to scan full file segment
+            {
+                if(results[i] % 2 != 0)
+                {
+                    int z = i;
+                    for (; z < n; z += stride)                    // Loop to scan full file segment
+                    {
+                        if (results[z] == results[i]+1)
+                        {
+                            resultID[t] = results[i];
+                            resultSOF[t] = i;
+                            resultEOF[t] = z;
+                        }
+                    }
+                }
+            }
+
+            thread.SyncThreads();                                                   // Sync GPU threads
+        }
+
+        //GPU PFAC Analyse - using PFAC for searching Bytes
+        [Cudafy]
         public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int carveOp, int[,] lookup, int longestTarget, int fileLength, byte[] results, uint[] resultCount)
         {
             int n = buffer.Length;

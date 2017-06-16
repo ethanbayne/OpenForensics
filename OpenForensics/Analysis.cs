@@ -1047,7 +1047,7 @@ namespace OpenForensics
                         updateGPUAct(gpuID, true, true);
                         Parallel.For(0, procShare, i =>
                         {
-                            smartCarve(gpu, i, ref buffer, ref count, ref fileLength, ref target, ref lookup, ref targetEnd, ref lookupEnd, ref byteLocation, ref results);
+                            ProcessLocations(gpu, i, ref buffer, ref count, ref fileLength, ref target, ref lookup, ref targetEnd, ref lookupEnd, ref byteLocation, ref results);
                         });
                         Task.WaitAll();
                         updateGPUAct(gpuID, false, true);
@@ -1138,6 +1138,91 @@ namespace OpenForensics
         #region File Carving Operations
 
         // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
+        private void ProcessLocations(int gpu, int procNo, ref byte[] buffer, ref long count, ref int fileLength, ref byte[][] target, ref int[][] lookup, ref byte[][] targetEnd, ref int[][] lookupEnd, ref byte[] resultLoc, ref int[] results)
+        {
+            int i = (procNo * (resultLoc.Length / procShare));
+            int end = ((procNo + 1) * (resultLoc.Length / procShare));
+
+            while (i < end && !shouldStop)
+            {
+                if ((int)resultLoc[i] != 0 && (int)resultLoc[i] % 2 != 0 && (int)resultLoc[i] < target.Length)
+                {
+                    int headerType = (int)resultLoc[i];
+                    int fileIndex = ((headerType + 1) / 2) - 1;
+                    int footerType = 0;
+                    for (int j = 0; j < targetName.Count; j++)
+                    {
+                        if (targetName[j] == targetName[fileIndex])
+                        {
+                            footerType = (j * 2) + 2;
+                            break;
+                        }
+                    }
+
+                    if (targetEnd[fileIndex] != null)
+                    {
+
+                        int searchRange = i + fileLength;
+                        if (searchRange > buffer.Length)
+                            searchRange = buffer.Length;
+
+                        bool nextHeaderFound = false;
+                        int nextHeader = 0;
+                        int fileEnd = 0;
+
+                        for (int j = i + 1; j < searchRange; j++)
+                        {
+                            if (resultLoc[j] == headerType && !nextHeaderFound)
+                            {
+                                nextHeader = j - 1;
+                                nextHeaderFound = true;
+                            }
+
+                            if (targetName[fileIndex] == "sqldb")
+                            {
+                                fileEnd = i + sqldbSearchLength(ref buffer, i);
+                                if (fileEnd > buffer.Length)
+                                    fileEnd = 0;
+                                if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                                {
+                                    RecordFileLocation(buffer, count, fileIndex, i, fileEnd, "");
+                                    break;
+                                }
+                                else
+                                    fileEnd = 0;
+                            }
+                            else
+                            {
+                                if ((int)resultLoc[j] == footerType)
+                                {
+                                    fileEnd = j + targetEnd[fileIndex].Length;
+                                    fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
+                                    if (fileEnd > buffer.Length)
+                                        fileEnd = 0;
+                                    if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                                    {
+                                        RecordFileLocation(buffer, count, fileIndex, i, fileEnd, "");
+                                        break;
+                                    }
+                                    else
+                                        fileEnd = 0;
+                                }
+                            }
+                        }
+
+                        if (fileEnd == 0 && nextHeaderFound)
+                            RecordFileLocation(buffer, count, fileIndex, i, nextHeader, "fragmented");
+                        else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
+                            RecordFileLocation(buffer, count, fileIndex, i, searchRange, "partial");
+
+                    }
+                }
+                i++;
+            }
+        }
+
+
+        // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
         private void smartCarve(int gpu, int procNo, ref byte[] buffer, ref long count, ref int fileLength, ref byte[][] target, ref int[][] lookup, ref byte[][] targetEnd, ref int[][] lookupEnd, ref byte[] resultLoc, ref int[] results)
         {
             int i = (procNo * (resultLoc.Length / procShare));
@@ -1218,6 +1303,46 @@ namespace OpenForensics
                     }                
                 }
                 i++;
+            }
+        }
+
+        // File reconstruction method used by main carving thread.
+        private void RecordFileLocation(byte[] buffer, double count, int fileIndex, int start, int finish, string tag)
+        {
+            string filePath = saveLocation + targetName[fileIndex] + "/";
+            if (!Directory.Exists(filePath))
+                Directory.CreateDirectory(filePath);
+            if (!File.Exists(filePath + (count + start).ToString() + "." + targetName[fileIndex]))
+            {
+                try
+                {
+                    byte[] fileData = new byte[finish - start];
+                    Array.Copy(buffer, start, fileData, 0, finish - start);
+
+                    float fileSize = (finish - start);
+                    string sizeFormat = "bytes";
+                    if (fileSize > 1024)
+                    {
+                        fileSize = fileSize / 1024;
+                        sizeFormat = "KB";
+                    }
+                    if (fileSize > 1024)
+                    {
+                        fileSize = fileSize / 1024;
+                        sizeFormat = "MB";
+                    }
+                    if (fileSize > 1024)
+                    {
+                        fileSize = fileSize / 1024;
+                        sizeFormat = "GB";
+                    }
+                    String newEntry = (count + start).ToString() + " \t\t " + (count + finish).ToString() + " \t\t " + Math.Round(fileSize, 4).ToString() + " " + sizeFormat + " \t\t " + tag + " " + targetName[fileIndex];
+                    foundResults.Add(newEntry);
+
+                    Interlocked.Increment(ref results[fileIndex]);
+                    updateFound();
+                }
+                catch { }
             }
         }
 
