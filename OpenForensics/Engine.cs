@@ -6,6 +6,8 @@ using Cudafy;
 using Cudafy.Host;
 using Cudafy.Atomics;
 using Cudafy.Translator;
+using System.IO;
+using System.Windows.Forms;
 
 namespace OpenForensics
 {
@@ -26,7 +28,7 @@ namespace OpenForensics
         private int fileLength;
         private int longestTarget;
         private byte[][] targetEnd;
-        private byte[][] resultLoc;
+        //private byte[][] resultLoc;
         private int[][] resultCount;
 
         private bool carveOp;
@@ -36,16 +38,16 @@ namespace OpenForensics
         private byte[][] dev_target;
         private int[,] dev_lookup;
         private byte[][] dev_targetEnd;
-        private byte[][] dev_resultLoc;
+        //private byte[][] dev_resultLoc;
         private int[][] dev_resultCount;
 
         private byte[][] foundID;
         private int[][] foundSOF;
-        private int[][] foundEOF;
+        //private int[][] foundEOF;
         private int[][] dev_foundCount;
         private byte[][] dev_foundID;
         private int[][] dev_foundSOF;
-        private int[][] dev_foundEOF;
+        //private int[][] dev_foundEOF;
 
         #region Engine Initiation
 
@@ -73,14 +75,14 @@ namespace OpenForensics
 
             // Allocate the memory on the GPU for buffer and results
             dev_buffer = new byte[gpuCoreCount][];
-            dev_resultLoc = new byte[gpuCoreCount][];
+            //dev_resultLoc = new byte[gpuCoreCount][];
             dev_resultCount = new int[gpuCoreCount][];
             resultCount = new int[gpuCoreCount][];
             for (int i = 0; i < gpuCoreCount; i++)
             {
                 dev_buffer[i] = gpu.Allocate<byte>(new byte[chunkSize]);
-                dev_resultLoc[i] = gpu.Allocate<byte>(new byte[chunkSize]);
-                gpu.Set(dev_resultLoc[i]);
+                //dev_resultLoc[i] = gpu.Allocate<byte>(new byte[chunkSize]);
+                //gpu.Set(dev_resultLoc[i]);
                 dev_resultCount[i] = gpu.Allocate<int>(new int[target.Length]);
                 gpu.Set(dev_resultCount[i]);
                 resultCount[i] = new int[target.Length];
@@ -150,34 +152,34 @@ namespace OpenForensics
 
             // Allocate the memory on the GPU for buffer and results
             dev_buffer = new byte[gpuCoreCount][];
-            dev_resultLoc = new byte[gpuCoreCount][];
+            //dev_resultLoc = new byte[gpuCoreCount][];
             dev_resultCount = new int[gpuCoreCount][];
-            resultLoc = new byte[gpuCoreCount][];
+            //resultLoc = new byte[gpuCoreCount][];
             resultCount = new int[gpuCoreCount][];
 
             dev_foundCount = new int[gpuCoreCount][];
             dev_foundID = new byte[gpuCoreCount][];
             dev_foundSOF = new int[gpuCoreCount][];
-            dev_foundEOF = new int[gpuCoreCount][];
+            //dev_foundEOF = new int[gpuCoreCount][];
             foundID = new byte[gpuCoreCount][];
             foundSOF = new int[gpuCoreCount][];
-            foundEOF = new int[gpuCoreCount][];
+            //foundEOF = new int[gpuCoreCount][];
 
             for (int i = 0; i < gpuCoreCount; i++)
             {
                 dev_buffer[i] = gpu.Allocate<byte>(new byte[chunkSize]);
-                dev_resultLoc[i] = gpu.Allocate<byte>(new byte[chunkSize]);
+                //dev_resultLoc[i] = gpu.Allocate<byte>(new byte[chunkSize]);
                 dev_resultCount[i] = gpu.Allocate<int>(new int[target.Length]);
-                resultLoc[i] = new byte[chunkSize];
+                //resultLoc[i] = new byte[chunkSize];
                 resultCount[i] = new int[target.Length];
 
                 dev_foundCount[i] = gpu.Allocate<int>(new int[1]);
-                dev_foundID[i] = gpu.Allocate<byte>(new byte[300]);
-                dev_foundSOF[i] = gpu.Allocate<int>(new int[300]);
-                dev_foundEOF[i] = gpu.Allocate<int>(new int[300]);
-                foundID[i] = new byte[300];
-                foundSOF[i] = new int[300];
-                foundEOF[i] = new int[300];
+                dev_foundID[i] = gpu.Allocate<byte>(new byte[13107200]);
+                dev_foundSOF[i] = gpu.Allocate<int>(new int[13107200]);
+                //dev_foundEOF[i] = gpu.Allocate<int>(new int[300]);
+                foundID[i] = new byte[13107200];
+                foundSOF[i] = new int[13107200];
+                //foundEOF[i] = new int[300];
                 FreeBuffers(i);
             }
         }
@@ -496,9 +498,14 @@ namespace OpenForensics
             {
                 gpu.SetCurrentContext();
                 gpu.Set(dev_buffer[gpuCore]);
-                if (carveOp)
-                    gpu.Set(dev_resultLoc[gpuCore]);
+                //if (carveOp)
+                //    gpu.Set(dev_resultLoc[gpuCore]);
                 gpu.Set(dev_resultCount[gpuCore]);
+
+                gpu.Set(dev_foundCount[gpuCore]);
+                gpu.Set(dev_foundID[gpuCore]);
+                gpu.Set(dev_foundSOF[gpuCore]);
+                //gpu.Set(dev_foundEOF[gpuCore]);
             }
             catch { }
         }
@@ -535,9 +542,19 @@ namespace OpenForensics
             gpu.LoadModule(km);
         }
 
-        public byte[] ReturnResult(int gpuCore)
+        //public byte[] ReturnResult(int gpuCore)
+        //{
+        //    return resultLoc[gpuCore];
+
+        //}
+        public byte[] ReturnResultID(int gpuCore)
         {
-            return resultLoc[gpuCore];
+            return foundID[gpuCore];
+
+        }
+        public int[] ReturnResultLoc(int gpuCore)
+        {
+            return foundSOF[gpuCore];
 
         }
 
@@ -554,12 +571,12 @@ namespace OpenForensics
 
             for (int i = 0; i < dev_target.Length; i++)
             {
-                gpu.Launch(gpuBlocks, blockSize).BruteAnalyse(fileID, dev_buffer, dev_target[i], i, fileLength, 0, bufferSize, dev_resultLoc, dev_resultCount);  // Start the analysis of the buffer
+                //gpu.Launch(gpuBlocks, blockSize).BruteAnalyse(fileID, dev_buffer, dev_target[i], i, fileLength, 0, bufferSize, dev_resultLoc, dev_resultCount);  // Start the analysis of the buffer
                 fileID += 1;
                 if (carveOp)
                 {
                     if (i == 0 || targetEnd[i].SequenceEqual(targetEnd[i - 1]) == false)
-                        gpu.Launch(gpuBlocks, blockSize).BruteAnalyse(fileID, dev_buffer, dev_targetEnd[i], i, fileLength, 0, bufferSize, dev_resultLoc, dev_resultCount);  // Start the analysis of the buffer
+                        //gpu.Launch(gpuBlocks, blockSize).BruteAnalyse(fileID, dev_buffer, dev_targetEnd[i], i, fileLength, 0, bufferSize, dev_resultLoc, dev_resultCount);  // Start the analysis of the buffer
                     fileID += 1;
                 }
             }
@@ -567,8 +584,8 @@ namespace OpenForensics
             //for (int i = 0; i < (dev_target.Length + 2); i++)
             //    gpu.SynchronizeStream(i);
             gpu.Synchronize();
-            if(carveOp)
-                gpu.CopyFromDevice(dev_resultLoc[gpuCore], resultLoc[gpuCore]);                       // Copy results back from GPU
+            //if(carveOp)
+            //    gpu.CopyFromDevice(dev_resultLoc[gpuCore], resultLoc[gpuCore]);                       // Copy results back from GPU
             gpu.CopyFromDevice(dev_resultCount[gpuCore], resultCount[gpuCore]);
             FreeBuffers(gpuCore);
         }
@@ -601,7 +618,7 @@ namespace OpenForensics
             {
                 gpu.SetCurrentContext();
 
-                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundSOF[gpuCore]);
+                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundSOF[gpuCore]);
                 //gpu.Launch(gpuOperatingCores, blockSize, gpuCore).PFACAnalyse(dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);  // Start the analysis of the buffer
                 gpu.SynchronizeStream(gpuCore);
             }
@@ -612,14 +629,28 @@ namespace OpenForensics
                 {
                     if (resultCount[gpuCore][i] > 0)
                     {
-                        gpu.SetCurrentContext();
-                        //gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "ProcessResults", fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundSOF[gpuCore], dev_foundEOF[gpuCore]);
-                        gpu.SynchronizeStream(gpuCore);
-                        gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);                       // Copy results back from GPU
+                        //lock (locker[GPUid])
+                        //{
+                        //    gpu.SetCurrentContext();
+                        //    gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "ProcessResults", fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundSOF[gpuCore], dev_foundEOF[gpuCore]);
+                        //    gpu.SynchronizeStream(gpuCore);
+                        //}
 
+                        gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);                       // Copy results back from GP
+                        //for (int lol = 0; lol < foundID[gpuCore].Length; lol++)
+                        //    if (foundID[gpuCore][lol] == 0)
+                        //    {
+                        //        MessageBox.Show("Here: " + lol);
+                        //        break;
+                        //    }
                         gpu.CopyFromDevice(dev_foundSOF[gpuCore], foundSOF[gpuCore]);
-
-                        gpu.CopyFromDevice(dev_foundEOF[gpuCore], foundEOF[gpuCore]);                       // Copy results back from GPU
+                        //for (int lol = 0; lol < foundSOF[gpuCore].Length; lol++)
+                        //    if (foundSOF[gpuCore][lol] == 0)
+                        //    {
+                        //        MessageBox.Show("Here: " + lol);
+                        //        break;
+                        //    }
+                        //gpu.CopyFromDevice(dev_foundEOF[gpuCore], foundEOF[gpuCore]);                       // Copy results back from GPU
                         break;
                     }
                 }
@@ -629,49 +660,49 @@ namespace OpenForensics
         }
 
         //ProcessResults - experimental GPU result sorting
-        [Cudafy]
-        public static void ProcessResults(GThread thread, int fileLength, byte[] results, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF, int[]foundEOF)
-        {
-            int n = results.Length;
+        //[Cudafy]
+        //public static void ProcessResults(GThread thread, int fileLength, byte[] results, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF, int[]foundEOF)
+        //{
+        //    int n = results.Length;
 
-            int i = thread.threadIdx.x + thread.blockIdx.x * thread.blockDim.x;     // Counter for i
-            int stride = thread.blockDim.x * thread.gridDim.x;                      // Stride is the next byte for the thread to go to
+        //    int i = thread.threadIdx.x + thread.blockIdx.x * thread.blockDim.x;     // Counter for i
+        //    int stride = thread.blockDim.x * thread.gridDim.x;                      // Stride is the next byte for the thread to go to
 
-            for (; i < n; i += stride)                    // Loop to scan full file segment
-            {
-                if(results[i] != 0)
-                {
-                    int pos = i;
-                    while (pos < n && pos < i + fileLength)                    // Loop to scan full file segment
-                    {
-                        if (results[pos] == (results[i] + 1))
-                        {
-                            int current = thread.atomicAdd(ref foundCount[0], 1);
-                            foundID[current] = results[i];
-                            foundSOF[current] = i;
-                            foundEOF[current] = pos;
-                            break;
-                        }
-                        pos++;
-                    }
-                }
-            }
+        //    for (; i < n; i += stride)                    // Loop to scan full file segment
+        //    {
+        //        if((results[i] - 1) % 2 == 0)
+        //        {
+        //            int pos = i;
+        //            while (pos < n && pos < i + fileLength)                    // Loop to scan full file segment
+        //            {
+        //                if (results[pos] == (results[i] + 1))
+        //                {
+        //                    int current = thread.atomicAdd(ref foundCount[0], 1);
+        //                    foundID[current] = results[i];
+        //                    foundSOF[current] = i;
+        //                    foundEOF[current] = pos;
+        //                    break;
+        //                }
+        //                pos++;
+        //            }
+        //        }
+        //    }
 
-            thread.SyncThreads();                                                   // Sync GPU threads
-        }
+        //    thread.SyncThreads();                                                   // Sync GPU threads
+        //}
 
         //GPU PFAC Analyse - using PFAC for searching Bytes
         [Cudafy]
-        public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int carveOp, int[,] lookup, int longestTarget, int fileLength, byte[] results, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF)
+        public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int carveOp, int[,] lookup, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF)
         {
             int n = buffer.Length;
 
             int i = thread.threadIdx.x + thread.blockIdx.x * thread.blockDim.x;     // Counter for i
             int stride = thread.blockDim.x * thread.gridDim.x;                      // Stride is the next byte for the thread to go to
 
-            int[] temp = thread.AllocateShared<int>("temp", 1024);
-            temp[thread.threadIdx.x] = 0;
-            thread.SyncThreads();
+            //int[] temp = thread.AllocateShared<int>("temp", 1024);
+            //temp[thread.threadIdx.x] = 0;
+            //thread.SyncThreads();
 
             for (; i < n; i += stride)                    // Loop to scan full file segment
             {
@@ -691,10 +722,9 @@ namespace OpenForensics
                             if ((state - 1) % 2 == 0)
                                 thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
                             //results[i] = (byte)state;
-                            temp[thread.threadIdx.x] = thread.atomicAdd(ref foundCount[0], 1);
-                            thread.atomicAdd(ref foundSOF[temp[thread.threadIdx.x]], i);
-                            foundID[temp[thread.threadIdx.x]] = (byte)state;
-                            //foundSOF[current] = i;
+                            int counter = thread.atomicAdd(ref foundCount[0], 1);
+                            foundID[counter] = (byte)state;
+                            foundSOF[counter] = i;
                             //foundEOF[current] = pos;
                         }
                     }
@@ -831,7 +861,8 @@ namespace OpenForensics
 
             int[][] result = table.ToArray();       // Convert list to 2d array for returning
 
-            /* Logic Table Generation to CSV File for visualising logic table
+            // Logic Table Generation to CSV File for visualising logic table
+            /*
             using (StreamWriter outfile = new StreamWriter(@"C:\Users\Ethan\Desktop\myfile.csv"))
             {
                 for (int x = 0; x < result.Length; x++)

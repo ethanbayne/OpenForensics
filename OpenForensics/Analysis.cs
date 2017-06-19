@@ -319,7 +319,7 @@ namespace OpenForensics
                 {
                     int maxGPUThread = (int)((maxGPUMem*0.8) / (chunkSize*2));
                     gpuCoreCount = Math.Min(lpCount / gpus.Count, maxGPUThread);
-                    gpuCoreCount = 1;   // Force GPU concurrency to a certain value.
+                    //gpuCoreCount = 1;   // Force GPU concurrency to a certain value.
 
                     if (gpus.Count > 1)
                         techUsed = " (" + GPGPU + " - " + gpus.Count + " GPUs - running " + gpuCoreCount + " threads each)";
@@ -966,7 +966,7 @@ namespace OpenForensics
                     if (matchesFound)
                     {
                         updateGPUAct(cpu, true, true);
-                        smartCarve(cpu, 0, ref buffer, ref count, ref fileLength, ref target, ref lookup, ref targetEnd, ref lookupEnd, ref byteLocation, ref results);
+                        smartCarve(cpu, 0, ref buffer, ref count, ref byteLocation, ref results);
                         updateGPUAct(cpu, false, false);
                         updateFound();
                     }
@@ -1004,11 +1004,15 @@ namespace OpenForensics
             //MessageBox.Show(gpu.ToString() + " & " + gpuCore.ToString());
             long count = 0;
             byte[] buffer = new byte[chunkSize];
-            byte[] byteLocation = new byte[1];
+            byte[] foundID = new byte[1];
+            int[] foundLoc = new int[1];
             int gpuID = gpu * gpuCoreCount + gpuCore;
 
             if (carveOp)
-                byteLocation = new byte[chunkSize];
+            {
+                foundID = new byte[13107200];
+                foundLoc = new int[13107200];
+            }
 
             double bytesRead;      // Location in file read
             while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Read into the buffer until end of file
@@ -1036,7 +1040,9 @@ namespace OpenForensics
                         if (carveResult[c] > 0)
                         {
                             matchesFound = true;
-                            byteLocation = GPUCollection[gpu].ReturnResult(gpuCore);
+                            //byteLocation = GPUCollection[gpu].ReturnResult(gpuCore);
+                            foundID = GPUCollection[gpu].ReturnResultID(gpuCore);
+                            foundLoc = GPUCollection[gpu].ReturnResultLoc(gpuCore);
                             break;
                         }
                     }
@@ -1047,7 +1053,7 @@ namespace OpenForensics
                         updateGPUAct(gpuID, true, true);
                         Parallel.For(0, procShare, i =>
                         {
-                            ProcessLocations(gpu, i, ref buffer, ref count, ref fileLength, ref target, ref lookup, ref targetEnd, ref lookupEnd, ref byteLocation, ref results);
+                            ProcessLocations(gpu, i, ref buffer, ref count, ref foundID, ref foundLoc);
                         });
                         Task.WaitAll();
                         updateGPUAct(gpuID, false, true);
@@ -1076,7 +1082,8 @@ namespace OpenForensics
 
             // After thread is done, minimise buffer and byteLocation to 1, update UI
             buffer = new byte[1];
-            byteLocation = new byte[1];
+            foundID = new byte[1];
+            foundLoc = new int[1];
             updateGPUAct(gpuID, true);
         }
 
@@ -1138,16 +1145,27 @@ namespace OpenForensics
         #region File Carving Operations
 
         // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
-        private void ProcessLocations(int gpu, int procNo, ref byte[] buffer, ref long count, ref int fileLength, ref byte[][] target, ref int[][] lookup, ref byte[][] targetEnd, ref int[][] lookupEnd, ref byte[] resultLoc, ref int[] results)
+        private void ProcessLocations(int gpu, int procNo, ref byte[] buffer, ref long count, ref byte[] resultID, ref int[] resultLoc)
         {
+            int resultCount = 0;
+            for (int z = 0; z < resultID.Length; z++)
+                if (resultID[z] == 0)
+                {
+                    Array.Resize(ref resultID, z);
+                    Array.Resize(ref resultLoc, z);
+                    resultCount = z;
+                }
+
+            Array.Sort(resultLoc, resultID);
+
             int i = (procNo * (resultLoc.Length / procShare));
             int end = ((procNo + 1) * (resultLoc.Length / procShare));
 
             while (i < end && !shouldStop)
             {
-                if ((int)resultLoc[i] != 0 && (int)resultLoc[i] % 2 != 0 && (int)resultLoc[i] < target.Length)
+                if ((resultID[i] - 1) % 2 == 0)
                 {
-                    int headerType = (int)resultLoc[i];
+                    int headerType = (int)resultID[i];
                     int fileIndex = ((headerType + 1) / 2) - 1;
                     int footerType = 0;
                     for (int j = 0; j < targetName.Count; j++)
@@ -1162,7 +1180,7 @@ namespace OpenForensics
                     if (targetEnd[fileIndex] != null)
                     {
 
-                        int searchRange = i + fileLength;
+                        int searchRange = resultLoc[i] + fileLength;
                         if (searchRange > buffer.Length)
                             searchRange = buffer.Length;
 
@@ -1172,20 +1190,21 @@ namespace OpenForensics
 
                         for (int j = i + 1; j < searchRange; j++)
                         {
-                            if (resultLoc[j] == headerType && !nextHeaderFound)
+                            if ((resultID[j] - 1) % 2 == 0)
                             {
                                 nextHeader = j - 1;
                                 nextHeaderFound = true;
+                                break;
                             }
 
                             if (targetName[fileIndex] == "sqldb")
                             {
-                                fileEnd = i + sqldbSearchLength(ref buffer, i);
+                                fileEnd = resultLoc[i] + sqldbSearchLength(ref buffer, resultLoc[i]);
                                 if (fileEnd > buffer.Length)
                                     fileEnd = 0;
                                 if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
                                 {
-                                    RecordFileLocation(buffer, count, fileIndex, i, fileEnd, "");
+                                    RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
                                     break;
                                 }
                                 else
@@ -1193,15 +1212,15 @@ namespace OpenForensics
                             }
                             else
                             {
-                                if ((int)resultLoc[j] == footerType)
+                                if ((int)resultID[j] == footerType)
                                 {
-                                    fileEnd = j + targetEnd[fileIndex].Length;
+                                    fileEnd = resultLoc[j] + targetEnd[fileIndex].Length;
                                     fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
                                     if (fileEnd > buffer.Length)
                                         fileEnd = 0;
                                     if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
                                     {
-                                        RecordFileLocation(buffer, count, fileIndex, i, fileEnd, "");
+                                        RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
                                         break;
                                     }
                                     else
@@ -1211,9 +1230,9 @@ namespace OpenForensics
                         }
 
                         if (fileEnd == 0 && nextHeaderFound)
-                            RecordFileLocation(buffer, count, fileIndex, i, nextHeader, "fragmented");
+                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], nextHeader, "fragmented");
                         else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
-                            RecordFileLocation(buffer, count, fileIndex, i, searchRange, "partial");
+                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], searchRange, "partial");
 
                     }
                 }
@@ -1223,7 +1242,7 @@ namespace OpenForensics
 
 
         // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
-        private void smartCarve(int gpu, int procNo, ref byte[] buffer, ref long count, ref int fileLength, ref byte[][] target, ref int[][] lookup, ref byte[][] targetEnd, ref int[][] lookupEnd, ref byte[] resultLoc, ref int[] results)
+        private void smartCarve(int gpu, int procNo, ref byte[] buffer, ref long count, ref byte[] resultLoc, ref int[] results)
         {
             int i = (procNo * (resultLoc.Length / procShare));
             int end = ((procNo + 1) * (resultLoc.Length / procShare));
