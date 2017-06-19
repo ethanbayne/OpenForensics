@@ -1163,16 +1163,16 @@ namespace OpenForensics
 
             while (i < end && !shouldStop)
             {
-                if ((resultID[i] - 1) % 2 == 0)
+                if (resultID[i] % 2 != 0)
                 {
                     int headerType = (int)resultID[i];
                     int fileIndex = ((headerType + 1) / 2) - 1;
                     int footerType = 0;
-                    for (int j = 0; j < targetName.Count; j++)
+                    for (int y = 0; y < targetName.Count; y++)
                     {
-                        if (targetName[j] == targetName[fileIndex])
+                        if (targetName[y] == targetName[fileIndex])
                         {
-                            footerType = (j * 2) + 2;
+                            footerType = (y * 2) + 2;
                             break;
                         }
                     }
@@ -1180,42 +1180,25 @@ namespace OpenForensics
                     if (targetEnd[fileIndex] != null)
                     {
 
-                        int searchRange = resultLoc[i] + fileLength;
-                        if (searchRange > buffer.Length)
-                            searchRange = buffer.Length;
+                        int searchRange = resultID.Length;
 
                         bool nextHeaderFound = false;
                         int nextHeader = 0;
                         int fileEnd = 0;
 
-                        for (int j = i + 1; j < searchRange; j++)
+                        for (int j = (i + 1); j < searchRange; j++)
                         {
-                            if ((resultID[j] - 1) % 2 == 0)
+                            if (resultID[j] == headerType)
                             {
-                                nextHeader = j - 1;
+                                nextHeader = resultLoc[j] - 1;
                                 nextHeaderFound = true;
                                 break;
                             }
-
-                            if (targetName[fileIndex] == "sqldb")
+                            else if (resultID[j] == footerType)
                             {
-                                fileEnd = resultLoc[i] + sqldbSearchLength(ref buffer, resultLoc[i]);
-                                if (fileEnd > buffer.Length)
-                                    fileEnd = 0;
-                                if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                                if (targetName[fileIndex] == "sqldb")
                                 {
-                                    RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
-                                    break;
-                                }
-                                else
-                                    fileEnd = 0;
-                            }
-                            else
-                            {
-                                if ((int)resultID[j] == footerType)
-                                {
-                                    fileEnd = resultLoc[j] + targetEnd[fileIndex].Length;
-                                    fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
+                                    fileEnd = resultLoc[i] + sqldbSearchLength(ref buffer, resultLoc[i]);
                                     if (fileEnd > buffer.Length)
                                         fileEnd = 0;
                                     if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
@@ -1226,14 +1209,35 @@ namespace OpenForensics
                                     else
                                         fileEnd = 0;
                                 }
+                                else
+                                {
+                                    if ((int)resultID[j] == footerType)
+                                    {
+                                        fileEnd = resultLoc[j] + targetEnd[fileIndex].Length;
+                                        fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
+                                        if (fileEnd > buffer.Length)
+                                            fileEnd = 0;
+                                        if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                                        {
+                                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
+                                            break;
+                                        }
+                                        else
+                                            fileEnd = 0;
+                                    }
+                                }
                             }
                         }
 
                         if (fileEnd == 0 && nextHeaderFound)
                             RecordFileLocation(buffer, count, fileIndex, resultLoc[i], nextHeader, "fragmented");
                         else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
-                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], searchRange, "partial");
+                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], Math.Min(resultLoc[i] + fileLength, buffer.Length), "partial");
 
+                    }
+                    else
+                    {
+                        RecordFileLocation(buffer, count, fileIndex, resultLoc[i], 0, "(non-carvable)");
                     }
                 }
                 i++;
@@ -1328,40 +1332,51 @@ namespace OpenForensics
         // File reconstruction method used by main carving thread.
         private void RecordFileLocation(byte[] buffer, double count, int fileIndex, int start, int finish, string tag)
         {
-            string filePath = saveLocation + targetName[fileIndex] + "/";
-            if (!Directory.Exists(filePath))
-                Directory.CreateDirectory(filePath);
-            if (!File.Exists(filePath + (count + start).ToString() + "." + targetName[fileIndex]))
+            if (finish != 0)
             {
-                try
+                string filePath = saveLocation + targetName[fileIndex] + "/";
+                if (!Directory.Exists(filePath))
+                    Directory.CreateDirectory(filePath);
+                if (!File.Exists(filePath + (count + start).ToString() + "." + targetName[fileIndex]))
                 {
-                    byte[] fileData = new byte[finish - start];
-                    Array.Copy(buffer, start, fileData, 0, finish - start);
+                    try
+                    {
+                        byte[] fileData = new byte[finish - start];
+                        Array.Copy(buffer, start, fileData, 0, finish - start);
 
-                    float fileSize = (finish - start);
-                    string sizeFormat = "bytes";
-                    if (fileSize > 1024)
-                    {
-                        fileSize = fileSize / 1024;
-                        sizeFormat = "KB";
-                    }
-                    if (fileSize > 1024)
-                    {
-                        fileSize = fileSize / 1024;
-                        sizeFormat = "MB";
-                    }
-                    if (fileSize > 1024)
-                    {
-                        fileSize = fileSize / 1024;
-                        sizeFormat = "GB";
-                    }
-                    String newEntry = (count + start).ToString() + " \t\t " + (count + finish).ToString() + " \t\t " + Math.Round(fileSize, 4).ToString() + " " + sizeFormat + " \t\t " + tag + " " + targetName[fileIndex];
-                    foundResults.Add(newEntry);
+                        float fileSize = (finish - start);
+                        string sizeFormat = "bytes";
+                        if (fileSize > 1024)
+                        {
+                            fileSize = fileSize / 1024;
+                            sizeFormat = "KB";
+                        }
+                        if (fileSize > 1024)
+                        {
+                            fileSize = fileSize / 1024;
+                            sizeFormat = "MB";
+                        }
+                        if (fileSize > 1024)
+                        {
+                            fileSize = fileSize / 1024;
+                            sizeFormat = "GB";
+                        }
+                        String newEntry = (count + start).ToString() + " \t\t " + (count + finish).ToString() + " \t\t " + Math.Round(fileSize, 4).ToString() + " " + sizeFormat + " \t\t " + tag + " " + targetName[fileIndex];
+                        foundResults.Add(newEntry);
 
-                    Interlocked.Increment(ref results[fileIndex]);
-                    updateFound();
-                }
-                catch { }
+                        Interlocked.Increment(ref results[fileIndex]);
+                        updateFound();
+                    }
+                    catch { }
+            }
+            }
+            else
+            {
+                String newEntry = (count + start).ToString() + " \t\t " + tag + " " + targetName[fileIndex];
+                foundResults.Add(newEntry);
+
+                Interlocked.Increment(ref results[fileIndex]);
+                updateFound();
             }
         }
 
