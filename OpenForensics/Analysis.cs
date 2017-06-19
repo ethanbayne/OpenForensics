@@ -319,7 +319,7 @@ namespace OpenForensics
                 {
                     int maxGPUThread = (int)((maxGPUMem*0.8) / (chunkSize*2));
                     gpuCoreCount = Math.Min(lpCount / gpus.Count, maxGPUThread);
-                    //gpuCoreCount = 4;   // Force GPU concurrency to a certain value.
+                    gpuCoreCount = 1;   // Force GPU concurrency to a certain value.
 
                     if (gpus.Count > 1)
                         techUsed = " (" + GPGPU + " - " + gpus.Count + " GPUs - running " + gpuCoreCount + " threads each)";
