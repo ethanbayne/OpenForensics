@@ -135,16 +135,19 @@ namespace OpenForensics
                     {
                         int buffSplit = 0;
                         int oddBytes = 0;
+                        bool includingPeek = true;
 
                         // If it's not the final sector and bytes to read is greater than the peek window, 
                         // Copy the window buffer from the last section to the beginning and 
                         // append the length to read by the peek length.
-                        if ((ulong)(count + toRead) != fileSize && count > 0 && toRead > peek)  
+                        if ((ulong)(count + toRead) != fileSize && count > 0 && toRead > peek)
                         {
                             toRead -= peek;
                             count -= peek;
                             Array.Copy(sectionEnd, buffer, peek);
                         }
+                        else
+                            includingPeek = false;
 
                         if (toRead <= readLength) // If the data to read is less than the size of one read instruction, only use 1 read instruction
                         {
@@ -169,7 +172,7 @@ namespace OpenForensics
                             int workLoad = readLength;
                             if (x == buffSplit - 1 && oddBytes != 0)
                                 workLoad = oddBytes;
-                            if (currentPos > 0)
+                            if (includingPeek)
                                 queue.Enqueue(Process(DDStream, buffer, peek + (x * readLength), workLoad));
                             else
                                 queue.Enqueue(Process(DDStream, buffer, x * readLength, workLoad));
