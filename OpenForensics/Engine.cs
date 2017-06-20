@@ -11,6 +11,7 @@ using System.Windows.Forms;
 
 namespace OpenForensics
 {
+
     public class Engine
     {
         private int GPUid;
@@ -27,82 +28,22 @@ namespace OpenForensics
         private int initialState;
         private int fileLength;
         private int longestTarget;
-        private byte[][] targetEnd;
-        //private byte[][] resultLoc;
         private int[][] resultCount;
 
         private bool carveOp;
 
         private static object[] locker;
         private byte[][] dev_buffer;
-        private byte[][] dev_target;
         private int[,] dev_lookup;
-        private byte[][] dev_targetEnd;
-        //private byte[][] dev_resultLoc;
         private int[][] dev_resultCount;
 
         private byte[][] foundID;
-        private int[][] foundSOF;
-        //private int[][] foundEOF;
+        private int[][] foundLoc;
         private int[][] dev_foundCount;
         private byte[][] dev_foundID;
-        private int[][] dev_foundSOF;
-        //private int[][] dev_foundEOF;
+        private int[][] dev_foundLoc;
 
         #region Engine Initiation
-
-        // Brute Force Engine
-        public Engine(int GPUid, byte[][] target, byte[][] targetEnd, int fileLength, uint size, bool carveOp)
-        {
-            gpu = CudafyHost.GetDevice(CudafyModes.Target, GPUid);
-            gpu.FreeAll();
-            LoadModule();
-
-            prop = gpu.GetDeviceProperties();
-            chunkSize = size;
-            // Find out maximum GPU Blocks and Supported Threads for each Block
-            gpuBlocks = prop.WarpSize;
-            blockThreads = prop.MaxThreadsPerBlock;
-            blockSize = Math.Min(blockThreads, (int)Math.Ceiling(chunkSize / (float)blockThreads));  //Find the optimum size of the threads to handle the buffer
-
-            this.fileLength = fileLength;
-
-            // Copy target array to GPU for analysis
-            dev_target = new byte[target.Length][];
-            for (int i = 0; i < target.Length; i++)
-                dev_target[i] = gpu.CopyToDevice<byte>(target[i]);
-
-
-            // Allocate the memory on the GPU for buffer and results
-            dev_buffer = new byte[gpuCoreCount][];
-            //dev_resultLoc = new byte[gpuCoreCount][];
-            dev_resultCount = new int[gpuCoreCount][];
-            resultCount = new int[gpuCoreCount][];
-            for (int i = 0; i < gpuCoreCount; i++)
-            {
-                dev_buffer[i] = gpu.Allocate<byte>(new byte[chunkSize]);
-                //dev_resultLoc[i] = gpu.Allocate<byte>(new byte[chunkSize]);
-                //gpu.Set(dev_resultLoc[i]);
-                dev_resultCount[i] = gpu.Allocate<int>(new int[target.Length]);
-                gpu.Set(dev_resultCount[i]);
-                resultCount[i] = new int[target.Length];
-            }
-            bufferSize = chunkSize;
-
-
-            this.carveOp = carveOp;
-
-            if (carveOp)
-            {
-                this.targetEnd = targetEnd;
-
-                // Copy target array to GPU for analysis
-                dev_targetEnd = new byte[targetEnd.Length][];
-                for (int i = 0; i < targetEnd.Length; i++)
-                    dev_targetEnd[i] = gpu.CopyToDevice<byte>(targetEnd[i]);
-            }
-        }
-
 
         // PFAC Algorithm Engine
         public Engine(int GPUid, int coreCount, byte[][] target, int[][] lookup, int longestTarget, int fileLength, uint size, bool carveOp)
@@ -152,34 +93,26 @@ namespace OpenForensics
 
             // Allocate the memory on the GPU for buffer and results
             dev_buffer = new byte[gpuCoreCount][];
-            //dev_resultLoc = new byte[gpuCoreCount][];
             dev_resultCount = new int[gpuCoreCount][];
-            //resultLoc = new byte[gpuCoreCount][];
             resultCount = new int[gpuCoreCount][];
 
             dev_foundCount = new int[gpuCoreCount][];
             dev_foundID = new byte[gpuCoreCount][];
-            dev_foundSOF = new int[gpuCoreCount][];
-            //dev_foundEOF = new int[gpuCoreCount][];
+            dev_foundLoc = new int[gpuCoreCount][];
             foundID = new byte[gpuCoreCount][];
-            foundSOF = new int[gpuCoreCount][];
-            //foundEOF = new int[gpuCoreCount][];
+            foundLoc = new int[gpuCoreCount][];
 
             for (int i = 0; i < gpuCoreCount; i++)
             {
                 dev_buffer[i] = gpu.Allocate<byte>(new byte[chunkSize]);
-                //dev_resultLoc[i] = gpu.Allocate<byte>(new byte[chunkSize]);
                 dev_resultCount[i] = gpu.Allocate<int>(new int[target.Length]);
-                //resultLoc[i] = new byte[chunkSize];
                 resultCount[i] = new int[target.Length];
 
                 dev_foundCount[i] = gpu.Allocate<int>(new int[1]);
                 dev_foundID[i] = gpu.Allocate<byte>(new byte[13107200]);
-                dev_foundSOF[i] = gpu.Allocate<int>(new int[13107200]);
-                //dev_foundEOF[i] = gpu.Allocate<int>(new int[300]);
+                dev_foundLoc[i] = gpu.Allocate<int>(new int[13107200]);
                 foundID[i] = new byte[13107200];
-                foundSOF[i] = new int[13107200];
-                //foundEOF[i] = new int[300];
+                foundLoc[i] = new int[13107200];
                 FreeBuffers(i);
             }
         }
@@ -190,9 +123,11 @@ namespace OpenForensics
         #region CPU Operations
 
         //CPU PFAC Analyse - using PFAC Algorithm for searching Bytes
-        public static int[] CPUPFACAnalyse(bool carveOp, byte[] buffer, int[][] lookup, byte[] resultsLoc, int numTargets, int longestTarget, int fileLength, int initialState)
+        public static int[] CPUPFACAnalyse(bool carveOp, byte[] buffer, int[][] lookup, ref byte[] resultsID, ref int[] resultsLoc, int numTargets)
         {
             int[] results = new int[numTargets];
+            int initialState = numTargets + 1;
+            int foundCount = 0;
             int n = buffer.Length;
 
             for (int i = 0; i < n; i ++)                    // Loop to scan full file segment
@@ -207,9 +142,13 @@ namespace OpenForensics
                     if (state < initialState)
                     {
                         if (!carveOp || state % 2 != 0)
-                            results[state - 1]++;
+                            results[((state + 1) / 2) -1]++;
                         if (carveOp)
-                            resultsLoc[i] = (byte)state;
+                        {
+                            resultsID[foundCount] = (byte)state;
+                            resultsLoc[foundCount] = i;
+                            foundCount++;
+                        }
                     }
                     pos++;
                 }
@@ -217,262 +156,6 @@ namespace OpenForensics
 
             return results;
         }
-
-        //CPU PFAC Search - using PFAC Algorithm for searching Bytes
-        public static int[] CPUPFACSearch(byte[] buffer, int[][] lookup, int initialState, int fileLength, int offset, List<string> targetName)
-        {
-            int i = offset;
-            int searchRange = buffer.Length;
-            int n = buffer.Length;
-            bool overRange = false;
-
-            int headerType = 0;
-            int footerType = 0;
-            int fileIndex = 0;
-            int startLocation = 0;
-            int endLocation = 0;
-            int rewind = 0;
-
-            int state;
-            int pos;
-
-            for (; i < n; i++)                    // Loop to scan full file segment
-            {
-                state = initialState;
-                pos = i;
-
-                while (pos < n && startLocation == 0)
-                {
-                    state = lookup[state][buffer[pos]];
-                    if (state == 0) { break; }
-                    if (state < initialState && state % 2 != 0)
-                    {
-                        headerType = state;
-                        fileIndex = ((headerType + 1) / 2) - 1; 
-                        for (int j = 0; j < targetName.Count; j++)
-                        {
-                            if (targetName[j] == targetName[fileIndex])
-                            {
-                                footerType = (j * 2) + 2;
-                                break;
-                            }
-                        }
-                        startLocation = i;
-                        break;
-                    }
-
-                    pos++;
-                }
-            }
-
-            if (startLocation != 0)
-            {
-                i = startLocation + 1;
-                searchRange = startLocation + fileLength;
-                if (searchRange > buffer.Length)
-                {
-                    overRange = true;
-                    searchRange = buffer.Length;
-                }
-
-                for (; i < searchRange; i++)                    // Loop to scan full file segment
-                {
-                    state = initialState;
-                    pos = i;
-
-                    while (pos < searchRange && endLocation == 0)
-                    {
-                        state = lookup[state][buffer[pos]];
-                        if (state == 0) { break; }
-                        if (state < initialState && state == footerType)
-                        {
-                            if (buffer[pos + 1] == 0x38 || buffer[pos + 2] == 0x38 || buffer[pos + 2] == 0x3B)
-                                pos++;
-                            else
-                            {
-                                endLocation = pos;
-                                break;
-                            }
-                        }
-                        pos++;
-                    }
-                }
-
-                if (endLocation == 0 && overRange)
-                    rewind = fileLength;
-            }
-            else
-                startLocation = buffer.Length;
-
-            int[] foundResult = new int[4] { startLocation, endLocation, rewind, fileIndex };
-
-            return foundResult;
-        }
-
-        //CPU BM Analyse - using sequential Boyer-Moore Algorithm for searching Bytes
-        public static int[] CPUBMAnalyse(byte[] buffer, byte[][] target, int[][] lookup)
-        {
-            int[] results = new int[target.Length];
-
-            for (int i = 0; i < target.Length; i++)
-            {
-                int index = target[i].Length - 1;      // Create an index
-                byte lastByte = target[i].Last();
-
-                while (index < buffer.Length)       // Loop to scan full file segment
-                {
-                    var checkByte = buffer[index];  // Store check byte as the current scanned byte
-
-                    if (buffer[index] == lastByte)  // If the byte scanned is equal to the last byte of target
-                    {
-                        bool found = true;              // Assume it's found
-
-                        for (int j = target[i].Length - 2; j >= 0; j--)                // Scan the rest of the target
-                        {
-                            if (buffer[index - target[i].Length + j + 1] != target[i][j]) // If rest does not match target
-                            {
-                                found = false;          // False hit
-                                break;                  // Break loop
-                            }
-                        }
-
-                        if (found)                      // If found is positive after scanning other bytes
-                        {
-                            results[i] += 1;
-                            index++;
-                        }
-                        else                            // If not positive
-                        {
-                            index++;                    // Go to next byte
-                        }
-                    }
-                    else                            // If last byte does not match target
-                    {
-                        index += lookup[i][checkByte]; // Go to next byte according to position of current byte
-                    }
-                }
-            }
-
-            return results;
-        }
-
-        //CPU BM Search - using sequential Boyer-Moore Algorithm for searching Bytes
-        public static int[] CPUBMSearch(bool header, byte[] buffer, byte[] target, int[] lookup, byte[] targetEnd, int[] lookupEnd, int fileLength, int offset)
-        {
-            int i = 0;
-            int searchRange = buffer.Length;
-            bool overRange = false;
-
-            int startLocation = 0;
-            int endLocation = 0;
-            int rewind = 0;
-    
-            byte lastByte = target.Last();
-
-            for (int h = 0; h < target.Length - 1; h++)
-            {
-                if (buffer[h] == lastByte)
-                    if (rewind < target.Length)
-                        rewind = target.Length + 1;
-            }
-
-            i = offset + target.Length;
-
-            while (i < searchRange)       // Loop to scan full file segment
-            {
-                var checkByte = buffer[i];  // Store check byte as the current scanned byte
-
-                if (buffer[i] == lastByte)  // If the byte scanned is equal to the last byte of target
-                {
-                    bool found = true;              // Assume it's found
-
-                    for (int j = target.Length - 2; j >= 0; j--)                // Scan the rest of the target
-                    {
-                        if (buffer[i - target.Length + j + 1] != target[j]) // If rest does not match target
-                        {
-                            found = false;          // False hit
-                            break;                  // Break loop
-                        }
-                    }
-
-                    if (found)                      // If found is positive after scanning other bytes
-                    {
-                        startLocation = i - target.Length + 1;
-                        break;
-                    }
-                    else                            // If not positive
-                    {
-                        i++;                    // Go to next byte
-                    }
-                }
-                else                            // If last byte does not match target
-                {
-                    i += lookup[checkByte]; // Go to next byte according to position of current byte
-                }
-            }
-
-
-            if (startLocation != 0)
-            {
-                searchRange = startLocation + fileLength;
-                if (searchRange > buffer.Length)
-                {
-                    overRange = true;
-                    searchRange = buffer.Length;
-                }
-
-                i = startLocation + targetEnd.Length;
-                lastByte = targetEnd.Last();
-
-                while (i < searchRange && endLocation == 0)       // Loop to scan full file segment
-                {
-                    var checkByte = buffer[i];  // Store check byte as the current scanned byte
-
-                    if (buffer[i] == lastByte)  // If the byte scanned is equal to the last byte of target
-                    {
-                        bool found = true;              // Assume it's found
-
-                        for (int j = targetEnd.Length - 2; j >= 0; j--)                // Scan the rest of the target
-                        {
-                            if (buffer[i - targetEnd.Length + j + 1] != targetEnd[j]) // If rest does not match target
-                            {
-                                found = false;          // False hit
-                                break;                  // Break loop
-                            }
-                        }
-
-                        if (found)                      // If found is positive after scanning other bytes
-                        {
-                            if (buffer[i + 1] == 0x38 || buffer[i + 2] == 0x38 || buffer[i + 2] == 0x3B)
-                                i++;
-                            else
-                            {
-                                endLocation = i + 1;
-                                break;
-                            }
-                        }
-                        else                            // If not positive
-                        {
-                            i++;                    // Go to next byte
-                        }
-                    }
-                    else                            // If last byte does not match target
-                    {
-                        i += lookupEnd[checkByte]; // Go to next byte according to position of current byte
-                    }
-                }
-
-                if (endLocation == 0 && overRange)
-                    rewind = fileLength;
-            }
-            else
-                startLocation = buffer.Length;
-
-            int[] foundResult = new int[3] {startLocation, endLocation, rewind};
-
-            return foundResult;
-        }
-
 
         #endregion
 
@@ -498,14 +181,11 @@ namespace OpenForensics
             {
                 gpu.SetCurrentContext();
                 gpu.Set(dev_buffer[gpuCore]);
-                //if (carveOp)
-                //    gpu.Set(dev_resultLoc[gpuCore]);
                 gpu.Set(dev_resultCount[gpuCore]);
 
                 gpu.Set(dev_foundCount[gpuCore]);
                 gpu.Set(dev_foundID[gpuCore]);
-                gpu.Set(dev_foundSOF[gpuCore]);
-                //gpu.Set(dev_foundEOF[gpuCore]);
+                gpu.Set(dev_foundLoc[gpuCore]);
             }
             catch { }
         }
@@ -542,11 +222,6 @@ namespace OpenForensics
             gpu.LoadModule(km);
         }
 
-        //public byte[] ReturnResult(int gpuCore)
-        //{
-        //    return resultLoc[gpuCore];
-
-        //}
         public byte[] ReturnResultID(int gpuCore)
         {
             return foundID[gpuCore];
@@ -554,40 +229,13 @@ namespace OpenForensics
         }
         public int[] ReturnResultLoc(int gpuCore)
         {
-            return foundSOF[gpuCore];
+            return foundLoc[gpuCore];
 
         }
 
         public int ReturnResultCount(int gpuCore, int c)
         {
             return resultCount[gpuCore][c];
-        }
-
-        public void LaunchBruteCarving(int gpuCore)
-        {
-            gpu.SetCurrentContext();
-
-            byte fileID = 1;
-
-            for (int i = 0; i < dev_target.Length; i++)
-            {
-                //gpu.Launch(gpuBlocks, blockSize).BruteAnalyse(fileID, dev_buffer, dev_target[i], i, fileLength, 0, bufferSize, dev_resultLoc, dev_resultCount);  // Start the analysis of the buffer
-                fileID += 1;
-                if (carveOp)
-                {
-                    if (i == 0 || targetEnd[i].SequenceEqual(targetEnd[i - 1]) == false)
-                        //gpu.Launch(gpuBlocks, blockSize).BruteAnalyse(fileID, dev_buffer, dev_targetEnd[i], i, fileLength, 0, bufferSize, dev_resultLoc, dev_resultCount);  // Start the analysis of the buffer
-                    fileID += 1;
-                }
-            }
-
-            //for (int i = 0; i < (dev_target.Length + 2); i++)
-            //    gpu.SynchronizeStream(i);
-            gpu.Synchronize();
-            //if(carveOp)
-            //    gpu.CopyFromDevice(dev_resultLoc[gpuCore], resultLoc[gpuCore]);                       // Copy results back from GPU
-            gpu.CopyFromDevice(dev_resultCount[gpuCore], resultCount[gpuCore]);
-            FreeBuffers(gpuCore);
         }
 
         //GPU PFAC Carving - using PFAC for searching Bytes
@@ -618,7 +266,7 @@ namespace OpenForensics
             {
                 gpu.SetCurrentContext();
 
-                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundSOF[gpuCore]);
+                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
                 //gpu.Launch(gpuOperatingCores, blockSize, gpuCore).PFACAnalyse(dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);  // Start the analysis of the buffer
                 gpu.SynchronizeStream(gpuCore);
             }
@@ -629,28 +277,8 @@ namespace OpenForensics
                 {
                     if (resultCount[gpuCore][i] > 0)
                     {
-                        //lock (locker[GPUid])
-                        //{
-                        //    gpu.SetCurrentContext();
-                        //    gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "ProcessResults", fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundSOF[gpuCore], dev_foundEOF[gpuCore]);
-                        //    gpu.SynchronizeStream(gpuCore);
-                        //}
-
-                        gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);                       // Copy results back from GP
-                        //for (int lol = 0; lol < foundID[gpuCore].Length; lol++)
-                        //    if (foundID[gpuCore][lol] == 0)
-                        //    {
-                        //        MessageBox.Show("Here: " + lol);
-                        //        break;
-                        //    }
-                        gpu.CopyFromDevice(dev_foundSOF[gpuCore], foundSOF[gpuCore]);
-                        //for (int lol = 0; lol < foundSOF[gpuCore].Length; lol++)
-                        //    if (foundSOF[gpuCore][lol] == 0)
-                        //    {
-                        //        MessageBox.Show("Here: " + lol);
-                        //        break;
-                        //    }
-                        //gpu.CopyFromDevice(dev_foundEOF[gpuCore], foundEOF[gpuCore]);                       // Copy results back from GPU
+                        gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);
+                        gpu.CopyFromDevice(dev_foundLoc[gpuCore], foundLoc[gpuCore]);
                         break;
                     }
                 }
@@ -658,38 +286,6 @@ namespace OpenForensics
             //gpu.Synchronize();
             FreeBuffers(gpuCore);
         }
-
-        //ProcessResults - experimental GPU result sorting
-        //[Cudafy]
-        //public static void ProcessResults(GThread thread, int fileLength, byte[] results, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF, int[]foundEOF)
-        //{
-        //    int n = results.Length;
-
-        //    int i = thread.threadIdx.x + thread.blockIdx.x * thread.blockDim.x;     // Counter for i
-        //    int stride = thread.blockDim.x * thread.gridDim.x;                      // Stride is the next byte for the thread to go to
-
-        //    for (; i < n; i += stride)                    // Loop to scan full file segment
-        //    {
-        //        if((results[i] - 1) % 2 == 0)
-        //        {
-        //            int pos = i;
-        //            while (pos < n && pos < i + fileLength)                    // Loop to scan full file segment
-        //            {
-        //                if (results[pos] == (results[i] + 1))
-        //                {
-        //                    int current = thread.atomicAdd(ref foundCount[0], 1);
-        //                    foundID[current] = results[i];
-        //                    foundSOF[current] = i;
-        //                    foundEOF[current] = pos;
-        //                    break;
-        //                }
-        //                pos++;
-        //            }
-        //        }
-        //    }
-
-        //    thread.SyncThreads();                                                   // Sync GPU threads
-        //}
 
         //GPU PFAC Analyse - using PFAC for searching Bytes
         [Cudafy]
@@ -699,10 +295,6 @@ namespace OpenForensics
 
             int i = thread.threadIdx.x + thread.blockIdx.x * thread.blockDim.x;     // Counter for i
             int stride = thread.blockDim.x * thread.gridDim.x;                      // Stride is the next byte for the thread to go to
-
-            //int[] temp = thread.AllocateShared<int>("temp", 1024);
-            //temp[thread.threadIdx.x] = 0;
-            //thread.SyncThreads();
 
             for (; i < n; i += stride)                    // Loop to scan full file segment
             {
@@ -715,18 +307,12 @@ namespace OpenForensics
                     if (state == 0) { break; }
                     if (state < initialState)
                     {
-                        if (carveOp == 0)
-                            thread.atomicAdd(ref resultCount[state - 1], 1);
-                        else if (carveOp == 1)
-                        {
-                            if ((state - 1) % 2 == 0)
-                                thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
-                            //results[i] = (byte)state;
-                            int counter = thread.atomicAdd(ref foundCount[0], 1);
-                            foundID[counter] = (byte)state;
-                            foundSOF[counter] = i;
-                            //foundEOF[current] = pos;
-                        }
+                        if (carveOp == 0 || (state - 1) % 2 == 0)
+                            thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
+
+                        int counter = thread.atomicAdd(ref foundCount[0], 1);
+                        foundID[counter] = (byte)state;
+                        foundSOF[counter] = i;
                     }
                     pos++;
                 }
@@ -734,54 +320,6 @@ namespace OpenForensics
 
             thread.SyncThreads();                                                   // Sync GPU threads
             
-        }
-
-
-        //GPU Analyse - using brute force for searching Bytes
-        [Cudafy]
-        public static void BruteAnalyse(GThread thread, byte header, byte[] buffer, byte[] target, int targetNo, int fileLength, int offset, uint searchRange, byte[] results, uint[] resultCount)
-        {
-            int i = thread.threadIdx.x + thread.blockIdx.x * thread.blockDim.x;     // Counter for i
-            int stride = thread.blockDim.x * thread.gridDim.x;                      // Stride is the next byte for the thread to go to
-
-            uint[] temp = thread.AllocateShared<uint>("temp", 1024);                // Allocate shared memory for storing results
-            temp[thread.threadIdx.x] = 0;                                           // Set shared memory to 0
-            thread.SyncThreads();                                                   // Sync GPU threads
-
-            while (i < (searchRange - (target.Length + 1)))                    // Loop to scan full file segment
-            {
-                if (buffer[i] == target[0])      // If the byte scanned is equal to the first byte of target
-                {
-                    bool found = true;              // Assume it's found
-
-                    for (int j = 1; j <= target.Length - 1; j++)            // Scan the rest of the target
-                    {
-                        if (buffer[i + j] != target[j]) // If rest does not match target
-                        {
-                            found = false;          // False hit
-                            break;                  // Break loop
-                        }
-                    }
-
-                    if (found)                      // If found is positive after scanning other bytes
-                    {
-                        temp[thread.threadIdx.x] += 1;  // Found match, plus 1 to results
-                        results[i] = header;
-                        i += stride;
-                    }
-                    else                            // If not positive
-                    {
-                        i += stride;                    // Go to next byte
-                    }
-                }
-                else                            // If last byte does not match target
-                {
-                    i += stride; // Go to next byte according to position of current byte
-                }
-            }
-
-            thread.SyncThreads();                                                   // Sync GPU threads
-            thread.atomicAdd(ref resultCount[targetNo], temp[thread.threadIdx.x]);      // Add up results each thread produced
         }
 
         #endregion
@@ -879,30 +417,6 @@ namespace OpenForensics
             }
             */
             return result;
-        }
-
-
-        public static int[][] bmLookupCreate(Byte[][] target)
-        {
-            int[][] lookup = new int[target.Length][];          // Calculate Lookup reference for Boyer-Moore algorithm
-            for (int i = 0; i < lookup.Length; i++)             // Do for each Search Target
-            {
-                lookup[i] = new int[256];
-                for (int j = 0; j < lookup[i].Length; j++)
-                {
-                    lookup[i][j] = target[i].Length;
-                }
-            }
-
-            for (int i = 0; i < lookup.Length; i++)
-            {
-                for (int j = 0; j < target[i].Length; j++)
-                {
-                    lookup[i][target[i][j]] = target[i].Length - j - 1;
-                }
-            }
-
-            return lookup;
         }
 
         public static string StringtoHex(string keyword)

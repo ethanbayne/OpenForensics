@@ -32,17 +32,53 @@ namespace OpenForensics
             [MarshalAs(UnmanagedType.U4)] FileAttributes fileAttributes,
             IntPtr template);
 
-        public struct dataChunk
-        {
-            public int chunkNo;
-            public byte[] chunkData;
-            public bool peek;
+        //private struct dataChunk
+        //{
+        //    public int chunkNo;
+        //    public byte[] chunkData;
+        //    public bool peek;
 
-            public dataChunk(int chunk, byte[] data)
+        //    public dataChunk(int chunk, byte[] data)
+        //    {
+        //        chunkNo = chunk;
+        //        chunkData = data;
+        //        peek = false;
+        //    }
+        //}
+        //(count + start).ToString() + " \t\t " + (count + finish).ToString() + " \t\t " + Math.Round(fileSize, 4).ToString() + " " + sizeFormat + " \t\t " + tag + " " + targetName[fileIndex];
+
+        private struct resultRecord
+        {
+            public double start, end;
+            public float size;
+            public string sizeformat, tag, filetype;
+
+            public resultRecord(double start, double end, float size, string sizeformat, string tag,  string filetype)
             {
-                chunkNo = chunk;
-                chunkData = data;
-                peek = false;
+                this.start = start;
+                this.end = end;
+                this.size = size;
+                this.sizeformat = sizeformat;
+                this.tag = tag;
+                this.filetype = filetype;
+            }
+
+            public resultRecord(double start, string tag, string filetype)
+            {
+                this.start = start;
+                this.end = 0;
+                this.size = 0;
+                this.sizeformat = null;
+                this.tag = tag;
+                this.filetype = filetype;
+            }
+
+            public string printRecord()
+            {
+                if (end == 0)
+                    return start.ToString() + " \t\t " + tag + " " + filetype;
+                else
+                    return start.ToString() + " \t\t " + end.ToString() + " \t\t " + Math.Round(size, 4).ToString() + " " + sizeformat + " \t\t " + tag + " " + filetype;
             }
         }
 
@@ -273,7 +309,6 @@ namespace OpenForensics
         private Byte[][] target;
         private int[][] lookup;
         private Byte[][] targetEnd;
-        private int[][] lookupEnd;
 
         private int longestTarget;
 
@@ -283,7 +318,7 @@ namespace OpenForensics
         private int[] results;
         private double totalProcessed;
         private uint chunkCount;
-        private ConcurrentBag<String> foundResults = new ConcurrentBag<String>();
+        private ConcurrentBag<resultRecord> foundResults = new ConcurrentBag<resultRecord>();
         private static object resultLock = new Object();
 
         private List<Engine> GPUCollection = new List<Engine>();
@@ -618,7 +653,7 @@ namespace OpenForensics
 
                 String path = FilePath;                                 // Target DD File
 
-                LookupTableGen(true);
+                LookupTableGen();
 
                 if(carveOp)
                     results = new int[target.Length/2];           // Number of Results Found
@@ -629,7 +664,7 @@ namespace OpenForensics
 
                 // Figure out what will be the longest header
                 for (int i = 0; i < target.Length; i++)
-                    if (target[i].Length > longestTarget)
+                    if (target[i] != null && target[i].Length > longestTarget)
                         longestTarget = target[i].Length;
 
                 // Each logical CPU core used will rely on the same thread to carve
@@ -677,7 +712,7 @@ namespace OpenForensics
                 else
                     updateHeader("Analysis Started using " + gpuText);
 
-                LookupTableGen(true);
+                LookupTableGen();
 
                 if(carveOp)
                     results = new int[target.Length / 2];                  // Number of Results Found
@@ -767,22 +802,22 @@ namespace OpenForensics
                     int[] resultsNew = new int[results.Length];
                     if (foundResults.Count > 0)
                     {
-                        string[] foundLocs = foundResults.ToArray();
-                        foreach (var item in foundLocs.OrderBy(x => double.Parse(x.Substring(0, x.IndexOf(' ')))))
+                        resultRecord[] foundLocs = foundResults.ToArray();
+                        foreach (resultRecord item in foundLocs)
                         {
-                            int index = unique.FindIndex(x => x.StartsWith(item.Substring(0, item.IndexOf(' '))));
+                            int index = unique.FindIndex(x => x.StartsWith(item.start.ToString()));
 
-                            if(index == -1)
+                            if (index == -1)
                             {
-                                unique.Add(item);
+                                unique.Add(item.printRecord());
                             
-                                int nameIndex = targetName.IndexOf(item.Substring(item.LastIndexOf(' ') + 1, item.Length - item.LastIndexOf(' ') - 1));
+                                int nameIndex = targetName.IndexOf(item.filetype.ToString());
                                 resultsNew[nameIndex]++;
                             }
-                            else if (unique[index].Contains("partial") && unique[index].Contains("fragmented") || !item.Contains("partial") && !item.Contains("fragmented"))
+                            else if (unique[index].Contains("partial") && unique[index].Contains("fragmented") || !item.tag.Contains("partial") && !item.tag.Contains("fragmented"))
                             {
                                 unique.RemoveAt(index);
-                                unique.Add(item);
+                                unique.Add(item.printRecord());
                             }
                         }
                         duplicates = foundResults.Count - unique.Count;
@@ -828,34 +863,6 @@ namespace OpenForensics
                     file.WriteLine("");
                     file.WriteLine("Result Breakdown:");
                     file.WriteLine("-----------------------------");
-
-                    //if (carveOp)
-                    //{
-                    //    if (results.Length > 1)
-                    //    {
-                    //        for (int i = 1; i < results.Length; i++)
-                    //        {
-                    //            if (targetName[i] == targetName[i - 1])
-                    //            {
-                    //                results[i - 1] += results[i];
-
-                    //                int[] newStrItems = new int[results.Length - 1];
-                    //                for (int j = 0, k = 0; j < newStrItems.Length; j++, k++)
-                    //                {
-                    //                    if (j == i)
-                    //                        k++;
-
-                    //                    newStrItems[j] = results[k];
-                    //                }
-                    //                results = newStrItems;
-
-                    //                targetName.RemoveAt(i);
-
-                    //                i -= 1;
-                    //            }
-                    //        }
-                    //    }
-                    //}
 
                     if (carveOp)
                     {
@@ -932,11 +939,15 @@ namespace OpenForensics
         {
             long count = 0;
             byte[] buffer = new byte[chunkSize];
-            byte[] byteLocation = new byte[1];
+            byte[] foundID = new byte[1];
+            int[] foundLoc = new int[1];
 
             // If carve operation, set up an array to record found results
             if (carveOp)
-                byteLocation = new byte[chunkSize];
+            {
+                foundID = new byte[13107200];
+                foundLoc = new int[13107200];
+            }
 
             double bytesRead;      // Location in file read
             while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Request data chunk until end of file
@@ -948,14 +959,14 @@ namespace OpenForensics
                 {
                     // Launch analysis
                     updateGPUAct(cpu, true, false);
-                    int[] tmpResults = Engine.CPUPFACAnalyse(carveOp, buffer, lookup, byteLocation, target.Length, longestTarget, fileLength, target.Length + 1);
+                    int[] tmpResults = Engine.CPUPFACAnalyse(carveOp, buffer, lookup, ref foundID, ref foundLoc, target.Length);
                     updateGPUAct(cpu, false, false);
 
                     // Are there any matches found?
                     bool matchesFound = false;
                     for (int c = 0; c < results.Length; c++)
                     {
-                        if (tmpResults[c*2] > 0)
+                        if (tmpResults[c] > 0)
                         {
                             matchesFound = true;
                             break;
@@ -966,7 +977,7 @@ namespace OpenForensics
                     if (matchesFound)
                     {
                         updateGPUAct(cpu, true, true);
-                        smartCarve(cpu, 0, ref buffer, ref count, ref byteLocation, ref results);
+                        ProcessLocations(cpu, 0, ref buffer, ref count, ref foundID, ref foundLoc);
                         updateGPUAct(cpu, false, false);
                         updateFound();
                     }
@@ -975,7 +986,9 @@ namespace OpenForensics
                 {
                     // Perform search
                     updateGPUAct(cpu, true, false);
-                    int[] tmpResults = Engine.CPUPFACAnalyse(carveOp, buffer, lookup, new byte[1], target.Length, longestTarget, fileLength, target.Length + 1);
+                    byte[] tmpMock = new byte[1];
+                    int[] tmpMock2 = new int[1];
+                    int[] tmpResults = Engine.CPUPFACAnalyse(carveOp, buffer, lookup, ref tmpMock, ref tmpMock2, target.Length);
                     updateGPUAct(cpu, false, false);
 
                     // Add results to total, update UI
@@ -986,7 +999,10 @@ namespace OpenForensics
 
                 // Clear buffer and byteLocation for reuse
                 Array.Clear(buffer, 0, buffer.Length);
-                Array.Clear(byteLocation, 0, byteLocation.Length);
+                //Array.Clear(foundID, 0, foundID.Length);
+                //Array.Clear(foundLoc, 0, foundLoc.Length);
+                foundID = new byte[13107200];
+                foundLoc = new int[13107200];
 
                 // Update progress
                 double Progress = (double)Math.Round(((totalProcessed / dataRead.GetFileSize()) * 100) / 10.0 * 10);
@@ -995,7 +1011,8 @@ namespace OpenForensics
 
             // After thread is done, minimise buffer and byteLocation to 1, update UI
             buffer = new byte[1];
-            byteLocation = new byte[1];
+            foundID = new byte[1];
+            foundLoc = new int[1];
             updateGPUAct(cpu, true);
         }
 
@@ -1093,50 +1110,33 @@ namespace OpenForensics
         #region Lookup Table Generation
 
         // Lookup Table generation for PFAC and BM
-        private void LookupTableGen(bool PFAC)
+        private void LookupTableGen()
         {
-            if (PFAC)
+            if (carveOp)
             {
-                if (carveOp)
-                {
-                    target = new Byte[targetHeader.Count + targetFooter.Count][];
-                    targetEnd = new Byte[targetFooter.Count][];
+                target = new Byte[targetHeader.Count + targetFooter.Count][];
+                targetEnd = new Byte[targetFooter.Count][];
 
-                    int i = 0;
-                    for (int j = 0; j < targetHeader.Count; j++, i += 2)       // Translate Search Targets into Bytes
+                int i = 0;
+                for (int j = 0; j < targetHeader.Count; j++, i += 2)       // Translate Search Targets into Bytes
+                {
+                    target[i] = Engine.GetBytes(targetHeader[j]);
+                    if (targetFooter[j] != null)
                     {
-                        target[i] = Engine.GetBytes(targetHeader[j]);
-                        if (targetFooter[j] != null)
-                        {
-                            targetEnd[j] = Engine.GetBytes(targetFooter[j]);
-                            target[i + 1] = Engine.GetBytes(targetFooter[j]);
-                        }
+                        targetEnd[j] = Engine.GetBytes(targetFooter[j]);
+                        target[i + 1] = Engine.GetBytes(targetFooter[j]);
                     }
                 }
-                else
-                {
-                    target = new Byte[targetHeader.Count][];
-                    for (int i = 0; i < target.Length; i++)            // Translate Search Targets into Bytes
-                        target[i] = Engine.GetBytes(targetHeader[i]);
-                }
-
-                lookup = Engine.pfacLookupCreate(target);           // Create Lookup for Target
             }
-            else // BM
+            else
             {
-                target = new Byte[targetHeader.Count][];   // Translate Search Targets into Bytes
-                for (int i = 0; i < target.Length; i++)
+                target = new Byte[targetHeader.Count][];
+                for (int i = 0; i < target.Length; i++)            // Translate Search Targets into Bytes
                     target[i] = Engine.GetBytes(targetHeader[i]);
-                lookup = Engine.bmLookupCreate(target);           // Create Lookup for Target
-
-                if (carveOp)
-                {
-                    targetEnd = new Byte[targetFooter.Count][];    // Translate Search Target Footers into Bytes
-                    for (int i = 0; i < targetEnd.Length; i++)
-                        targetEnd[i] = Engine.GetBytes(targetFooter[i]);
-                    lookupEnd = Engine.bmLookupCreate(targetEnd);     // Create Lookup for Target Footers
-                }
             }
+
+            lookup = Engine.pfacLookupCreate(target);           // Create Lookup for Target
+
         }
 
         #endregion
@@ -1361,7 +1361,7 @@ namespace OpenForensics
                             fileSize = fileSize / 1024;
                             sizeFormat = "GB";
                         }
-                        String newEntry = (count + start).ToString() + " \t\t " + (count + finish).ToString() + " \t\t " + Math.Round(fileSize, 4).ToString() + " " + sizeFormat + " \t\t " + tag + " " + targetName[fileIndex];
+                        resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
                         foundResults.Add(newEntry);
 
                         Interlocked.Increment(ref results[fileIndex]);
@@ -1372,7 +1372,7 @@ namespace OpenForensics
             }
             else
             {
-                String newEntry = (count + start).ToString() + " \t\t " + tag + " " + targetName[fileIndex];
+                resultRecord newEntry = new resultRecord((count + start), tag, targetName[fileIndex]);
                 foundResults.Add(newEntry);
 
                 Interlocked.Increment(ref results[fileIndex]);
@@ -1410,7 +1410,7 @@ namespace OpenForensics
                         fileSize = fileSize / 1024;
                         sizeFormat = "GB";
                     }
-                    String newEntry = (count + start).ToString() + " \t\t " + (count + finish).ToString() + " \t\t " + Math.Round(fileSize, 4).ToString() + " " + sizeFormat + " \t\t " + tag + " " + targetName[fileIndex];
+                    resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
                     foundResults.Add(newEntry);
 
                     File.WriteAllBytes(filePath + (count + start).ToString() + tag + "." + targetName[fileIndex], fileData);
