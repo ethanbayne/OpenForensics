@@ -32,9 +32,10 @@ namespace OpenForensics
         // Version 1.23b - Small analysis interface change to cater for larger amounts of processors.
         // Version 1.24b - Fixed small logic bug with GPU carving function - thread.atomicAdd(ref resultCount[(int)(state / 2) - 1], 1); > thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
         // Version 1.25b - Incremental refactoring of code.
-        // Version 1.30b - Fixed non-Nvidia GPU flaw where multiple instanced use of GPU was mishandled. Implemented GPU locker so that only one thread can utilise the GPU at any given moment. 
+        // Version 1.30b - Fixed non-Nvidia GPU flaw where multiple instanced use of GPU was mishandled. Implemented GPU locker so that only one thread can utilise the GPU at any given moment.
+        // Version 1.50 - Overhaul and major refactoring of program. Optimised GPU result recording and significantly reduced CPU result processing. 
 
-        private string version = "Tech Demo v. 1.30b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "Public v. 1.50";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
@@ -126,8 +127,7 @@ namespace OpenForensics
             OFToolTips.SetToolTip(this.txtEvidenceName, "Enter a unique reference for the data analysed. If left null, program will default to drive or file name.");
             OFToolTips.SetToolTip(this.btnCustom, "Modify analysis technology settings.");
             OFToolTips.SetToolTip(this.btnDefault, "Revert to recommended settings for performing analysis.");
-            OFToolTips.SetToolTip(this.btnAnalyse, "Analyse the drive or file for instances of file headers or keywords.");
-            OFToolTips.SetToolTip(this.btnCarve, "Analyse the drive or file and reconstruct any files found.");
+            OFToolTips.SetToolTip(this.btnCarve, "Analyse the drive or file and identify (and optionally recreate) any files found.");
             OFToolTips.SetToolTip(this.btnAddKeyword, "Add the keyword to the keyword list.");
             OFToolTips.SetToolTip(this.btnRemoveKeyword, "Remove the currently selected keyword from the keyword list.");
             OFToolTips.SetToolTip(this.btnClearKeywords, "Clear all keywords in the keyword list.");
@@ -156,13 +156,11 @@ namespace OpenForensics
         private void rdoFile_CheckedChanged(object sender, EventArgs e)
         {
             TargetTypeUpdate();
-            btnAnalyse.Text = "Identify Files";
         }
 
         private void rdoKeyword_CheckedChanged(object sender, EventArgs e)
         {
             TargetTypeUpdate();
-            btnAnalyse.Text = "Identify Keywords";
             if (cboKeywords.Items.Count == 1)
                 cboKeywords.Items[0] = "No keywords present - add keywords below";
         }
@@ -171,7 +169,6 @@ namespace OpenForensics
         {
             if (rdoFile.Checked == true)
             {
-                btnCarve.Enabled = true;
                 cboFileType.Enabled = true;
                 cboKeywords.Enabled = false;
                 txtInput.Enabled = false;
@@ -181,7 +178,6 @@ namespace OpenForensics
             }
             else
             {
-                btnCarve.Enabled = false;
                 cboFileType.Enabled = false;
                 cboKeywords.Enabled = true;
                 txtInput.Enabled = true;
@@ -243,13 +239,13 @@ namespace OpenForensics
 
         private void btnAnalyse_Click(object sender, EventArgs e)
         {
-            AnalysisSetup(false);
+            AnalysisSetup();
         }
 
 
         private void btnCarve_Click(object sender, EventArgs e)
         {
-            AnalysisSetup(true);
+            AnalysisSetup();
         }
 
         private void btnDriveOpen_Click(object sender, EventArgs e)
@@ -359,9 +355,9 @@ namespace OpenForensics
                     CudafyModes.DeviceId = cbGPGPU.SelectedIndex;
         }
 
-        private void AnalysisSetup(bool carving)
+        private void AnalysisSetup()
         {
-            if (InputCheck(carving))   // Check that inputs are present before test
+            if (InputCheck())   // Check that inputs are present before test
             {
                 DialogResult result = folderBrowserDialog.ShowDialog();
                 if (result == DialogResult.OK)
@@ -377,7 +373,7 @@ namespace OpenForensics
                     if (!Directory.Exists(saveLocation))
                     {
                         Directory.CreateDirectory(saveLocation);
-                        BeginAnalysis(carving);
+                        BeginAnalysis();
                     }
                     else
                     {
@@ -402,7 +398,7 @@ namespace OpenForensics
                             }
                             Thread.Sleep(500);
                             Directory.CreateDirectory(saveLocation);
-                            BeginAnalysis(carving);
+                            BeginAnalysis();
                         }
                         else
                         {
@@ -414,7 +410,7 @@ namespace OpenForensics
             }
         }
 
-        private bool InputCheck(bool carving)
+        private bool InputCheck()
         {
             if(txtFile.Text.StartsWith("\\\\.\\"))
             {
@@ -433,14 +429,6 @@ namespace OpenForensics
                     return false;
                 }
             }
-
-            if (rdoFile.Checked && carving)
-                if (cboFileType.SelectedIndex > 5)
-                    if (HasEOF(cboFileType.SelectedItem.ToString()) == false)
-                    {
-                        MessageBox.Show("Selected file has no known End of File, cannot Carve file", "No EOF", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return false;
-                    }
 
             if (rdoGPU.Checked == true)
                 if (cbGPGPU.Items.Count < 1)
@@ -538,7 +526,7 @@ namespace OpenForensics
                 cboFileType.Items[0] = "No filetypes present - please check FileTypes.xml config!";
         }
 
-        private void GetFileType(bool carving)
+        private void GetFileType()
         {
             int fileTypePos = 0;
             string fileTypeValue = "";
@@ -560,38 +548,38 @@ namespace OpenForensics
                 {
                     case 0:
                         foreach (string fileType in imageNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         foreach (string fileType in videoNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         foreach (string fileType in audioNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         foreach (string fileType in documentNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         foreach (string fileType in miscNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         break;
                     case 1:
                         foreach (string imageType in imageNames)
-                            XmlLoad(imageType, carving);
+                            XmlLoad(imageType);
                         break;
                     case 2:
                         foreach (string fileType in videoNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         break;
                     case 3:
                         foreach (string fileType in audioNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         break;
                     case 4:
                         foreach (string fileType in documentNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         break;
                     case 5:
                         foreach (string fileType in miscNames)
-                            XmlLoad(fileType, carving);
+                            XmlLoad(fileType);
                         break;
                     default:                                        // Else, import individual values from XML
-                        XmlLoad(fileTypeValue, carving);
+                        XmlLoad(fileTypeValue);
                         break;
                 }
             }
@@ -607,17 +595,19 @@ namespace OpenForensics
                         });
                         targetName.Add("\"" + keywordValue + "\"");
                         targetHeader.Add(Engine.StringtoHex(keywordValue));
+                        targetFooter.Add(null);
                     }
                 }
                 else                                                // Generate Value for Individual Selected
                 {
                     targetName.Add(keywordValue);
                     targetHeader.Add(Engine.StringtoHex(keywordValue));
+                    targetFooter.Add(null);
                 }
             } 
         }
 
-        private void XmlLoad(string fileType, bool carving)
+        private void XmlLoad(string fileType)
         {
             XmlDocument xmldoc = new XmlDocument();
             FileStream fs = new FileStream("FileTypes.xml", FileMode.Open, FileAccess.Read);
@@ -671,7 +661,7 @@ namespace OpenForensics
         #endregion
 
 
-        private void BeginAnalysis(bool carving)
+        private void BeginAnalysis()
         {
             string gpuChoice = "";
             string fileType = "";
@@ -703,7 +693,7 @@ namespace OpenForensics
                         return;
                 }
 
-            GetFileType(carving);                                      // Populate Search Targets
+            GetFileType();                                      // Populate Search Targets
 
 
             string gpuValue = "";
@@ -722,7 +712,6 @@ namespace OpenForensics
 
             Analysis.Input input = new Analysis.Input();
             input.TestType = TestType;
-            input.carveOp = carving;
             input.GPGPU = gpuValue;
             if (gpuValue == "Multi-GPU")
             {

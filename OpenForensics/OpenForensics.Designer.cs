@@ -38,7 +38,6 @@
             this.cboKeywords = new System.Windows.Forms.ComboBox();
             this.rdoFile = new System.Windows.Forms.RadioButton();
             this.cboFileType = new System.Windows.Forms.ComboBox();
-            this.btnAnalyse = new System.Windows.Forms.Button();
             this.grpFilePath = new System.Windows.Forms.GroupBox();
             this.btnDriveOpen = new System.Windows.Forms.Button();
             this.btnFileOpen = new System.Windows.Forms.Button();
@@ -178,17 +177,6 @@
             this.cboFileType.Name = "cboFileType";
             this.cboFileType.Size = new System.Drawing.Size(369, 25);
             this.cboFileType.TabIndex = 6;
-            // 
-            // btnAnalyse
-            // 
-            this.btnAnalyse.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnAnalyse.Location = new System.Drawing.Point(305, 436);
-            this.btnAnalyse.Name = "btnAnalyse";
-            this.btnAnalyse.Size = new System.Drawing.Size(193, 25);
-            this.btnAnalyse.TabIndex = 19;
-            this.btnAnalyse.Text = "Identify Files";
-            this.btnAnalyse.UseVisualStyleBackColor = true;
-            this.btnAnalyse.Click += new System.EventHandler(this.btnAnalyse_Click);
             // 
             // grpFilePath
             // 
@@ -335,11 +323,11 @@
             // btnCarve
             // 
             this.btnCarve.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnCarve.Location = new System.Drawing.Point(106, 436);
+            this.btnCarve.Location = new System.Drawing.Point(305, 436);
             this.btnCarve.Name = "btnCarve";
             this.btnCarve.Size = new System.Drawing.Size(193, 25);
             this.btnCarve.TabIndex = 18;
-            this.btnCarve.Text = "Reconstruct Files";
+            this.btnCarve.Text = "Begin Analysis";
             this.btnCarve.UseVisualStyleBackColor = true;
             this.btnCarve.Click += new System.EventHandler(this.btnCarve_Click);
             // 
@@ -370,7 +358,6 @@
             this.pnlMainInterface.Controls.Add(this.grpDefaultPlatform);
             this.pnlMainInterface.Controls.Add(this.grpCustomPlatform);
             this.pnlMainInterface.Controls.Add(this.grpFilePath);
-            this.pnlMainInterface.Controls.Add(this.btnAnalyse);
             this.pnlMainInterface.Controls.Add(this.btnCarve);
             this.pnlMainInterface.Controls.Add(this.grpTargetFile);
             this.pnlMainInterface.Controls.Add(this.lblMode);
@@ -504,7 +491,6 @@
         private System.Windows.Forms.ComboBox cboKeywords;
         private System.Windows.Forms.RadioButton rdoFile;
         private System.Windows.Forms.ComboBox cboFileType;
-        private System.Windows.Forms.Button btnAnalyse;
         private System.Windows.Forms.GroupBox grpFilePath;
         private System.Windows.Forms.Button btnFileOpen;
         private System.Windows.Forms.TextBox txtFile;

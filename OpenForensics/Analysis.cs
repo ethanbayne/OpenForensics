@@ -12,7 +12,6 @@ using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Management;
 using System.Collections.Concurrent;
-using System.Linq;
 
 
 namespace OpenForensics
@@ -31,21 +30,6 @@ namespace OpenForensics
             [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
             [MarshalAs(UnmanagedType.U4)] FileAttributes fileAttributes,
             IntPtr template);
-
-        //private struct dataChunk
-        //{
-        //    public int chunkNo;
-        //    public byte[] chunkData;
-        //    public bool peek;
-
-        //    public dataChunk(int chunk, byte[] data)
-        //    {
-        //        chunkNo = chunk;
-        //        chunkData = data;
-        //        peek = false;
-        //    }
-        //}
-        //(count + start).ToString() + " \t\t " + (count + finish).ToString() + " \t\t " + Math.Round(fileSize, 4).ToString() + " " + sizeFormat + " \t\t " + tag + " " + targetName[fileIndex];
 
         private struct resultRecord
         {
@@ -328,7 +312,6 @@ namespace OpenForensics
         public class Input
         {
             public string TestType { get; set; }
-            public bool carveOp { get; set; }
             public string GPGPU { get; set; }
             public List<int> gpus { get; set; }
             public long maxGPUMem { get; set; }
@@ -364,6 +347,7 @@ namespace OpenForensics
         // TO-DO: State fileLength in config file.
         private uint chunkSize = 100 * 1048576;
         private int fileLength = 20 * 1048576;
+        private uint resultCache = 1048576;
 
         private Byte[][] target;
         private int[][] lookup;
@@ -371,14 +355,12 @@ namespace OpenForensics
 
         private int longestTarget;
 
-        private bool carveOp;
-
         private Stopwatch watch;
         private int[] results;
         private double totalProcessed;
         private uint chunkCount;
         private ConcurrentBag<resultRecord> foundResults = new ConcurrentBag<resultRecord>();
-        private List<resultRecord> foundLocs;
+        private List<resultRecord> carvableFiles = new List<resultRecord>();
         private static object resultLock = new Object();
 
         private List<Engine> GPUCollection = new List<Engine>();
@@ -388,7 +370,6 @@ namespace OpenForensics
             set
             {
                 TestType = value.TestType;
-                carveOp = value.carveOp;
                 GPGPU = value.GPGPU;
                 gpus = value.gpus;
                 maxGPUMem = value.maxGPUMem;
@@ -450,10 +431,6 @@ namespace OpenForensics
 
                 // Initial setup of GPU status
                 DrawGPUStatus();
-
-                // If doing a string search, update label to state found and not carved
-                if (!carveOp)
-                    lblFound.Text = "Targets found:";
 
                 // Start the main analysis processing thread
                 Thread analysis = new Thread(new ThreadStart(FileAnalysis));
@@ -714,10 +691,7 @@ namespace OpenForensics
             {
                 #region DD Carve - CPU Section
 
-                if (carveOp)
-                    updateHeader("Carving Started using " + TestType + " (Cores: " + lpCount + ")");
-                else
-                    updateHeader("Analysis Started using " + TestType + " (Cores: " + lpCount + ")");
+                updateHeader("Analysis Started using " + TestType + " (Cores: " + lpCount + ")");
 
                 // Uncomment for single-threaded CPU operation
                 //lpCount = 1;
@@ -726,12 +700,7 @@ namespace OpenForensics
 
                 LookupTableGen();
 
-                if(carveOp)
-                    results = new int[target.Length/2];           // Number of Results Found
-                else
-                    results = new int[target.Length];
-                totalProcessed = 0;
-                chunkCount = 0;                                 // Number of segments processed
+                results = new int[target.Length/2];           // Number of Results Found
 
                 // Figure out what will be the longest header
                 for (int i = 0; i < target.Length; i++)
@@ -743,10 +712,7 @@ namespace OpenForensics
 
                 // Set up data reader
                 dataReader dataRead;
-                if (carveOp)
-                    dataRead = new dataReader(FilePath, fileLength);
-                else
-                    dataRead = new dataReader(FilePath, longestTarget - 1);
+                dataRead = new dataReader(FilePath, fileLength);
 
                 ulong fileSize = dataRead.GetFileSize();
 
@@ -764,8 +730,9 @@ namespace OpenForensics
                 // Prepare the results file
                 PrepareResults(fileSize, time);
 
-                if (MessageBox.Show("Reproduce found files?", "File Carving", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                    carveResults(dataRead);
+                if (carvableFiles.Count > 0)
+                    if (MessageBox.Show("Reproduce found files? (" + carvableFiles.Count + " carvable files found)", "File Carving", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                        carveResults(dataRead);
 
                 // When all threads have finished, close file
                 dataRead.CloseFile();
@@ -784,17 +751,12 @@ namespace OpenForensics
                 else
                     gpuText = GPGPU;
 
-                if (carveOp)
-                    updateHeader("Carving Started using " + gpuText);
-                else
-                    updateHeader("Analysis Started using " + gpuText);
+                updateHeader("Analysis Started using " + gpuText);
 
                 LookupTableGen();
+                
+                results = new int[target.Length / 2];                  // Number of Results Found
 
-                if(carveOp)
-                    results = new int[target.Length / 2];                  // Number of Results Found
-                else
-                    results = new int[target.Length]; 
                 totalProcessed = 0;
                 chunkCount = 0;                                 // Number of segments processed
 
@@ -806,7 +768,7 @@ namespace OpenForensics
                 // Create a GPU object for each GPU selected
                 foreach(int GPUid in gpus)
                 {
-                    Engine gpu = new Engine(GPUid, gpuCoreCount, target, lookup, longestTarget, fileLength, chunkSize, carveOp);
+                    Engine gpu = new Engine(GPUid, gpuCoreCount, target, lookup, longestTarget, fileLength, chunkSize);
                     GPUCollection.Add(gpu);
                 }
 
@@ -816,11 +778,7 @@ namespace OpenForensics
                 //procShare = 1; // Force logical CPU cores per GPU
 
                 // Set up data reader
-                dataReader dataRead;
-                if (carveOp)
-                    dataRead = new dataReader(FilePath, fileLength);
-                else
-                    dataRead = new dataReader(FilePath, longestTarget - 1);
+                dataReader dataRead = new dataReader(FilePath, fileLength);
 
                 ulong fileSize = dataRead.GetFileSize();
 
@@ -848,8 +806,9 @@ namespace OpenForensics
                 // Prepare the results file
                 PrepareResults(fileSize, time);
 
-                if (MessageBox.Show("Reproduce found files?", "File Carving", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                    carveResults(dataRead);
+                if (carvableFiles.Count > 0)
+                    if (MessageBox.Show("Reproduce found files? (" + carvableFiles.Count + " carvable files found)", "File Carving", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                        carveResults(dataRead);
 
                 dataRead.CloseFile();
 
@@ -871,7 +830,7 @@ namespace OpenForensics
                 {
                     int duplicates = 0;
                     int[] resultsNew = new int[results.Length];
-                    foundLocs = new List<resultRecord>();
+                    List<resultRecord> foundLocs = new List<resultRecord>();
                     foundLocs.AddRange(foundResults.ToArray());
                     foundLocs.Sort((s1, s2) => s1.start.CompareTo(s2.start));
                     for (int i = 0; i < foundLocs.Count;)
@@ -891,6 +850,8 @@ namespace OpenForensics
                         }
                         else
                         {
+                            if (foundLocs[i].end != 0)
+                                carvableFiles.Add(foundLocs[i]);
                             int nameIndex = targetName.IndexOf(foundLocs[i].filetype.ToString());
                             resultsNew[nameIndex]++;
                             i++;
@@ -909,20 +870,10 @@ namespace OpenForensics
                     }
                     int total = 0;
 
-                    if (carveOp)
-                    {
-                        foreach (int count in resultsNew)
-                            total += count;
-                        file.WriteLine("Total Files Found: " + total);
-                    }
-                    else
-                    {
-                        foreach (int count in results)
-                            total += count;
-                        file.WriteLine("Total Targets Identified: " + total);
-                    }
-                    file.WriteLine("");
 
+                    foreach (int count in resultsNew)
+                        total += count;
+                    file.WriteLine("Total Files Found: " + total);
 
                     string timeInfo = "";
                     if (Math.Round(time, 2) >= 60)
@@ -938,25 +889,12 @@ namespace OpenForensics
                     file.WriteLine("Result Breakdown:");
                     file.WriteLine("-----------------------------");
 
-                    if (carveOp)
+                    for (int i = 0; i < resultsNew.Length; i++)
                     {
-                        for (int i = 0; i < resultsNew.Length; i++)
-                        {
-                            file.WriteLine("Target: " + targetName[i]);
-                            file.WriteLine("Carved: " + resultsNew[i]);
-                            if (i != results.Length - 1)
-                                file.WriteLine("");
-                        }
-                    }
-                    else
-                    {
-                        for (int i = 0; i < results.Length; i++)
-                        {
-                            file.WriteLine("Target: " + targetName[i]);
-                            file.WriteLine("Identified: " + results[i]);
-                            if (i != results.Length - 1)
-                                file.WriteLine("");
-                        }
+                        file.WriteLine("Target: " + targetName[i]);
+                        file.WriteLine("Carved: " + resultsNew[i]);
+                        if (i != results.Length - 1)
+                            file.WriteLine("");
                     }
 
                     file.WriteLine("-----------------------------\r\n");
@@ -1006,15 +944,8 @@ namespace OpenForensics
         {
             long count = 0;
             byte[] buffer = new byte[chunkSize];
-            byte[] foundID = new byte[1];
-            int[] foundLoc = new int[1];
-
-            // If carve operation, set up an array to record found results
-            if (carveOp)
-            {
-                foundID = new byte[13107200];
-                foundLoc = new int[13107200];
-            }
+            byte[] foundID = new byte[resultCache];
+            int[] foundLoc = new int[resultCache];
 
             double bytesRead;      // Location in file read
             while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Request data chunk until end of file
@@ -1022,54 +953,37 @@ namespace OpenForensics
                 chunkCount++;   // Add one to chunk count
                 updateSegments();   // UI update
 
-                if (carveOp)
+                // Launch analysis
+                updateGPUAct(cpu, true, false);
+                int[] tmpResults = Engine.CPUPFACAnalyse(buffer, lookup, ref foundID, ref foundLoc, target.Length);
+                updateGPUAct(cpu, false, false);
+
+                // Are there any matches found?
+                bool matchesFound = false;
+                for (int c = 0; c < results.Length; c++)
                 {
-                    // Launch analysis
-                    updateGPUAct(cpu, true, false);
-                    int[] tmpResults = Engine.CPUPFACAnalyse(carveOp, buffer, lookup, ref foundID, ref foundLoc, target.Length);
-                    updateGPUAct(cpu, false, false);
-
-                    // Are there any matches found?
-                    bool matchesFound = false;
-                    for (int c = 0; c < results.Length; c++)
+                    if (tmpResults[c] > 0)
                     {
-                        if (tmpResults[c] > 0)
-                        {
-                            matchesFound = true;
-                            break;
-                        }
-                    }
-
-                    // Carve if mactches exist, update UI
-                    if (matchesFound)
-                    {
-                        updateGPUAct(cpu, true, true);
-                        ProcessLocations(cpu, 0, ref buffer, ref count, ref foundID, ref foundLoc);
-                        updateGPUAct(cpu, false, false);
-                        updateFound();
+                        matchesFound = true;
+                        break;
                     }
                 }
-                else  // If string searching
-                {
-                    // Perform search
-                    updateGPUAct(cpu, true, false);
-                    byte[] tmpMock = new byte[1];
-                    int[] tmpMock2 = new int[1];
-                    int[] tmpResults = Engine.CPUPFACAnalyse(carveOp, buffer, lookup, ref tmpMock, ref tmpMock2, target.Length);
-                    updateGPUAct(cpu, false, false);
 
-                    // Add results to total, update UI
-                    for (int c = 0; c < tmpResults.Length; c++)
-                        Interlocked.Add(ref results[c], tmpResults[c]);
+                // Carve if mactches exist, update UI
+                if (matchesFound)
+                {
+                    updateGPUAct(cpu, true, true);
+                    ProcessLocations(cpu, 0, ref buffer, ref count, ref foundID, ref foundLoc);
+                    updateGPUAct(cpu, false, false);
                     updateFound();
                 }
 
                 // Clear buffer and byteLocation for reuse
                 Array.Clear(buffer, 0, buffer.Length);
-                //Array.Clear(foundID, 0, foundID.Length);   < Attempts to resize array? unusual.. GC?
+                //Array.Clear(foundID, 0, foundID.Length);   //< Attempts to resize array? unusual.. GC?
                 //Array.Clear(foundLoc, 0, foundLoc.Length);
-                foundID = new byte[13107200];
-                foundLoc = new int[13107200];
+                foundID = new byte[resultCache];
+                foundLoc = new int[resultCache];
 
                 // Update progress
                 double Progress = (double)Math.Round(((totalProcessed / dataRead.GetFileSize()) * 100) / 10.0 * 10);
@@ -1088,15 +1002,9 @@ namespace OpenForensics
             //MessageBox.Show(gpu.ToString() + " & " + gpuCore.ToString());
             long count = 0;
             byte[] buffer = new byte[chunkSize];
-            byte[] foundID = new byte[1];
-            int[] foundLoc = new int[1];
+            byte[] foundID = new byte[resultCache];
+            int[] foundLoc = new int[resultCache];
             int gpuID = gpu * gpuCoreCount + gpuCore;
-
-            if (carveOp)
-            {
-                foundID = new byte[13107200];
-                foundLoc = new int[13107200];
-            }
 
             double bytesRead;      // Location in file read
             while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Read into the buffer until end of file
@@ -1108,52 +1016,37 @@ namespace OpenForensics
                 GPUCollection[gpu].CopyToDevice(gpuCore, buffer);            // Copy buffer contents to GPU for processing  
                 updateGPUAct(gpuID, false, false);
 
-                if (carveOp)
+                // Launch file carving on GPU
+                updateGPUAct(gpuID, true, false);
+                GPUCollection[gpu].LaunchPFACCarving(gpuCore);
+                updateGPUAct(gpuID, false, false);
+
+                // Validate whether matches were found
+                bool matchesFound = false;
+                int[] carveResult = new int[results.Length];
+                for (int c = 0; c < carveResult.Length; c++)
                 {
-                    // Launch file carving on GPU
-                    updateGPUAct(gpuID, true, false);
-                    GPUCollection[gpu].LaunchPFACCarving(gpuCore);
-                    updateGPUAct(gpuID, false, false);
-
-                    // Validate whether matches were found
-                    bool matchesFound = false;
-                    int[] carveResult = new int[results.Length];
-                    for (int c = 0; c < carveResult.Length; c++)
+                    Interlocked.Add(ref carveResult[c], GPUCollection[gpu].ReturnResultCount(gpuCore, c));
+                    if (carveResult[c] > 0)
                     {
-                        Interlocked.Add(ref carveResult[c], GPUCollection[gpu].ReturnResultCount(gpuCore, c));
-                        if (carveResult[c] > 0)
-                        {
-                            matchesFound = true;
-                            //byteLocation = GPUCollection[gpu].ReturnResult(gpuCore);
-                            foundID = GPUCollection[gpu].ReturnResultID(gpuCore);
-                            foundLoc = GPUCollection[gpu].ReturnResultLoc(gpuCore);
-                            break;
-                        }
-                    }
-
-                    // If matches found, perform file carving on CPU
-                    if (matchesFound)
-                    {
-                        updateGPUAct(gpuID, true, true);
-                        Parallel.For(0, procShare, i =>
-                        {
-                            ProcessLocations(gpu, i, ref buffer, ref count, ref foundID, ref foundLoc);
-                        });
-                        Task.WaitAll();
-                        updateGPUAct(gpuID, false, true);
+                        matchesFound = true;
+                        //byteLocation = GPUCollection[gpu].ReturnResult(gpuCore);
+                        foundID = GPUCollection[gpu].ReturnResultID(gpuCore);
+                        foundLoc = GPUCollection[gpu].ReturnResultLoc(gpuCore);
+                        break;
                     }
                 }
-                else // Else if string searching
-                {
-                    // Launch String Searching on GPU
-                    updateGPUAct(gpuID, true, false);
-                    GPUCollection[gpu].LaunchPFACCarving(gpuCore);
-                    updateGPUAct(gpuID, false, false);
 
-                    // Add results to total
-                    for (int c = 0; c < results.Length; c++)
-                        Interlocked.Add(ref results[c], GPUCollection[gpu].ReturnResultCount(gpuCore, c));
-                    updateFound();
+                // If matches found, perform file carving on CPU
+                if (matchesFound)
+                {
+                    updateGPUAct(gpuID, true, true);
+                    Parallel.For(0, procShare, i =>
+                    {
+                        ProcessLocations(gpu, i, ref buffer, ref count, ref foundID, ref foundLoc);
+                    });
+                    Task.WaitAll();
+                    updateGPUAct(gpuID, false, true);
                 }
 
                 // Clear buffer
@@ -1179,31 +1072,21 @@ namespace OpenForensics
         // Lookup Table generation for PFAC and BM
         private void LookupTableGen()
         {
-            if (carveOp)
-            {
-                target = new Byte[targetHeader.Count + targetFooter.Count][];
-                targetEnd = new Byte[targetFooter.Count][];
+            target = new Byte[targetHeader.Count + targetFooter.Count][];
+            targetEnd = new Byte[targetFooter.Count][];
 
-                int i = 0;
-                for (int j = 0; j < targetHeader.Count; j++, i += 2)       // Translate Search Targets into Bytes
-                {
-                    target[i] = Engine.GetBytes(targetHeader[j]);
-                    if (targetFooter[j] != null)
-                    {
-                        targetEnd[j] = Engine.GetBytes(targetFooter[j]);
-                        target[i + 1] = Engine.GetBytes(targetFooter[j]);
-                    }
-                }
-            }
-            else
+            int i = 0;
+            for (int j = 0; j < targetHeader.Count; j++, i += 2)       // Translate Search Targets into Bytes
             {
-                target = new Byte[targetHeader.Count][];
-                for (int i = 0; i < target.Length; i++)            // Translate Search Targets into Bytes
-                    target[i] = Engine.GetBytes(targetHeader[i]);
+                target[i] = Engine.GetBytes(targetHeader[j]);
+                if (targetFooter[j] != null)
+                {
+                    targetEnd[j] = Engine.GetBytes(targetFooter[j]);
+                    target[i + 1] = Engine.GetBytes(targetFooter[j]);
+                }
             }
 
             lookup = Engine.pfacLookupCreate(target);           // Create Lookup for Target
-
         }
 
         #endregion
@@ -1311,121 +1194,7 @@ namespace OpenForensics
             }
         }
 
-        // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
-        private void carveResults(dataReader dataread)
-        {
-            updateHeader("Extracting files from data...");
-            double processed = 0;
-            foreach (resultRecord file in foundLocs)
-            {
-                if (file.end != 0)
-                {
-                    string filePath = saveLocation + file.filetype + "/";
-                    if (!Directory.Exists(filePath))
-                        Directory.CreateDirectory(filePath);
-                    if (!File.Exists(filePath + file.start.ToString() + "." + file.filetype))
-                    {
-                        try
-                        {
-                            byte[] fileData = dataread.RetrieveFile((long)file.start, (long)file.end);
-                            File.WriteAllBytes(filePath + file.start.ToString() + file.tag + "." + file.filetype, fileData);
-                        }
-                        catch { }
-                    }
-                }
-
-                // Update progress
-                processed++;
-                double Progress = (double)Math.Round(((processed / foundLocs.Count) * 100) / 10.0 * 10);
-                updateProgress((int)Progress, processed, foundLocs.Count);
-            }
-        }
-
-        // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
-        private void smartCarve(int gpu, int numThreads, ref byte[] buffer, ref long count, ref byte[] resultLoc, ref int[] results)
-        {
-            int i = (numThreads * (resultLoc.Length / procShare));
-            int end = ((numThreads + 1) * (resultLoc.Length / procShare));
-
-            while (i < end && !shouldStop)
-            {
-                if ((int)resultLoc[i] != 0 && (int)resultLoc[i] % 2 != 0 && (int)resultLoc[i] < target.Length)
-                {
-                    int headerType = (int)resultLoc[i];
-                    int fileIndex = ((headerType + 1) / 2) - 1;
-                    int footerType = 0;
-                    for (int j = 0; j < targetName.Count; j++)
-                    {
-                        if (targetName[j] == targetName[fileIndex])
-                        {
-                            footerType = (j * 2) + 2;
-                            break;
-                        }
-                    }
-
-                    if (targetEnd[fileIndex] != null)
-                    {
-
-                        int searchRange = i + fileLength;
-                        if (searchRange > buffer.Length)
-                            searchRange = buffer.Length;
-
-                        bool nextHeaderFound = false;
-                        int nextHeader = 0;
-                        int fileEnd = 0;
-
-                        for (int j = i + 1; j < searchRange; j++)
-                        {
-                            if (resultLoc[j] == headerType && !nextHeaderFound)
-                            {
-                                nextHeader = j - 1;
-                                nextHeaderFound = true;
-                            }
-
-                            if (targetName[fileIndex] == "sqldb")
-                            {
-                                fileEnd = i + sqldbSearchLength(ref buffer, i);
-                                if (fileEnd > buffer.Length)
-                                    fileEnd = 0;
-                                if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
-                                {
-                                    CarveFile(buffer, count, fileIndex, i, fileEnd, "");
-                                    break;
-                                }
-                                else
-                                    fileEnd = 0;
-                            }
-                            else
-                            {
-                                if ((int)resultLoc[j] == footerType)
-                                {
-                                    fileEnd = j + targetEnd[fileIndex].Length;
-                                    fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
-                                    if (fileEnd > buffer.Length)
-                                        fileEnd = 0;
-                                    if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
-                                    {
-                                        CarveFile(buffer, count, fileIndex, i, fileEnd, "");
-                                        break;
-                                    }
-                                    else
-                                        fileEnd = 0;
-                                }
-                            }
-                        }
-
-                        if (fileEnd == 0 && nextHeaderFound)
-                            CarveFile(buffer, count, fileIndex, i, nextHeader, "fragmented");
-                        else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
-                            CarveFile(buffer, count, fileIndex, i, searchRange, "partial");
-
-                    }                
-                }
-                i++;
-            }
-        }
-
-        // File reconstruction method used by main carving thread.
+        // Records file location information from information passed by processing threads.
         private void RecordFileLocation(byte[] buffer, double count, int fileIndex, int start, int finish, string tag)
         {
             if (finish != 0)
@@ -1464,7 +1233,7 @@ namespace OpenForensics
                         updateFound();
                     }
                     catch { }
-            }
+                }
             }
             else
             {
@@ -1476,44 +1245,33 @@ namespace OpenForensics
             }
         }
 
-        // File reconstruction method used by main carving thread.
-        private void CarveFile(byte[] buffer, double count, int fileIndex, int start, int finish, string tag)
+        // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
+        private void carveResults(dataReader dataread)
         {
-            string filePath = saveLocation + targetName[fileIndex] + "/";
-            if (!Directory.Exists(filePath))
-                Directory.CreateDirectory(filePath);
-            if (!File.Exists(filePath + (count + start).ToString() + "." + targetName[fileIndex]))
+            updateHeader("Extracting files from data...");
+            double processed = 0;
+            foreach (resultRecord file in carvableFiles)
             {
-                try
+                if (file.end != 0)
                 {
-                    byte[] fileData = new byte[finish - start];
-                    Array.Copy(buffer, start, fileData, 0, finish - start);
-
-                    float fileSize = (finish - start);
-                    string sizeFormat = "bytes";
-                    if (fileSize > 1024)
+                    string filePath = saveLocation + file.filetype + "/";
+                    if (!Directory.Exists(filePath))
+                        Directory.CreateDirectory(filePath);
+                    if (!File.Exists(filePath + file.start.ToString() + "." + file.filetype))
                     {
-                        fileSize = fileSize / 1024;
-                        sizeFormat = "KB";
+                        try
+                        {
+                            byte[] fileData = dataread.RetrieveFile((long)file.start, (long)file.end);
+                            File.WriteAllBytes(filePath + file.start.ToString() + file.tag + "." + file.filetype, fileData);
+                        }
+                        catch { }
                     }
-                    if (fileSize > 1024)
-                    {
-                        fileSize = fileSize / 1024;
-                        sizeFormat = "MB";
-                    }
-                    if (fileSize > 1024)
-                    {
-                        fileSize = fileSize / 1024;
-                        sizeFormat = "GB";
-                    }
-                    resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
-                    foundResults.Add(newEntry);
-
-                    File.WriteAllBytes(filePath + (count + start).ToString() + tag + "." + targetName[fileIndex], fileData);
-                    Interlocked.Increment(ref results[fileIndex]);
-                    updateFound();
                 }
-                catch { }
+
+                // Update progress
+                processed++;
+                double Progress = (double)Math.Round(((processed / carvableFiles.Count) * 100) / 10.0 * 10);
+                updateProgress((int)Progress, processed, carvableFiles.Count);
             }
         }
 

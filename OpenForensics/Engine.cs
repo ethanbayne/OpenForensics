@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using Cudafy;
 using Cudafy.Host;
 using Cudafy.Atomics;
 using Cudafy.Translator;
-using System.IO;
-using System.Windows.Forms;
 
 namespace OpenForensics
 {
@@ -23,14 +20,13 @@ namespace OpenForensics
         public int blockThreads;
         public int blockSize;
         public uint chunkSize;
+        private uint resultCache = 1048576;
 
         private uint bufferSize;
         private int initialState;
         private int fileLength;
         private int longestTarget;
         private int[][] resultCount;
-
-        private bool carveOp;
 
         private static object[] locker;
         private byte[][] dev_buffer;
@@ -46,7 +42,7 @@ namespace OpenForensics
         #region Engine Initiation
 
         // PFAC Algorithm Engine
-        public Engine(int GPUid, int coreCount, byte[][] target, int[][] lookup, int longestTarget, int fileLength, uint size, bool carveOp)
+        public Engine(int GPUid, int coreCount, byte[][] target, int[][] lookup, int longestTarget, int fileLength, uint size)
         {
             this.GPUid = GPUid;
             gpu = CudafyHost.GetDevice(CudafyModes.Target, GPUid);
@@ -89,8 +85,6 @@ namespace OpenForensics
             initialState = target.Length + 1;
             bufferSize = chunkSize;
 
-            this.carveOp = carveOp;
-
             // Allocate the memory on the GPU for buffer and results
             dev_buffer = new byte[gpuCoreCount][];
             dev_resultCount = new int[gpuCoreCount][];
@@ -109,10 +103,10 @@ namespace OpenForensics
                 resultCount[i] = new int[target.Length];
 
                 dev_foundCount[i] = gpu.Allocate<int>(new int[1]);
-                dev_foundID[i] = gpu.Allocate<byte>(new byte[13107200]);
-                dev_foundLoc[i] = gpu.Allocate<int>(new int[13107200]);
-                foundID[i] = new byte[13107200];
-                foundLoc[i] = new int[13107200];
+                dev_foundID[i] = gpu.Allocate<byte>(new byte[resultCache]);
+                dev_foundLoc[i] = gpu.Allocate<int>(new int[resultCache]);
+                foundID[i] = new byte[resultCache];
+                foundLoc[i] = new int[resultCache];
                 FreeBuffers(i);
             }
         }
@@ -123,7 +117,7 @@ namespace OpenForensics
         #region CPU Operations
 
         //CPU PFAC Analyse - using PFAC Algorithm for searching Bytes
-        public static int[] CPUPFACAnalyse(bool carveOp, byte[] buffer, int[][] lookup, ref byte[] resultsID, ref int[] resultsLoc, int numTargets)
+        public static int[] CPUPFACAnalyse(byte[] buffer, int[][] lookup, ref byte[] resultsID, ref int[] resultsLoc, int numTargets)
         {
             int[] results = new int[numTargets];
             int initialState = numTargets + 1;
@@ -141,10 +135,9 @@ namespace OpenForensics
                     if (state == 0) { break; }
                     if (state < initialState)
                     {
-                        if (!carveOp || state % 2 != 0)
-                            results[((state + 1) / 2) -1]++;
-                        if (carveOp)
+                        if (state % 2 != 0)
                         {
+                            results[((state + 1) / 2) - 1]++;
                             resultsID[foundCount] = (byte)state;
                             resultsLoc[foundCount] = i;
                             foundCount++;
@@ -241,47 +234,27 @@ namespace OpenForensics
         //GPU PFAC Carving - using PFAC for searching Bytes
         public void LaunchPFACCarving(int gpuCore)
         {
-            int isCarveOp = 0;
-            if (carveOp)
-                isCarveOp = 1;
-
-            // EXPERIMENTAL -----------------------------------------
-            //int size = Marshal.SizeOf(buffer[0]) * buffer.Length;
-            //IntPtr bufferPtr = gpu.HostAllocate<int>(size);
-            //IntPtr resultPtr = gpu.HostAllocate<int>(size);
-            //Marshal.Copy(bufferPtr, buffer, 0, buffer.Length);
-
-            //gpu.CopyToDeviceAsync(bufferPtr, 0, dev_buffer, 0, size, 1);
-            //gpu.LaunchAsync(gpuBlocks, blockSize, 1, "PFACAnalyse", dev_buffer, initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc, dev_resultCount);
-            //gpu.CopyFromDeviceAsync(dev_resultLoc, 0, resultPtr, 0, size, 1);
-            //gpu.SynchronizeStream(1);
-
-            //GPGPU.CopyOnHost(resultPtr, 0, resultLoc, 0, size);
-            //gpu.HostFree(bufferPtr);
-            //gpu.HostFree(resultPtr);
-            //gpu.DestroyStream(1);
-            //----------------------------------------------------------
 
             lock (locker[GPUid])
             {
                 gpu.SetCurrentContext();
 
-                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
-                //gpu.Launch(gpuOperatingCores, blockSize, gpuCore).PFACAnalyse(dev_buffer[gpuCore], initialState, isCarveOp, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);  // Start the analysis of the buffer
+                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, dev_lookup, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
+                //gpu.Launch(gpuOperatingCores, blockSize, gpuCore).PFACAnalyse(dev_buffer[gpuCore], initialState, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);  // Start the analysis of the buffer
                 gpu.SynchronizeStream(gpuCore);
             }
 
             gpu.CopyFromDevice(dev_resultCount[gpuCore], resultCount[gpuCore]);
-            if (carveOp)
-                for (int i = 0; i < resultCount[gpuCore].Length; i++)
+
+            for (int i = 0; i < resultCount[gpuCore].Length; i++)
+            {
+                if (resultCount[gpuCore][i] > 0)
                 {
-                    if (resultCount[gpuCore][i] > 0)
-                    {
-                        gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);
-                        gpu.CopyFromDevice(dev_foundLoc[gpuCore], foundLoc[gpuCore]);
-                        break;
-                    }
+                    gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);
+                    gpu.CopyFromDevice(dev_foundLoc[gpuCore], foundLoc[gpuCore]);
+                    break;
                 }
+            }
 
             //gpu.Synchronize();
             FreeBuffers(gpuCore);
@@ -289,7 +262,7 @@ namespace OpenForensics
 
         //GPU PFAC Analyse - using PFAC for searching Bytes
         [Cudafy]
-        public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int carveOp, int[,] lookup, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF)
+        public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int[,] lookup, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF)
         {
             int n = buffer.Length;
 
@@ -307,7 +280,7 @@ namespace OpenForensics
                     if (state == 0) { break; }
                     if (state < initialState)
                     {
-                        if (carveOp == 0 || (state - 1) % 2 == 0)
+                        if ((state - 1) % 2 == 0)
                             thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
 
                         int counter = thread.atomicAdd(ref foundCount[0], 1);
