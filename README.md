@@ -12,7 +12,10 @@ This tool was built using C# and Cudafy.NET (https://cudafy.codeplex.com/). Curr
 4. (Optional) Choose processing technique.
 5. Click Analyse.
 
-OpenForensics will create a set of sub-folders to store results. The directory hierarchy is: <chosen directory>/<case reference default:OpenForensics Output>/<evidence reference default:file/drive name>.
+OpenForensics will create a set of sub-folders to store results. The directory hierarchy is: 
+save-location
+ |> case-reference default:"OpenForensics Output"
+   |> evidence-reference default:file/drive name
 
 If data exists for the case and file/storage device, an option will present itself to query whether you want to reproduce files using existing results. Selecting No will prompt whether you want to overwrite the existing results with a new search. Warning: Old results will be erased when proceeding.
 
