@@ -1,3 +1,4 @@
+
 # OpenForensics
 OpenForensics is an open-source OpenCL storage device and physical analysis and file carving tool. This tool was built in conjunction with PhD research from Dr Ethan Bayne as a platform to demonstrate the performance enhancements possible when applying GPGPU processing and an optimised PFAC algorithm to the problem of string searching in the field of Digital Forensics. Details of the supporting research can be found in the completed thesis by Dr Ethan Bayne:
 
@@ -13,9 +14,12 @@ This tool was built using C# and Cudafy.NET (https://cudafy.codeplex.com/). Curr
 5. Click Analyse.
 
 OpenForensics will create a set of sub-folders to store results. The directory hierarchy is: 
-save-location
- |> case-reference default:"OpenForensics Output"
-   |> evidence-reference default:file/drive name
+
+--save-location
+
+----case-reference default:"OpenForensics Output"
+ 
+------evidence-reference default:file/drive name
 
 If data exists for the case and file/storage device, an option will present itself to query whether you want to reproduce files using existing results. Selecting No will prompt whether you want to overwrite the existing results with a new search. Warning: Old results will be erased when proceeding.
 
