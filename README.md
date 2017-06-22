@@ -1,5 +1,5 @@
 # OpenForensics
-OpenForensics is an open-source OpenCL storage device and physical analysis and file carving tool. This tool was built in conjunction with PhD research from Dr Ethan Bayne as a platform to demonstrate the performance enhancements possible when applying GPGPU processing and an optimised PFAC algorithm to the problem of string searching in the field of Digital Forensics. Details of the supporting research can be found in the completed thesis by Dr Ethan Bayne:
+OpenForensics is an open-source OpenCL Digital Forensics analysis and file carving tool. This tool was built in conjunction with PhD research from Dr Ethan Bayne as a platform to demonstrate the performance enhancements possible when applying GPGPU processing and an optimised PFAC algorithm to the problem of string searching in the field of Digital Forensics. Details of the supporting research can be found in the completed thesis by Dr Ethan Bayne:
 
 <Thesis in review, link will be provided shortly>
 
