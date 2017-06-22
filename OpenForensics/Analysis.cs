@@ -367,7 +367,6 @@ namespace OpenForensics
         private uint chunkCount;
         private ConcurrentBag<resultRecord> foundResults = new ConcurrentBag<resultRecord>();
         private List<resultRecord> carvableFiles = new List<resultRecord>();
-        private static object resultLock = new Object();
 
         private List<Engine> GPUCollection = new List<Engine>();
 

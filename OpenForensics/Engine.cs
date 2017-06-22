@@ -28,7 +28,7 @@ namespace OpenForensics
         private int longestTarget;
         private int[][] resultCount;
 
-        private static object[] locker;
+        private static object[] gpuThreadLock;
         private byte[][] dev_buffer;
         private int[,] dev_lookup;
         private int[][] dev_resultCount;
@@ -54,9 +54,9 @@ namespace OpenForensics
             for (int i = 0; i < gpuCoreCount; i++)
                 gpu.CreateStream(i);
 
-            locker = new object[coreCount];
-            for (int i = 0; i < locker.Length; i++)
-                locker[i] = new Object();
+            gpuThreadLock = new object[coreCount];
+            for (int i = 0; i < gpuThreadLock.Length; i++)
+                gpuThreadLock[i] = new Object();
 
             prop = gpu.GetDeviceProperties();
             gpuCoreCount = coreCount;
@@ -235,7 +235,7 @@ namespace OpenForensics
         public void LaunchPFACCarving(int gpuCore)
         {
 
-            lock (locker[GPUid])
+            lock (gpuThreadLock[GPUid])
             {
                 gpu.SetCurrentContext();
 
