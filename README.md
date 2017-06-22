@@ -6,22 +6,28 @@ OpenForensics is an open-source OpenCL storage device and physical analysis and 
 This tool was built using C# and Cudafy.NET (https://cudafy.codeplex.com/). Currently, the file carving provided by this tool is considered basic (carves data between found header and footer). Whilst it is intended to develop more advanced file carving features in time, we would welcome collaborators to help build upon the functionality of the tool.
 
 # Basic Usage
-1. (Optional) Provide a case reference and evidence reference.
-2. Select either a physical drive or a file to perform physical searching on.
-3. Select targets (either file-types or keywords).
-4. (Optional) Choose processing technique.
-5. Click Analyse.
-6. Choose location to save results.
+    1. (Optional) Provide a case reference and evidence reference.
+    2. Select either a physical drive or a file to perform physical searching on.
+    3. Select targets (either file-types or keywords).
+    4. (Optional) Choose processing technique.
+    5. Click Analyse.
+    6. Choose location to save results.
 
-OpenForensics will create a set of sub-folders to store results. The directory hierarchy is: 
+OpenForensics will create a set of sub-folders and files to store results. The directory and file hierarchy is: 
 
-    save-location
+    <save-location>
 
-      └─case-reference default:"OpenForensics Output"
+      └─ <case-reference> default:"OpenForensics Output"
  
-        └─evidence-reference default:file/drive name
+        └─ <evidence-reference> default:file/drive name
+            ├─ LogFile.txt
+            ├─ CarvableFileData.of
+            └─ <Folder of each file-type carved>
+                └─ <Files carved>
 
 If data exists for the case and file/storage device, an option will present itself to query whether you want to reproduce files using existing results. Selecting No will prompt whether you want to overwrite the existing results with a new search. Warning: Old results will be erased when proceeding.
+
+File-types are populated from the FileTypes.xml file. Each file should have a Type, Name (used for file extension), Value (file header) and EOF (file footer). On launch, OpenForensics will load the file-types specified in this file.
 
 # Open-source License
 OpenForensics Copyright 2017 Ethan Bayne
