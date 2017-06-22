@@ -378,7 +378,7 @@ namespace OpenForensics
                     }
                     else
                     {
-                        if (File.Exists(saveLocation + "CarvableFileData.of") && MessageBox.Show("Detected an existing results file for " + Path.GetFileName(txtFile.Text) + "\nWould you like to reproduce the carvable files?", "File Carve?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        if (File.Exists(saveLocation + "CarvableFileData.of") && MessageBox.Show("Detected an existing analysis results file for " + Path.GetFileName(txtFile.Text) + "\nWould you like to reproduce the carvable files?", "Use existing analysis results?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                         {
                             carvableFileRecord = "CarvableFileData.of";
                             BeginAnalysis();
