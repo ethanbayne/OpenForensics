@@ -12,7 +12,8 @@ using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Management;
 using System.Collections.Concurrent;
-
+using System.Xml;
+using System.Xml.Serialization;
 
 namespace OpenForensics
 {
@@ -31,7 +32,7 @@ namespace OpenForensics
             [MarshalAs(UnmanagedType.U4)] FileAttributes fileAttributes,
             IntPtr template);
 
-        private struct resultRecord
+        public struct resultRecord
         {
             public double start, end;
             public float size;
@@ -322,6 +323,7 @@ namespace OpenForensics
             public string CaseName { get; set; }
             public string EvidenceName { get; set; }
             public string saveLocation { get; set; }
+            public string CarveFilePath { get; set; }
             public List<string> targetName { get; set; }
             public List<string> targetHeader { get; set; }
             public List<string> targetFooter { get; set; }
@@ -340,6 +342,7 @@ namespace OpenForensics
         private string CaseName;
         private string EvidenceName;
         private string saveLocation;
+        private string CarveFilePath;
         private List<string> targetName;
         private List<string> targetHeader;
         private List<string> targetFooter;
@@ -380,6 +383,7 @@ namespace OpenForensics
                 CaseName = value.CaseName;
                 EvidenceName = value.EvidenceName;
                 saveLocation = value.saveLocation;
+                CarveFilePath = value.CarveFilePath;
                 targetName = value.targetName;
                 targetHeader = value.targetHeader;
                 targetFooter = value.targetFooter;
@@ -390,13 +394,14 @@ namespace OpenForensics
         {
             try
             {
+
                 // Interface updates for tech
                 string techUsed = "";
                 if (TestType == "CPU")
                     techUsed = " (" + lpCount + " Logical Cores)";
                 else
                 {
-                    int maxGPUThread = (int)((maxGPUMem*0.8) / (chunkSize*2));
+                    int maxGPUThread = (int)((maxGPUMem * 0.8) / (chunkSize * 2));
                     gpuCoreCount = Math.Min(lpCount / gpus.Count, maxGPUThread);
                     //gpuCoreCount = 1;   // Force GPU concurrency to a certain value.
 
@@ -406,11 +411,16 @@ namespace OpenForensics
                         techUsed = " (" + GPGPU + " - running " + gpuCoreCount + " threads)";
                 }
 
-                // Records analysis information
-                if (CaseName == "OpenForensics Output")
-                    CaseName = "...";
+                // Initial setup of GPU status
+                DrawGPUStatus();
 
-                String[] startLog = {"OpenForensics Analysis Report",
+                if (CarveFilePath == "")
+                {
+                    // Records analysis information
+                    if (CaseName == "OpenForensics Output")
+                        CaseName = "...";
+
+                    String[] startLog = {"OpenForensics Analysis Report",
                                     "",
                                     "Report Generated: " + String.Format("{0:HH:mm dd-MMM-yyyy}", DateTime.Now),
                                     "---------------------------------------------",
@@ -419,25 +429,28 @@ namespace OpenForensics
                                     "Technology Used: " + TestType + techUsed,
                                     "---------------------------------------------\n"};
 
-                while (true)
-                {
-                    try
+                    while (true)
                     {
-                        System.IO.File.WriteAllLines(saveLocation + "LogFile.txt", startLog);
-                        break;
+                        try
+                        {
+                            System.IO.File.WriteAllLines(saveLocation + "LogFile.txt", startLog);
+                            break;
+                        }
+                        catch
+                        {
+                            Thread.Sleep(100);
+                        }
                     }
-                    catch
-                    {
-                        Thread.Sleep(100);
-                    }
+
+                    // Start the main analysis processing thread
+                    Thread analysis = new Thread(new ThreadStart(FileAnalysis));
+                    analysis.Start();
                 }
-
-                // Initial setup of GPU status
-                DrawGPUStatus();
-
-                // Start the main analysis processing thread
-                Thread analysis = new Thread(new ThreadStart(FileAnalysis));
-                analysis.Start();
+                else
+                {
+                    Thread carve = new Thread(new ThreadStart(CarveOnly));
+                    carve.Start();
+                }
             }
             catch (Exception ex) // Pokémon error catching, gotta catch them all!
             {
@@ -648,14 +661,31 @@ namespace OpenForensics
         {
             try
             {
-                double timeElapsed = (int)Math.Round(watch.Elapsed.TotalSeconds, 2);
-                TimeSpan timeElapsedSpan = new TimeSpan(0, 0, (int)Math.Round(watch.Elapsed.TotalSeconds, 2));
-                TimeSpan timeRemainingSpan = new TimeSpan(0, 0, (int)((timeElapsed / percent) * (100 - percent)));
+                if (CarveFilePath == "")
+                {
+                    double timeElapsed = (int)Math.Round(watch.Elapsed.TotalSeconds, 2);
+                    TimeSpan timeElapsedSpan = new TimeSpan(0, 0, (int)Math.Round(watch.Elapsed.TotalSeconds, 2));
+                    TimeSpan timeRemainingSpan = new TimeSpan(0, 0, (int)((timeElapsed / percent) * (100 - percent)));
 
-                string formattedElapsed = string.Format("{0:00}:{1:00}:{2:00}", timeElapsedSpan.Hours, timeElapsedSpan.Minutes, timeElapsedSpan.Seconds);
-                string formattedRemaining = "--:--:--";
-                if (percent > 0)
-                    formattedRemaining = string.Format("{0:00}:{1:00}:{2:00}", timeRemainingSpan.Hours, timeRemainingSpan.Minutes, timeRemainingSpan.Seconds);
+                    string formattedElapsed = string.Format("{0:00}:{1:00}:{2:00}", timeElapsedSpan.Hours, timeElapsedSpan.Minutes, timeElapsedSpan.Seconds);
+                    string formattedRemaining = "--:--:--";
+                    if (percent > 0)
+                        formattedRemaining = string.Format("{0:00}:{1:00}:{2:00}", timeRemainingSpan.Hours, timeRemainingSpan.Minutes, timeRemainingSpan.Seconds);
+
+                    if (this.pbProgress.InvokeRequired)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            this.lblTimeElapsedValue.Text = formattedElapsed;
+                            this.lblTimeRemainingValue.Text = formattedRemaining;
+                        });
+                    }
+                    else
+                    {
+                        this.lblTimeElapsedValue.Text = formattedElapsed;
+                        this.lblTimeRemainingValue.Text = formattedRemaining;
+                    }
+                }
 
                 if (this.pbProgress.InvokeRequired)
                 {
@@ -664,8 +694,6 @@ namespace OpenForensics
                         this.pbProgress.Value = percent;
                         this.lblProgress.Text = percent + "%";
                         this.lblProcess.Text = "Processing: " + position + " / " + total;
-                        this.lblTimeElapsedValue.Text = formattedElapsed;
-                        this.lblTimeRemainingValue.Text = formattedRemaining;
                     });
                 }
                 else
@@ -673,8 +701,6 @@ namespace OpenForensics
                     this.pbProgress.Value = percent;
                     this.lblProgress.Text = percent + "%";
                     this.lblProcess.Text = "Processing: " + position + " / " + total;
-                    this.lblTimeElapsedValue.Text = formattedElapsed;
-                    this.lblTimeRemainingValue.Text = formattedRemaining;
                 }              
             }
             catch (Exception)
@@ -714,8 +740,7 @@ namespace OpenForensics
                 procShare = 1;
 
                 // Set up data reader
-                dataReader dataRead;
-                dataRead = new dataReader(FilePath, fileLength);
+                dataReader dataRead = new dataReader(FilePath, fileLength);
 
                 ulong fileSize = dataRead.GetFileSize();
 
@@ -818,6 +843,15 @@ namespace OpenForensics
                 CarveClose();
                 #endregion
             }
+        }
+
+        private void CarveOnly()
+        {
+            carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
+            dataReader dataRead = new dataReader(FilePath, fileLength);
+            carveResults(dataRead);
+            dataRead.CloseFile();
+            CarveClose();
         }
 
         #region Result Prep
@@ -934,6 +968,8 @@ namespace OpenForensics
             {
                 MessageBox.Show("Could not write Log File!\nError: " + ex, "Log File Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+
+            saveCarvableLocations(carvableFiles, saveLocation + "CarvableFileData.of");
         }
 
         #endregion
@@ -1202,41 +1238,28 @@ namespace OpenForensics
         {
             if (finish != 0)
             {
-                string filePath = saveLocation + targetName[fileIndex] + "/";
-                if (!Directory.Exists(filePath))
-                    Directory.CreateDirectory(filePath);
-                if (!File.Exists(filePath + (count + start).ToString() + "." + targetName[fileIndex]))
+                float fileSize = (finish - start);
+                string sizeFormat = "bytes";
+                if (fileSize > 1024)
                 {
-                    try
-                    {
-                        byte[] fileData = new byte[finish - start];
-                        Array.Copy(buffer, start, fileData, 0, finish - start);
-
-                        float fileSize = (finish - start);
-                        string sizeFormat = "bytes";
-                        if (fileSize > 1024)
-                        {
-                            fileSize = fileSize / 1024;
-                            sizeFormat = "KB";
-                        }
-                        if (fileSize > 1024)
-                        {
-                            fileSize = fileSize / 1024;
-                            sizeFormat = "MB";
-                        }
-                        if (fileSize > 1024)
-                        {
-                            fileSize = fileSize / 1024;
-                            sizeFormat = "GB";
-                        }
-                        resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
-                        foundResults.Add(newEntry);
-
-                        Interlocked.Increment(ref results[fileIndex]);
-                        updateFound();
-                    }
-                    catch { }
+                    fileSize = fileSize / 1024;
+                    sizeFormat = "KB";
                 }
+                if (fileSize > 1024)
+                {
+                    fileSize = fileSize / 1024;
+                    sizeFormat = "MB";
+                }
+                if (fileSize > 1024)
+                {
+                    fileSize = fileSize / 1024;
+                    sizeFormat = "GB";
+                }
+                resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
+                foundResults.Add(newEntry);
+
+                Interlocked.Increment(ref results[fileIndex]);
+                updateFound();
             }
             else
             {
@@ -1320,6 +1343,68 @@ namespace OpenForensics
                 fileEnd += 18;
 
             return fileEnd;
+        }
+
+        #endregion
+
+
+        #region Carvable File Data Save/Load Functions
+
+        private void saveCarvableLocations<T>(T serializableObject, string fileName)
+        {
+            if (serializableObject == null) { return; }
+
+            try
+            {
+                XmlDocument xmlDocument = new XmlDocument();
+                XmlSerializer serializer = new XmlSerializer(serializableObject.GetType());
+                using (MemoryStream stream = new MemoryStream())
+                {
+                    serializer.Serialize(stream, serializableObject);
+                    stream.Position = 0;
+                    xmlDocument.Load(stream);
+                    xmlDocument.Save(fileName);
+                    stream.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not save carvable file locations!\nError: " + ex, "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private T loadCarvableLocations<T>(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) { return default(T); }
+
+            T objectOut = default(T);
+
+            try
+            {
+                XmlDocument xmlDocument = new XmlDocument();
+                xmlDocument.Load(fileName);
+                string xmlString = xmlDocument.OuterXml;
+
+                using (StringReader read = new StringReader(xmlString))
+                {
+                    Type outType = typeof(T);
+
+                    XmlSerializer serializer = new XmlSerializer(outType);
+                    using (XmlReader reader = new XmlTextReader(read))
+                    {
+                        objectOut = (T)serializer.Deserialize(reader);
+                        reader.Close();
+                    }
+
+                    read.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Could not load carvable file locations!\nError: " + ex, "Load Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+            return objectOut;
         }
 
         #endregion

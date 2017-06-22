@@ -47,6 +47,7 @@ namespace OpenForensics
         private string EvidenceName = "";
         private string saveLocation = "";
         private string fileName = "";
+        private string carvableFileRecord = "";
 
         // Arrays for all search target types
         private List<string> targetName = new List<string>();
@@ -377,10 +378,15 @@ namespace OpenForensics
                     }
                     else
                     {
-                        DialogResult dialogConfirm = MessageBox.Show("Output already exists in this location for " + Path.GetFileName(txtFile.Text) + "\nOutput will be overwritten, Continue?", "Overwrite?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                        if (dialogConfirm == DialogResult.Yes)
+                        if (File.Exists(saveLocation + "CarvableFileData.of") && MessageBox.Show("Detected an existing results file for " + Path.GetFileName(txtFile.Text) + "\nWould you like to reproduce the carvable files?", "File Carve?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                         {
-                            while(true)
+                            carvableFileRecord = "CarvableFileData.of";
+                            BeginAnalysis();
+                        }
+                        else if (MessageBox.Show("Output already exists in this location for " + Path.GetFileName(txtFile.Text) + "\nOutput will be overwritten, Continue?", "Overwrite?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        {
+                            carvableFileRecord = "";
+                            while (true)
                             {
                                 try
                                 {
@@ -735,6 +741,7 @@ namespace OpenForensics
             input.CaseName = CaseName;
             input.EvidenceName = EvidenceName;
             input.saveLocation = saveLocation;
+            input.CarveFilePath = carvableFileRecord;
             input.targetName = targetName;
             input.targetHeader = targetHeader;
             input.targetFooter = targetFooter;
