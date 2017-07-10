@@ -364,6 +364,7 @@ namespace OpenForensics
         private Stopwatch watch;
         private int[] results;
         private double totalProcessed;
+        private int carveProcessed;
         private uint chunkCount;
         private ConcurrentBag<resultRecord> foundResults = new ConcurrentBag<resultRecord>();
         private List<resultRecord> carvableFiles = new List<resultRecord>();
@@ -1274,29 +1275,40 @@ namespace OpenForensics
         private void carveResults(dataReader dataread)
         {
             updateHeader("Extracting files from data...");
-            double processed = 0;
-            foreach (resultRecord file in carvableFiles)
+            carveProcessed = 0;
+            Parallel.For(0, lpCount, i =>
             {
-                if (file.end != 0)
+                carveThread(i, ref dataread);
+            });
+            Task.WaitAll();
+        }
+
+        private void carveThread(int cpu, ref dataReader dataread)
+        {
+            int currentFile = 0;
+            while ((currentFile = Interlocked.Increment(ref carveProcessed)) <= carvableFiles.Count)
+            {
+                if (carvableFiles[currentFile-1].end != 0)
                 {
-                    string filePath = saveLocation + file.filetype + "/";
+                    updateGPUAct(cpu, true, true);
+                    string filePath = saveLocation + carvableFiles[currentFile-1].filetype + "/";
                     if (!Directory.Exists(filePath))
                         Directory.CreateDirectory(filePath);
-                    if (!File.Exists(filePath + file.start.ToString() + "." + file.filetype))
+                    if (!File.Exists(filePath + carvableFiles[currentFile-1].start.ToString() + "." + carvableFiles[currentFile-1].filetype))
                     {
                         try
                         {
-                            byte[] fileData = dataread.RetrieveFile((long)file.start, (long)file.end);
-                            File.WriteAllBytes(filePath + file.start.ToString() + file.tag + "." + file.filetype, fileData);
+                            byte[] fileData = dataread.RetrieveFile((long)carvableFiles[currentFile-1].start, (long)carvableFiles[currentFile-1].end);
+                            File.WriteAllBytes(filePath + carvableFiles[currentFile-1].start.ToString() + carvableFiles[currentFile-1].tag + "." + carvableFiles[currentFile-1].filetype, fileData);
                         }
                         catch { }
                     }
+                    updateGPUAct(cpu, false, true);
                 }
 
                 // Update progress
-                processed++;
-                double Progress = (double)Math.Round(((processed / carvableFiles.Count) * 100) / 10.0 * 10);
-                updateProgress((int)Progress, processed, carvableFiles.Count);
+                double Progress = (double)Math.Round((((double)currentFile / carvableFiles.Count) * 100) / 10.0 * 10);
+                updateProgress((int)Progress, currentFile, carvableFiles.Count);
             }
         }
 
