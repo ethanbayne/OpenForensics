@@ -401,7 +401,7 @@ namespace OpenForensics
                     techUsed = " (" + lpCount + " Logical Cores)";
                 else
                 {
-                    int maxGPUThread = (int)((maxGPUMem * 0.8) / (chunkSize * 2));
+                    int maxGPUThread = (int)((maxGPUMem * 0.8) / (chunkSize + ((targetHeader.Count * 2) * resultCache)));
                     gpuCoreCount = Math.Min(lpCount / gpus.Count, maxGPUThread);
                     //gpuCoreCount = 1;   // Force GPU concurrency to a certain value.
 
@@ -1276,11 +1276,16 @@ namespace OpenForensics
         {
             updateHeader("Extracting files from data...");
             carveProcessed = 0;
-            Parallel.For(0, lpCount, i =>
-            {
-                carveThread(i, ref dataread);
-            });
-            Task.WaitAll();
+            //double timez = MeasureTime(() =>
+            //{
+                Parallel.For(0, lpCount, i =>
+                {
+                    carveThread(i, ref dataread);
+                });
+                Task.WaitAll();
+            //});
+
+            //MessageBox.Show(timez.ToString());
         }
 
         private void carveThread(int cpu, ref dataReader dataread)
