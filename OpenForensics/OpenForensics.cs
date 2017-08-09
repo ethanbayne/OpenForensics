@@ -379,38 +379,43 @@ namespace OpenForensics
                     }
                     else
                     {
-                        if (File.Exists(saveLocation + "CarvableFileData.of") && MessageBox.Show("Detected an existing analysis results file for " + Path.GetFileName(txtFile.Text) + "\nWould you like to reproduce the carvable files?", "Use existing analysis results?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        if (File.Exists(saveLocation + "CarvableFileData.of"))
                         {
-                            carvableFileRecord = "CarvableFileData.of";
-                            BeginAnalysis();
-                        }
-                        else if (MessageBox.Show("Output already exists in this location for " + Path.GetFileName(txtFile.Text) + "\nOutput will be overwritten, Continue?", "Overwrite?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
-                        {
-                            carvableFileRecord = "";
-                            while (true)
+                            DialogResult dialogResult = MessageBox.Show("Detected existing analysis results for " + Path.GetFileName(txtFile.Text) + "\nWould you like to reproduce the carvable files?\n\nYes:\tReproduce Files\nNo:\tReanalyse and overwrite results\nCancel:\tGo back to main menu", "Detected existing results", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+                            if (dialogResult == DialogResult.Yes)
                             {
-                                try
-                                {
-                                    Directory.Delete(saveLocation, true);
-                                    break;
-                                }
-                                catch
-                                {
-                                    DialogResult dialogConfirm2 = MessageBox.Show("Cannot overwrite " + Path.GetFileName(txtFile.Text) + "!\nRetry overwrite?", "Error Overwriting", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
-                                    if (dialogConfirm2 == DialogResult.Yes)
-                                        Thread.Sleep(500);
-                                    else
-                                        return;
-                                }
+                                carvableFileRecord = "CarvableFileData.of";
+                                BeginAnalysis();
                             }
-                            Thread.Sleep(500);
-                            Directory.CreateDirectory(saveLocation);
-                            BeginAnalysis();
-                        }
-                        else
-                        {
-                            MessageBox.Show("Aborted, Returning to Main Menu", "Aborted", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            return;
+                            else if (dialogResult == DialogResult.No)
+                            {
+                                carvableFileRecord = "";
+                                while (true)
+                                {
+                                    try
+                                    {
+                                        Directory.Delete(saveLocation, true);
+                                        break;
+                                    }
+                                    catch
+                                    {
+                                        DialogResult dialogConfirm2 = MessageBox.Show("Cannot overwrite " + Path.GetFileName(txtFile.Text) + "!\nRetry overwrite?", "Error Overwriting", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                                        if (dialogConfirm2 == DialogResult.Yes)
+                                            Thread.Sleep(500);
+                                        else
+                                            return;
+                                    }
+                                }
+                                Thread.Sleep(500);
+                                Directory.CreateDirectory(saveLocation);
+                                BeginAnalysis();
+                            }
+                            else
+                            {
+                                MessageBox.Show("Aborted, Returning to Main Menu", "Aborted", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                return;
+                            }
                         }
                     }
                 }
