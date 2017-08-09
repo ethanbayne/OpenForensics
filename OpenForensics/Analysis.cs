@@ -873,33 +873,38 @@ namespace OpenForensics
                 {
                     int duplicates = 0;
                     int[] resultsNew = new int[results.Length];
+                    List<resultRecord> tmpFoundLocs = new List<resultRecord>();
                     List<resultRecord> foundLocs = new List<resultRecord>();
-                    foundLocs.AddRange(foundResults.ToArray());
-                    foundLocs.Sort((s1, s2) => s1.start.CompareTo(s2.start));
-                    for (int i = 0; i < foundLocs.Count;)
+                    tmpFoundLocs.AddRange(foundResults.ToArray());
+                    tmpFoundLocs.Sort((s1, s2) => s1.start.CompareTo(s2.start));
+                    for (int i = 0; i < tmpFoundLocs.Count;)
                     {
-                        if (i < (foundLocs.Count - 1) && foundLocs[i].start == foundLocs[i + 1].start)
+                        if (i < (tmpFoundLocs.Count - 1) && tmpFoundLocs[i].start == tmpFoundLocs[i + 1].start)
                         {
-                            if (foundLocs[i].tag.Contains("partial") && foundLocs[i].tag.Contains("fragmented"))
-                                foundLocs.RemoveAt(i);
-                            else if (foundLocs[i + 1].tag.Contains("partial") && foundLocs[i + 1].tag.Contains("fragmented"))
-                                foundLocs.RemoveAt(i + 1);
-                            else if (foundLocs[i].end > foundLocs[i + 1].end)
-                                foundLocs.RemoveAt(i + 1);
+                            if (tmpFoundLocs[i].tag.Contains("partial") && tmpFoundLocs[i].tag.Contains("fragmented"))
+                                foundLocs.Add(tmpFoundLocs[i + 1]);
+                            else if (tmpFoundLocs[i + 1].tag.Contains("partial") && tmpFoundLocs[i + 1].tag.Contains("fragmented"))
+                                foundLocs.Add(tmpFoundLocs[i]);
+                            else if (tmpFoundLocs[i].end > tmpFoundLocs[i + 1].end)
+                                foundLocs.Add(tmpFoundLocs[i]);
                             else
-                                foundLocs.RemoveAt(i);
+                                foundLocs.Add(tmpFoundLocs[i + 1]);
 
                             duplicates++;
+                            i += 2;
                         }
                         else
                         {
-                            if (foundLocs[i].end != 0)
-                                carvableFiles.Add(foundLocs[i]);
-                            int nameIndex = targetName.IndexOf(foundLocs[i].filetype.ToString());
-                            resultsNew[nameIndex]++;
+                            foundLocs.Add(tmpFoundLocs[i]);
+                            if (tmpFoundLocs[i].end != 0)
+                                carvableFiles.Add(tmpFoundLocs[i]);
                             i++;
                         }
+
+                        int nameIndex = targetName.IndexOf(foundLocs[foundLocs.Count - 1].filetype.ToString());
+                        resultsNew[nameIndex]++;
                     }
+                    tmpFoundLocs.Clear();
 
                     file.WriteLine("Statistics:");
                     file.WriteLine("-----------------------------");
