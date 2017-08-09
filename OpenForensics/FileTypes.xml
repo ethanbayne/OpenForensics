@@ -71,12 +71,6 @@
   </Format>
   <Format>
     <Type>Misc</Type>
-    <Name>sqldb</Name>
-    <EOF>53514C69746520666F726D6174203300FF</EOF>
-    <Value>53514C69746520666F726D6174203300</Value>
-  </Format>
-  <Format>
-    <Type>Misc</Type>
     <Name>rar</Name>
     <Value>526172211A0700</Value>
     <Value>526172211A070100</Value>

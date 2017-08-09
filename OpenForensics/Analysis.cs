@@ -67,6 +67,9 @@ namespace OpenForensics
             }
         }
 
+
+        #region Data Reading
+
         //dataReader - class that handles operations for reading from storage devices.
         public class dataReader
         {
@@ -304,6 +307,8 @@ namespace OpenForensics
                 return (ulong)fileSize;
             }
         }
+
+        #endregion
 
 
         #region Form Load and Special Functions
@@ -1231,6 +1236,8 @@ namespace OpenForensics
                 }
                 i++;
             }
+
+            updateFound();
         }
 
         // Records file location information from information passed by processing threads.
@@ -1255,11 +1262,11 @@ namespace OpenForensics
                     fileSize = fileSize / 1024;
                     sizeFormat = "GB";
                 }
+
                 resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
                 foundResults.Add(newEntry);
 
                 Interlocked.Increment(ref results[fileIndex]);
-                updateFound();
             }
             else
             {
@@ -1267,7 +1274,6 @@ namespace OpenForensics
                 foundResults.Add(newEntry);
 
                 Interlocked.Increment(ref results[fileIndex]);
-                updateFound();
             }
         }
 
