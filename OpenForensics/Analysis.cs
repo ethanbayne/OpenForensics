@@ -807,6 +807,7 @@ namespace OpenForensics
 
                 // Share logical CPU cores between GPUs employed.
                 procShare = Math.Min(Math.Max(lpCount / gpuCoreCount / GPUCollection.Count, 1), lpCount);
+                //procShare = Math.Min(Math.Max(lpCount / GPUCollection.Count, 1), lpCount);  // Divide between employed GPUs
 
                 //procShare = 1; // Force logical CPU cores per GPU
 
@@ -1017,6 +1018,15 @@ namespace OpenForensics
                 if (matchesFound)
                 {
                     updateGPUAct(cpu, true, true);
+                    int resultCount = 0;
+                    for (int z = 0; z < foundID.Length; z++)
+                        if (foundID[z] == 0)
+                        {
+                            Array.Resize(ref foundID, z);
+                            Array.Resize(ref foundLoc, z);
+                            resultCount = z;
+                        }
+                    Array.Sort(foundLoc, foundID);
                     ProcessLocations(cpu, 0, ref buffer, ref count, ref foundID, ref foundLoc);
                     updateGPUAct(cpu, false, false);
                     updateFound();
@@ -1085,6 +1095,15 @@ namespace OpenForensics
                 if (matchesFound)
                 {
                     updateGPUAct(gpuID, true, true);
+                    int resultCount = 0;
+                    for (int z = 0; z < foundID.Length; z++)
+                        if (foundID[z] == 0)
+                        {
+                            Array.Resize(ref foundID, z);
+                            Array.Resize(ref foundLoc, z);
+                            resultCount = z;
+                        }
+                    Array.Sort(foundLoc, foundID);
                     Parallel.For(0, procShare, i =>
                     {
                         ProcessLocations(gpu, i, ref buffer, ref count, ref foundID, ref foundLoc);
@@ -1141,17 +1160,6 @@ namespace OpenForensics
         // Result processing. Buffer is divided between logical cores assigned to file carve.
         private void ProcessLocations(int gpu, int numThreads, ref byte[] buffer, ref long count, ref byte[] resultID, ref int[] resultLoc)
         {
-            int resultCount = 0;
-            for (int z = 0; z < resultID.Length; z++)
-                if (resultID[z] == 0)
-                {
-                    Array.Resize(ref resultID, z);
-                    Array.Resize(ref resultLoc, z);
-                    resultCount = z;
-                }
-
-            Array.Sort(resultLoc, resultID);
-
             int i = (numThreads * (resultLoc.Length / procShare));
             int end = ((numThreads + 1) * (resultLoc.Length / procShare));
 
