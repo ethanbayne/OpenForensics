@@ -10,7 +10,6 @@ using System.Xml;
 using Cudafy;
 using Cudafy.Host;
 using Cudafy.Translator;
-
 using System.Management;
 
 namespace OpenForensics
