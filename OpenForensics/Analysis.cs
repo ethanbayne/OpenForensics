@@ -753,9 +753,9 @@ namespace OpenForensics
                 double time = MeasureTime(() =>
                 {
                     // Launch a thread for each logical core of the CPU
-                    Parallel.For(0, lpCount, i =>
+                    Parallel.For(0, lpCount, async i =>
                     {
-                        CPUThread(i, ref dataRead);
+                        await CPUThread(i, dataRead);
                     });
                     Task.WaitAll();
                 });
@@ -822,9 +822,9 @@ namespace OpenForensics
                     // For each GPU employed, launch a dedicated thread
                     Parallel.For(0, GPUCollection.Count, i =>
                     {
-                        Parallel.For(0, gpuCoreCount, j =>
+                        Parallel.For(0, gpuCoreCount, async j =>
                         {
-                            GPUThread(i, j, ref dataRead);
+                            await GPUThread(i, j, dataRead);
                         });
                     });
                     Task.WaitAll();
@@ -990,7 +990,7 @@ namespace OpenForensics
 
         #region Processor Thread Functions
 
-        private void CPUThread(int cpu, ref dataReader dataRead)
+        private Task<Boolean> CPUThread(int cpu, dataReader dataRead)
         {
             long count = 0;
             byte[] buffer = new byte[chunkSize];
@@ -998,8 +998,13 @@ namespace OpenForensics
             int[] foundLoc = new int[resultCache];
 
             double bytesRead;      // Location in file read
-            while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Request data chunk until end of file
+            while (!shouldStop)   // Request data chunk until end of file
             {
+                updateGPUAct(cpu, true, true);
+                if ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) == 0)
+                    break;
+                updateGPUAct(cpu, false, true);
+
                 chunkCount++;   // Add one to chunk count
                 updateSegments();   // UI update
 
@@ -1054,9 +1059,11 @@ namespace OpenForensics
             foundID = new byte[1];
             foundLoc = new int[1];
             updateGPUAct(cpu, true);
+
+            return Task.FromResult(true);
         }
 
-        private void GPUThread(int gpu, int gpuCore, ref dataReader dataRead)
+        private Task<Boolean> GPUThread(int gpu, int gpuCore, dataReader dataRead)
         {
             //MessageBox.Show(gpu.ToString() + " & " + gpuCore.ToString());
             long count = 0;
@@ -1066,8 +1073,13 @@ namespace OpenForensics
             int gpuID = gpu * gpuCoreCount + gpuCore;
 
             double bytesRead;      // Location in file read
-            while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Read into the buffer until end of file
+            while (!shouldStop)   // Read into the buffer until end of file
             {
+                updateGPUAct(gpuID, true, true);
+                if ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) == 0)
+                    break;
+                updateGPUAct(gpuID, false, true);
+
                 chunkCount++;                                       // For each buffer used, increment count
                 updateSegments();
 
@@ -1130,6 +1142,8 @@ namespace OpenForensics
             foundID = new byte[1];
             foundLoc = new int[1];
             updateGPUAct(gpuID, true);
+
+            return Task.FromResult(true);
         }
 
         #endregion
