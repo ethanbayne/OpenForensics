@@ -815,18 +815,25 @@ namespace OpenForensics
                 dataReader dataRead = new dataReader(FilePath, fileLength);
 
                 ulong fileSize = dataRead.GetFileSize();
+                List<Task> tasks = new List<Task>();
 
                 // Start stopwatch, open file defined by user
                 double time = MeasureTime(() =>
                 {
                     // For each GPU employed, launch a dedicated thread
-                    Parallel.For(0, GPUCollection.Count, i =>
+                    Parallel.For(0, GPUCollection.Count, async i =>
                     {
-                        Parallel.For(0, gpuCoreCount, j =>
+                        //await GPUThread((int)(Math.Round((double)i/(double)lpCount,0,MidpointRounding.AwayFromZero)), i%gpuCoreCount, dataRead);
+                        Parallel.For(0, gpuCoreCount, async j =>
                         {
-                            GPUThread(i, j, ref dataRead);
+                            await GPUThread(i, j, dataRead);
                         });
                     });
+                    //for (int i = 0; i < GPUCollection.Count; i++)
+                    //    for (int j = 0; j < gpuCoreCount; j++)
+                    //    {
+                    //        tasks.Add(GPUThread(i, j, dataRead));
+                    //    }
                     Task.WaitAll();
                 });
 
@@ -1056,7 +1063,7 @@ namespace OpenForensics
             updateGPUAct(cpu, true);
         }
 
-        private void GPUThread(int gpu, int gpuCore, ref dataReader dataRead)
+        private async Task GPUThread(int gpu, int gpuCore, dataReader dataRead)
         {
             //MessageBox.Show(gpu.ToString() + " & " + gpuCore.ToString());
             long count = 0;
@@ -1130,6 +1137,8 @@ namespace OpenForensics
             foundID = new byte[1];
             foundLoc = new int[1];
             updateGPUAct(gpuID, true);
+            await Task.Delay(1000);
+            return;
         }
 
         #endregion

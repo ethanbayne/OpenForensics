@@ -416,6 +416,28 @@ namespace OpenForensics
                                 return;
                             }
                         }
+                        else
+                        {
+                            while (true)
+                            {
+                                try
+                                {
+                                    Directory.Delete(saveLocation, true);
+                                    break;
+                                }
+                                catch
+                                {
+                                    DialogResult dialogConfirm2 = MessageBox.Show("Cannot overwrite " + Path.GetFileName(txtFile.Text) + "!\nRetry overwrite?", "Error Overwriting", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                                    if (dialogConfirm2 == DialogResult.Yes)
+                                        Thread.Sleep(500);
+                                    else
+                                        return;
+                                }
+                            }
+                            Thread.Sleep(500);
+                            Directory.CreateDirectory(saveLocation);
+                            BeginAnalysis();
+                        }
                     }
                 }
             }
