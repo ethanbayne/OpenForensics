@@ -34,8 +34,9 @@ namespace OpenForensics
         // Version 1.30b - Fixed non-Nvidia GPU flaw where multiple instanced use of GPU was mishandled. Implemented GPU locker so that only one thread can utilise the GPU at any given moment.
         // Version 1.50 - Overhaul and major refactoring of program. Optimised GPU result recording and significantly reduced CPU result processing. 
         // Version 1.51 - Fixed bugs (processing result method bug when threads > 1). Optimised result preparation.
+        // Version 1.53 - .NET Framework v.4.5, introduced Async refinements to main CPU and GPU processing threads
 
-        private string version = "Public v. 1.51";   // VERSION INFORMATION TO DISPLAY
+        private string version = "Public v. 1.53";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
