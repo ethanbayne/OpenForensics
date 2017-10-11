@@ -822,7 +822,6 @@ namespace OpenForensics
                     // For each GPU employed, launch a dedicated thread
                     Parallel.For(0, GPUCollection.Count, i =>
                     {
-                        //await GPUThread((int)(Math.Round((double)i/(double)lpCount,0,MidpointRounding.AwayFromZero)), i%gpuCoreCount, dataRead);
                         Parallel.For(0, gpuCoreCount, async j =>
                         {
                             await GPUThread(i, j, dataRead);
