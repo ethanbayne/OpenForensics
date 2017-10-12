@@ -413,7 +413,7 @@ namespace OpenForensics
 
             byte[] bytes = new byte[hex.Length >> 1];
 
-            for (int i = 0; i < hex.Length >> 1; ++i)
+            for (int i = 0; i < (hex.Length >> 1); ++i)
             {
                 bytes[i] = (byte)((GetHexVal(hex[i << 1]) << 4) + (GetHexVal(hex[(i << 1) + 1])));
             }

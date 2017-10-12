@@ -28,6 +28,12 @@
     <Value>89504E470D0A1A0A</Value>
   </Format>
   <Format>
+    <Type>Misc</Type>
+    <!--Changed from Image for testing-->
+    <Name>wim</Name>
+    <Value>4D5357494D</Value>
+  </Format>
+  <Format>
     <Type>Video</Type>
     <Name>mpg</Name>
     <EOF>000001B7</EOF>
@@ -36,13 +42,40 @@
   </Format>
   <Format>
     <Type>Video</Type>
+    <Name>mp4</Name>
+    <Value>000000146674797069736F6D</Value>
+    <Value>000000186674797033677035</Value>
+    <Value>0000001C667479704D534E56012900464D534E566D703432</Value>
+  </Format>
+  <Format>
+    <Type>Video</Type>
+    <Name>mov</Name>
+    <Value>000000146674797071742020</Value>
+  </Format>
+  <Format>
+    <Type>Video</Type>
+    <Name>m4v</Name>
+    <Value>00000018667479706D703432</Value>
+  </Format>
+  <Format>
+    <Type>Video</Type>
     <Name>wmv</Name>
     <Value>3026B2758E66CF11A6D900AA0062CE6C</Value>
+  </Format>
+  <Format>
+    <Type>Video</Type>
+    <Name>mkv</Name>
+    <Value>1A45DFA3934282886D6174726F736B61</Value>
   </Format>
   <Format>
     <Type>Audio</Type>
     <Name>wma</Name>
     <Value>3026B275</Value>
+  </Format>
+  <Format>
+    <Type>Audio</Type>
+    <Name>m4a</Name>
+    <Value>00000020667479704D344120</Value>
   </Format>
   <Format>
     <Type>Document</Type>
@@ -68,17 +101,60 @@
     <Value>504B0304</Value>
     <Value>504B0506</Value>
     <Value>504B0708</Value>
-  </Format>
-  <Format>
-    <Type>Misc</Type>
-    <Name>sqldb</Name>
-    <EOF>53514C69746520666F726D6174203300FF</EOF>
-    <Value>53514C69746520666F726D6174203300</Value>
+    <Value>504B030414000100630000000000</Value>
   </Format>
   <Format>
     <Type>Misc</Type>
     <Name>rar</Name>
     <Value>526172211A0700</Value>
     <Value>526172211A070100</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>xar</Name>
+    <Value>78617221</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>xz</Name>
+    <Value>FD377A585A00</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>jar</Name>
+    <Value>4A4152435300</Value>
+    <Value>5F27A889</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>iso</Name>
+    <Value>4344303031</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>cso</Name>
+    <Value>4349534F</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>img</Name>
+    <Value>504943540008</Value>
+    <Value>514649FB</Value>
+    <Value>53434D49</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>cas</Name>
+    <Value>5F434153455F</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>rpm</Name>
+    <Value>EDABEEDB</Value>
+  </Format>
+  <Format>
+    <Type>Misc</Type>
+    <Name>mof</Name>
+    <Value>FFFE23006C0069006E00650020003100</Value>
   </Format>
 </FileTypes>

@@ -10,7 +10,6 @@ using System.Xml;
 using Cudafy;
 using Cudafy.Host;
 using Cudafy.Translator;
-
 using System.Management;
 
 namespace OpenForensics
@@ -34,8 +33,10 @@ namespace OpenForensics
         // Version 1.25b - Incremental refactoring of code.
         // Version 1.30b - Fixed non-Nvidia GPU flaw where multiple instanced use of GPU was mishandled. Implemented GPU locker so that only one thread can utilise the GPU at any given moment.
         // Version 1.50 - Overhaul and major refactoring of program. Optimised GPU result recording and significantly reduced CPU result processing. 
+        // Version 1.51 - Fixed bugs (processing result method bug when threads > 1). Optimised result preparation.
+        // Version 1.53 - .NET Framework v.4.5, introduced Async refinements to main CPU and GPU processing threads
 
-        private string version = "Public v. 1.50";   // VERSION INFORMATION TO DISPLAY
+        private string version = "Public v. 1.53";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
@@ -378,14 +379,46 @@ namespace OpenForensics
                     }
                     else
                     {
-                        if (File.Exists(saveLocation + "CarvableFileData.of") && MessageBox.Show("Detected an existing analysis results file for " + Path.GetFileName(txtFile.Text) + "\nWould you like to reproduce the carvable files?", "Use existing analysis results?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        if (File.Exists(saveLocation + "CarvableFileData.of"))
                         {
-                            carvableFileRecord = "CarvableFileData.of";
-                            BeginAnalysis();
+                            DialogResult dialogResult = MessageBox.Show("Detected existing analysis results for " + Path.GetFileName(txtFile.Text) + "\nWould you like to reproduce the carvable files?\n\nYes:\tReproduce Files\nNo:\tReanalyse and overwrite results\nCancel:\tGo back to main menu", "Detected existing results", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning);
+
+                            if (dialogResult == DialogResult.Yes)
+                            {
+                                carvableFileRecord = "CarvableFileData.of";
+                                BeginAnalysis();
+                            }
+                            else if (dialogResult == DialogResult.No)
+                            {
+                                carvableFileRecord = "";
+                                while (true)
+                                {
+                                    try
+                                    {
+                                        Directory.Delete(saveLocation, true);
+                                        break;
+                                    }
+                                    catch
+                                    {
+                                        DialogResult dialogConfirm2 = MessageBox.Show("Cannot overwrite " + Path.GetFileName(txtFile.Text) + "!\nRetry overwrite?", "Error Overwriting", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                                        if (dialogConfirm2 == DialogResult.Yes)
+                                            Thread.Sleep(500);
+                                        else
+                                            return;
+                                    }
+                                }
+                                Thread.Sleep(500);
+                                Directory.CreateDirectory(saveLocation);
+                                BeginAnalysis();
+                            }
+                            else
+                            {
+                                MessageBox.Show("Aborted, Returning to Main Menu", "Aborted", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                return;
+                            }
                         }
-                        else if (MessageBox.Show("Output already exists in this location for " + Path.GetFileName(txtFile.Text) + "\nOutput will be overwritten, Continue?", "Overwrite?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+                        else
                         {
-                            carvableFileRecord = "";
                             while (true)
                             {
                                 try
@@ -405,11 +438,6 @@ namespace OpenForensics
                             Thread.Sleep(500);
                             Directory.CreateDirectory(saveLocation);
                             BeginAnalysis();
-                        }
-                        else
-                        {
-                            MessageBox.Show("Aborted, Returning to Main Menu", "Aborted", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            return;
                         }
                     }
                 }

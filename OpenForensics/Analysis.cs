@@ -67,6 +67,9 @@ namespace OpenForensics
             }
         }
 
+
+        #region Data Reading
+
         //dataReader - class that handles operations for reading from storage devices.
         public class dataReader
         {
@@ -305,6 +308,8 @@ namespace OpenForensics
             }
         }
 
+        #endregion
+
 
         #region Form Load and Special Functions
 
@@ -364,6 +369,7 @@ namespace OpenForensics
         private Stopwatch watch;
         private int[] results;
         private double totalProcessed;
+        private int carveProcessed;
         private uint chunkCount;
         private ConcurrentBag<resultRecord> foundResults = new ConcurrentBag<resultRecord>();
         private List<resultRecord> carvableFiles = new List<resultRecord>();
@@ -400,7 +406,7 @@ namespace OpenForensics
                     techUsed = " (" + lpCount + " Logical Cores)";
                 else
                 {
-                    int maxGPUThread = (int)((maxGPUMem * 0.8) / (chunkSize * 2));
+                    int maxGPUThread = (int)((maxGPUMem * 0.8) / (chunkSize + ((targetHeader.Count * 2) * resultCache)));
                     gpuCoreCount = Math.Min(lpCount / gpus.Count, maxGPUThread);
                     //gpuCoreCount = 1;   // Force GPU concurrency to a certain value.
 
@@ -747,9 +753,9 @@ namespace OpenForensics
                 double time = MeasureTime(() =>
                 {
                     // Launch a thread for each logical core of the CPU
-                    Parallel.For(0, lpCount, i =>
+                    Parallel.For(0, lpCount, async i =>
                     {
-                        CPUThread(i, ref dataRead);
+                        await CPUThread(i, dataRead);
                     });
                     Task.WaitAll();
                 });
@@ -801,6 +807,7 @@ namespace OpenForensics
 
                 // Share logical CPU cores between GPUs employed.
                 procShare = Math.Min(Math.Max(lpCount / gpuCoreCount / GPUCollection.Count, 1), lpCount);
+                //procShare = Math.Min(Math.Max(lpCount / GPUCollection.Count, 1), lpCount);  // Divide between employed GPUs
 
                 //procShare = 1; // Force logical CPU cores per GPU
 
@@ -815,9 +822,9 @@ namespace OpenForensics
                     // For each GPU employed, launch a dedicated thread
                     Parallel.For(0, GPUCollection.Count, i =>
                     {
-                        Parallel.For(0, gpuCoreCount, j =>
+                        Parallel.For(0, gpuCoreCount, async j =>
                         {
-                            GPUThread(i, j, ref dataRead);
+                            await GPUThread(i, j, dataRead);
                         });
                     });
                     Task.WaitAll();
@@ -866,33 +873,38 @@ namespace OpenForensics
                 {
                     int duplicates = 0;
                     int[] resultsNew = new int[results.Length];
+                    List<resultRecord> tmpFoundLocs = new List<resultRecord>();
                     List<resultRecord> foundLocs = new List<resultRecord>();
-                    foundLocs.AddRange(foundResults.ToArray());
-                    foundLocs.Sort((s1, s2) => s1.start.CompareTo(s2.start));
-                    for (int i = 0; i < foundLocs.Count;)
+                    tmpFoundLocs.AddRange(foundResults.ToArray());
+                    tmpFoundLocs.Sort((s1, s2) => s1.start.CompareTo(s2.start));
+                    for (int i = 0; i < tmpFoundLocs.Count;)
                     {
-                        if (i < (foundLocs.Count - 1) && foundLocs[i].start == foundLocs[i + 1].start)
+                        if (i < (tmpFoundLocs.Count - 1) && tmpFoundLocs[i].start == tmpFoundLocs[i + 1].start)
                         {
-                            if (foundLocs[i].tag.Contains("partial") && foundLocs[i].tag.Contains("fragmented"))
-                                foundLocs.RemoveAt(i);
-                            else if (foundLocs[i + 1].tag.Contains("partial") && foundLocs[i + 1].tag.Contains("fragmented"))
-                                foundLocs.RemoveAt(i + 1);
-                            else if (foundLocs[i].end > foundLocs[i + 1].end)
-                                foundLocs.RemoveAt(i + 1);
+                            if (tmpFoundLocs[i].tag.Contains("partial") && tmpFoundLocs[i].tag.Contains("fragmented"))
+                                foundLocs.Add(tmpFoundLocs[i + 1]);
+                            else if (tmpFoundLocs[i + 1].tag.Contains("partial") && tmpFoundLocs[i + 1].tag.Contains("fragmented"))
+                                foundLocs.Add(tmpFoundLocs[i]);
+                            else if (tmpFoundLocs[i].end > tmpFoundLocs[i + 1].end)
+                                foundLocs.Add(tmpFoundLocs[i]);
                             else
-                                foundLocs.RemoveAt(i);
+                                foundLocs.Add(tmpFoundLocs[i + 1]);
 
                             duplicates++;
+                            i += 2;
                         }
                         else
                         {
-                            if (foundLocs[i].end != 0)
-                                carvableFiles.Add(foundLocs[i]);
-                            int nameIndex = targetName.IndexOf(foundLocs[i].filetype.ToString());
-                            resultsNew[nameIndex]++;
+                            foundLocs.Add(tmpFoundLocs[i]);
+                            if (tmpFoundLocs[i].end != 0)
+                                carvableFiles.Add(tmpFoundLocs[i]);
                             i++;
                         }
+
+                        int nameIndex = targetName.IndexOf(foundLocs[foundLocs.Count - 1].filetype.ToString());
+                        resultsNew[nameIndex]++;
                     }
+                    tmpFoundLocs.Clear();
 
                     file.WriteLine("Statistics:");
                     file.WriteLine("-----------------------------");
@@ -978,7 +990,7 @@ namespace OpenForensics
 
         #region Processor Thread Functions
 
-        private void CPUThread(int cpu, ref dataReader dataRead)
+        private Task<Boolean> CPUThread(int cpu, dataReader dataRead)
         {
             long count = 0;
             byte[] buffer = new byte[chunkSize];
@@ -1011,6 +1023,15 @@ namespace OpenForensics
                 if (matchesFound)
                 {
                     updateGPUAct(cpu, true, true);
+                    int resultCount = 0;
+                    for (int z = 0; z < foundID.Length; z++)
+                        if (foundID[z] == 0)
+                        {
+                            Array.Resize(ref foundID, z);
+                            Array.Resize(ref foundLoc, z);
+                            resultCount = z;
+                        }
+                    Array.Sort(foundLoc, foundID);
                     ProcessLocations(cpu, 0, ref buffer, ref count, ref foundID, ref foundLoc);
                     updateGPUAct(cpu, false, false);
                     updateFound();
@@ -1033,9 +1054,11 @@ namespace OpenForensics
             foundID = new byte[1];
             foundLoc = new int[1];
             updateGPUAct(cpu, true);
+
+            return Task.FromResult(true);
         }
 
-        private void GPUThread(int gpu, int gpuCore, ref dataReader dataRead)
+        private Task<Boolean> GPUThread(int gpu, int gpuCore, dataReader dataRead)
         {
             //MessageBox.Show(gpu.ToString() + " & " + gpuCore.ToString());
             long count = 0;
@@ -1079,6 +1102,15 @@ namespace OpenForensics
                 if (matchesFound)
                 {
                     updateGPUAct(gpuID, true, true);
+                    int resultCount = 0;
+                    for (int z = 0; z < foundID.Length; z++)
+                        if (foundID[z] == 0)
+                        {
+                            Array.Resize(ref foundID, z);
+                            Array.Resize(ref foundLoc, z);
+                            resultCount = z;
+                        }
+                    Array.Sort(foundLoc, foundID);
                     Parallel.For(0, procShare, i =>
                     {
                         ProcessLocations(gpu, i, ref buffer, ref count, ref foundID, ref foundLoc);
@@ -1100,6 +1132,8 @@ namespace OpenForensics
             foundID = new byte[1];
             foundLoc = new int[1];
             updateGPUAct(gpuID, true);
+
+            return Task.FromResult(true);
         }
 
         #endregion
@@ -1135,17 +1169,6 @@ namespace OpenForensics
         // Result processing. Buffer is divided between logical cores assigned to file carve.
         private void ProcessLocations(int gpu, int numThreads, ref byte[] buffer, ref long count, ref byte[] resultID, ref int[] resultLoc)
         {
-            int resultCount = 0;
-            for (int z = 0; z < resultID.Length; z++)
-                if (resultID[z] == 0)
-                {
-                    Array.Resize(ref resultID, z);
-                    Array.Resize(ref resultLoc, z);
-                    resultCount = z;
-                }
-
-            Array.Sort(resultLoc, resultID);
-
             int i = (numThreads * (resultLoc.Length / procShare));
             int end = ((numThreads + 1) * (resultLoc.Length / procShare));
 
@@ -1230,6 +1253,8 @@ namespace OpenForensics
                 }
                 i++;
             }
+
+            updateFound();
         }
 
         // Records file location information from information passed by processing threads.
@@ -1254,11 +1279,11 @@ namespace OpenForensics
                     fileSize = fileSize / 1024;
                     sizeFormat = "GB";
                 }
+
                 resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
                 foundResults.Add(newEntry);
 
                 Interlocked.Increment(ref results[fileIndex]);
-                updateFound();
             }
             else
             {
@@ -1266,7 +1291,6 @@ namespace OpenForensics
                 foundResults.Add(newEntry);
 
                 Interlocked.Increment(ref results[fileIndex]);
-                updateFound();
             }
         }
 
@@ -1274,29 +1298,45 @@ namespace OpenForensics
         private void carveResults(dataReader dataread)
         {
             updateHeader("Extracting files from data...");
-            double processed = 0;
-            foreach (resultRecord file in carvableFiles)
-            {
-                if (file.end != 0)
+            carveProcessed = 0;
+            //double timez = MeasureTime(() =>
+            //{
+                Parallel.For(0, lpCount, i =>
                 {
-                    string filePath = saveLocation + file.filetype + "/";
+                    carveThread(i, ref dataread);
+                });
+                Task.WaitAll();
+            //});
+
+            //MessageBox.Show(timez.ToString());
+        }
+
+        private void carveThread(int cpu, ref dataReader dataread)
+        {
+            int currentFile = 0;
+            while ((currentFile = Interlocked.Increment(ref carveProcessed)) <= carvableFiles.Count)
+            {
+                if (carvableFiles[currentFile-1].end != 0)
+                {
+                    updateGPUAct(cpu, true, true);
+                    string filePath = saveLocation + carvableFiles[currentFile-1].filetype + "/";
                     if (!Directory.Exists(filePath))
                         Directory.CreateDirectory(filePath);
-                    if (!File.Exists(filePath + file.start.ToString() + "." + file.filetype))
+                    if (!File.Exists(filePath + carvableFiles[currentFile-1].start.ToString() + "." + carvableFiles[currentFile-1].filetype))
                     {
                         try
                         {
-                            byte[] fileData = dataread.RetrieveFile((long)file.start, (long)file.end);
-                            File.WriteAllBytes(filePath + file.start.ToString() + file.tag + "." + file.filetype, fileData);
+                            byte[] fileData = dataread.RetrieveFile((long)carvableFiles[currentFile-1].start, (long)carvableFiles[currentFile-1].end);
+                            File.WriteAllBytes(filePath + carvableFiles[currentFile-1].start.ToString() + carvableFiles[currentFile-1].tag + "." + carvableFiles[currentFile-1].filetype, fileData);
                         }
                         catch { }
                     }
+                    updateGPUAct(cpu, false, true);
                 }
 
                 // Update progress
-                processed++;
-                double Progress = (double)Math.Round(((processed / carvableFiles.Count) * 100) / 10.0 * 10);
-                updateProgress((int)Progress, processed, carvableFiles.Count);
+                double Progress = (double)Math.Round((((double)currentFile / carvableFiles.Count) * 100) / 10.0 * 10);
+                updateProgress((int)Progress, currentFile, carvableFiles.Count);
             }
         }
 
