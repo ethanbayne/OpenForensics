@@ -998,13 +998,8 @@ namespace OpenForensics
             int[] foundLoc = new int[resultCache];
 
             double bytesRead;      // Location in file read
-            while (!shouldStop)   // Request data chunk until end of file
+            while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Request data chunk until end of file
             {
-                updateGPUAct(cpu, true, true);
-                if ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) == 0)
-                    break;
-                updateGPUAct(cpu, false, true);
-
                 chunkCount++;   // Add one to chunk count
                 updateSegments();   // UI update
 
@@ -1073,13 +1068,8 @@ namespace OpenForensics
             int gpuID = gpu * gpuCoreCount + gpuCore;
 
             double bytesRead;      // Location in file read
-            while (!shouldStop)   // Read into the buffer until end of file
+            while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Read into the buffer until end of file
             {
-                updateGPUAct(gpuID, true, true);
-                if ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) == 0)
-                    break;
-                updateGPUAct(gpuID, false, true);
-
                 chunkCount++;                                       // For each buffer used, increment count
                 updateSegments();
 
