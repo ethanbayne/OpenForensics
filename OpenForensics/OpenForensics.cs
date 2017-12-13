@@ -223,6 +223,10 @@ namespace OpenForensics
 
         #region Buttons
 
+        private void pbLogo_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show("OpenForensics is an open-source OpenCL Digital Forensics analysis and file carving tool. This tool was built in conjunction with PhD research from Dr Ethan Bayne as a platform to demonstrate the performance enhancements possible when applying GPGPU processing and an optimised PFAC algorithm to the problem of string searching in the field of Digital Forensics. \n\nLicensed under the Apache License, version 2.0. \nFull license information can be found on GitHub: https://github.com/ethanbayne/OpenForensics", "About OpenForensics", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
 
         private void btnCustom_Click(object sender, EventArgs e)
         {
@@ -778,6 +782,5 @@ namespace OpenForensics
             anFrm.InputSet = input;
             anFrm.Show();
         }
-
     }
 }
