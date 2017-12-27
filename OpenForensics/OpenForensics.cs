@@ -307,7 +307,7 @@ namespace OpenForensics
                 {
                     int gpuCount = 0;
                     foreach (GPGPUProperties prop in CudafyHost.GetDeviceProperties(CudafyModes.Target = eGPUType.OpenCL))
-                        if (!prop.Name.Contains("CPU") || !prop.Name.Contains("Processor"))
+                        if (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor"))
                             gpuCount++;
 
                     if (gpuCount > 1)
@@ -332,17 +332,17 @@ namespace OpenForensics
                 {
                     // Add all GPGPUs to combo box belonging to OpenCL
                     cbGPGPU.Items.Add(prop.Name.Trim() + "   ||   OpenCL platform: " + prop.PlatformName.Trim());
-                    if (multiGPU == false && (!prop.Name.Contains("CPU") || !prop.Name.Contains("Processor")))
+                    if (multiGPU == false && (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor")))
                     {
                         cbGPGPU.SelectedIndex = cbGPGPU.Items.Count - 1;
                         lblPlatformDefault.Text = "Recommended Default Settings (" + prop.Name.Trim() + ")";
                     }
-                    if (multiGPU == true && (!prop.Name.Contains("CPU") || !prop.Name.Contains("Processor")))
+                    if (multiGPU == true && (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor")))
                         gpus.Add(prop.DeviceId);
 
                     gpuMem.Add(prop.TotalGlobalMem);
 
-                    if (!prop.Name.Contains("CPU") || !prop.Name.Contains("Processor"))
+                    if (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor"))
                         if (maxGPUMem == 0 || prop.TotalGlobalMem < maxGPUMem)
                             maxGPUMem = prop.TotalGlobalMem;
                         //MessageBox.Show(maxGPUMem.ToString());
