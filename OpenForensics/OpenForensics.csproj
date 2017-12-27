@@ -29,7 +29,7 @@
     <SupportUrl>http://www.openforensics.co.uk</SupportUrl>
     <TargetCulture>en</TargetCulture>
     <ProductName>OpenForensics</ProductName>
-    <PublisherName>Ethan Bayne</PublisherName>
+    <PublisherName>OpenForensics</PublisherName>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.5.4.0</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
