@@ -29,6 +29,7 @@ namespace OpenForensics
         private static object[] gpuThreadLock;
         private byte[][] dev_buffer;
         private int[,] dev_lookup;
+        private int[] dev_targetEndLength;
         private int[][] dev_resultCount;
 
         private byte[][] foundID;
@@ -40,7 +41,7 @@ namespace OpenForensics
         #region Engine Initiation
 
         // PFAC Algorithm Engine
-        public Engine(int GPUid, int coreCount, byte[][] target, int[][] lookup, uint size)
+        public Engine(int GPUid, int coreCount, byte[][] target, byte[][] targetEnd, int[][] lookup, uint size)
         {
             this.GPUid = GPUid;
             gpu = CudafyHost.GetDevice(CudafyModes.Target, GPUid);
@@ -77,6 +78,13 @@ namespace OpenForensics
             dev_lookup = new int[lookup.Length, 256];
             dev_lookup = gpu.CopyToDevice<int>(newLookup);
 
+            int[] targetEndLength = new int[targetEnd.Length];
+            for (int x = 0; x < targetEndLength.Length; x++)
+                if(targetEnd[x] != null)
+                    targetEndLength[x] = targetEnd[x].Length;
+            dev_targetEndLength = new int[targetEnd.Length];
+            dev_targetEndLength = gpu.CopyToDevice<int>(targetEndLength);
+
             initialState = target.Length + 1;
             bufferSize = chunkSize;
 
@@ -112,7 +120,7 @@ namespace OpenForensics
         #region CPU Operations
 
         //CPU PFAC Analyse - using PFAC Algorithm for searching Bytes
-        public static int[] CPUPFACAnalyse(byte[] buffer, int[][] lookup, ref byte[] resultsID, ref int[] resultsLoc, int numTargets)
+        public static int[] CPUPFACAnalyse(byte[] buffer, int[][] lookup, byte[][] targetEnd, ref byte[] resultsID, ref int[] resultsLoc, int numTargets)
         {
             int[] results = new int[numTargets];
             int initialState = numTargets + 1;
@@ -130,12 +138,23 @@ namespace OpenForensics
                     if (state == 0) { break; }
                     if (state < initialState)
                     {
-                        if (state % 2 != 0)
+                        if ((state - 1) % 2 == 0)
                         {
-                            results[((state + 1) / 2) - 1]++;
+                            results[state-1]++;
                             resultsID[foundCount] = (byte)state;
                             resultsLoc[foundCount] = i;
                             foundCount++;
+                        }
+                        else
+                        {
+                            int fileEnd = pos + targetEnd[((state + 1) / 2) - 1].Length;
+                            if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                            {
+                                results[state-1]++;
+                                resultsID[foundCount] = (byte)state;
+                                resultsLoc[foundCount] = i;
+                                foundCount++;
+                            }
                         }
                     }
                     pos++;
@@ -234,7 +253,7 @@ namespace OpenForensics
             {
                 gpu.SetCurrentContext();
 
-                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, dev_lookup, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
+                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, dev_lookup, dev_targetEndLength, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
                 gpu.SynchronizeStream(gpuCore);
             }
 
@@ -256,7 +275,7 @@ namespace OpenForensics
 
         //GPU PFAC Analyse - using PFAC for searching Bytes
         [Cudafy]
-        public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int[,] lookup, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF)
+        public static void PFACAnalyse(GThread thread, byte[] buffer, int initialState, int[,] lookup, int[] targetEndLength, uint[] resultCount, int[] foundCount, byte[] foundID, int[] foundSOF)
         {
             int n = buffer.Length;
 
@@ -275,11 +294,22 @@ namespace OpenForensics
                     if (state < initialState)
                     {
                         if ((state - 1) % 2 == 0)
+                        {
                             thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
-
-                        int counter = thread.atomicAdd(ref foundCount[0], 1);
-                        foundID[counter] = (byte)state;
-                        foundSOF[counter] = i;
+                            int counter = thread.atomicAdd(ref foundCount[0], 1);
+                            foundID[counter] = (byte)state;
+                            foundSOF[counter] = i;
+                        }
+                        else
+                        {
+                            int fileEnd = pos + targetEndLength[((state + 1) / 2) - 1];
+                            if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
+                            {
+                                int counter = thread.atomicAdd(ref foundCount[0], 1);
+                                foundID[counter] = (byte)state;
+                                foundSOF[counter] = i;
+                            }
+                        }
                     }
                     pos++;
                 }
