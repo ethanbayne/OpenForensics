@@ -599,9 +599,8 @@ namespace OpenForensics
         private void updateFound()
         {
             int total = 0;
-            foreach (int count in results)
-                total += count;
-            //int total = foundRecords.Count;
+            foreach (int result in results)
+                total += result;
 
             try
             {
@@ -1204,11 +1203,14 @@ namespace OpenForensics
 
             while (i < end && !shouldStop)
             {
+                // +1 to file type "traces" if header and collate resultID and resultLoc to foundRecords
+                if (resultID[i] % 2 != 0)
+                    Interlocked.Increment(ref results[((resultID[i] + 1) / 2) - 1]);
                 foundRecords.Add(new foundRecord(count + (ulong)resultLoc[i], resultID[i]));
                 i++;
             }
 
-            //updateFound();
+            updateFound();
             return Task.FromResult(true);
         }
 
@@ -1220,7 +1222,7 @@ namespace OpenForensics
             //int i = 0;
             //int end = foundRecords.Count;
 
-            while (i < end && !shouldStop)
+            while (i < end)
             {
                 if (foundRecords[i].patternID % 2 != 0)
                 {
@@ -1294,14 +1296,14 @@ namespace OpenForensics
                 resultRecord newEntry = new resultRecord(start, finish, fileSize, sizeFormat, tag, targetName[fileIndex]);
                 foundResults.Add(newEntry);
 
-                Interlocked.Increment(ref results[fileIndex]);
+                //Interlocked.Increment(ref results[fileIndex]);
             }
             else
             {
                 resultRecord newEntry = new resultRecord(start, tag, targetName[fileIndex]);
                 foundResults.Add(newEntry);
 
-                Interlocked.Increment(ref results[fileIndex]);
+                //Interlocked.Increment(ref results[fileIndex]);
             }
         }
 
