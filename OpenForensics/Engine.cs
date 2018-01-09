@@ -24,8 +24,6 @@ namespace OpenForensics
 
         private uint bufferSize;
         private int initialState;
-        private int fileLength;
-        private int longestTarget;
         private int[][] resultCount;
 
         private static object[] gpuThreadLock;
@@ -42,7 +40,7 @@ namespace OpenForensics
         #region Engine Initiation
 
         // PFAC Algorithm Engine
-        public Engine(int GPUid, int coreCount, byte[][] target, int[][] lookup, int longestTarget, int fileLength, uint size)
+        public Engine(int GPUid, int coreCount, byte[][] target, int[][] lookup, uint size)
         {
             this.GPUid = GPUid;
             gpu = CudafyHost.GetDevice(CudafyModes.Target, GPUid);
@@ -71,9 +69,6 @@ namespace OpenForensics
             blockSize = Math.Min(blockThreads, (int)Math.Ceiling(chunkSize / (float)blockThreads));  //Find the optimum size of the threads to handle the buffer
 
             //MessageBox.Show("GPU Blocks: " + gpuBlocks.ToString() + Environment.NewLine + "Block Threads: " + blockThreads.ToString() + Environment.NewLine + "Block Size: " + blockSize.ToString());
-
-            this.fileLength = fileLength;
-            this.longestTarget = longestTarget;
 
             int[,] newLookup = new int[lookup.Length, 256];
             for (int x = 0; x < lookup.Length; x++)
@@ -240,7 +235,6 @@ namespace OpenForensics
                 gpu.SetCurrentContext();
 
                 gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, dev_lookup, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
-                //gpu.Launch(gpuOperatingCores, blockSize, gpuCore).PFACAnalyse(dev_buffer[gpuCore], initialState, dev_lookup, longestTarget, fileLength, dev_resultLoc[gpuCore], dev_resultCount[gpuCore]);  // Start the analysis of the buffer
                 gpu.SynchronizeStream(gpuCore);
             }
 

@@ -801,7 +801,7 @@ namespace OpenForensics
                 // Create a GPU object for each GPU selected
                 foreach(int GPUid in gpus)
                 {
-                    Engine gpu = new Engine(GPUid, gpuCoreCount, target, lookup, longestTarget, fileLength, chunkSize);
+                    Engine gpu = new Engine(GPUid, gpuCoreCount, target, lookup, chunkSize);
                     GPUCollection.Add(gpu);
                 }
 
