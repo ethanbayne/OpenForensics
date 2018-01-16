@@ -63,9 +63,6 @@ namespace OpenForensics
             // Find out maximum GPU Blocks and Supported Threads for each Block
             gpuBlocks = prop.WarpSize;
             gpuOperatingCores = gpuBlocks;
-            //gpuOperatingCores = gpuBlocks / gpuCoreCount; // This is fine for nVidia... everything else dies horribly!
-            //if (gpuOperatingCores == 0)
-            //    gpuOperatingCores = 1;
             blockThreads = prop.MaxThreadsPerBlock;
             blockSize = Math.Min(blockThreads, (int)Math.Ceiling(chunkSize / (float)blockThreads));  //Find the optimum size of the threads to handle the buffer
 

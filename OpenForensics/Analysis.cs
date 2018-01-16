@@ -1198,8 +1198,6 @@ namespace OpenForensics
         {
             int i = (threadNo * (resultLoc.Length / procShare));
             int end = ((threadNo + 1) * (resultLoc.Length / procShare));
-            //int i = 0;
-            //int end = resultID.Length;
 
             while (i < end && !shouldStop)
             {
@@ -1219,8 +1217,6 @@ namespace OpenForensics
         {
             int i = (threadNo * (foundRecords.Count / lpCount));
             int end = ((threadNo + 1) * (foundRecords.Count / lpCount));
-            //int i = 0;
-            //int end = foundRecords.Count;
 
             while (i < end)
             {
@@ -1252,11 +1248,6 @@ namespace OpenForensics
                                 RecordFileLocation(fileIndex, foundRecords[i].location, fileEnd, "");
                                 break;
                             }
-                            //else if (foundRecords[j].patternID == headerType)
-                            //{
-                            //    RecordFileLocationNew(fileIndex, foundRecords[i].location, foundRecords[j].location - 1, "fragmented");
-                            //    break;
-                            //}
                             if (j == foundRecords.Count)
                                 RecordFileLocation(fileIndex, foundRecords[i].location, 0, "incomplete");
                         }
@@ -1294,146 +1285,14 @@ namespace OpenForensics
                 }
 
                 resultRecord newEntry = new resultRecord(start, finish, fileSize, sizeFormat, tag, targetName[fileIndex]);
-                foundResults.Add(newEntry);
-
-                //Interlocked.Increment(ref results[fileIndex]);
+                foundResults.Add(newEntry);                
             }
             else
             {
                 resultRecord newEntry = new resultRecord(start, tag, targetName[fileIndex]);
                 foundResults.Add(newEntry);
-
-                //Interlocked.Increment(ref results[fileIndex]);
             }
         }
-
-        // Result processing. Buffer is divided between logical cores assigned to file carve.
-        //private void ProcessLocations(int gpu, int numThreads, ref byte[] buffer, ref ulong count, ref byte[] resultID, ref int[] resultLoc)
-        //{
-        //    int i = (numThreads * (resultLoc.Length / procShare));
-        //    int end = ((numThreads + 1) * (resultLoc.Length / procShare));
-
-        //    while (i < end && !shouldStop)
-        //    {
-        //        if (resultID[i] % 2 != 0)
-        //        {
-        //            int headerType = (int)resultID[i];
-        //            int fileIndex = ((headerType + 1) / 2) - 1;
-        //            int footerType = 0;
-        //            for (int y = 0; y < targetName.Count; y++)
-        //            {
-        //                if (targetName[y] == targetName[fileIndex])
-        //                {
-        //                    footerType = (y * 2) + 2;
-        //                    break;
-        //                }
-        //            }
-
-        //            if (targetEnd[fileIndex] != null)
-        //            {
-
-        //                int searchRange = resultID.Length;
-
-        //                bool nextHeaderFound = false;
-        //                int nextHeader = 0;
-        //                int fileEnd = 0;
-
-        //                for (int j = (i + 1); j < searchRange; j++)
-        //                {
-        //                    if (resultID[j] == headerType)
-        //                    {
-        //                        nextHeader = resultLoc[j] - 1;
-        //                        nextHeaderFound = true;
-        //                        break;
-        //                    }
-        //                    else if (resultID[j] == footerType)
-        //                    {
-        //                        if (targetName[fileIndex] == "sqldb")
-        //                        {
-        //                            fileEnd = resultLoc[i] + sqldbSearchLength(ref buffer, resultLoc[i]);
-        //                            if (fileEnd > buffer.Length)
-        //                                fileEnd = 0;
-        //                            if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
-        //                            {
-        //                                RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
-        //                                break;
-        //                            }
-        //                            else
-        //                                fileEnd = 0;
-        //                        }
-        //                        else
-        //                        {
-        //                            if ((int)resultID[j] == footerType)
-        //                            {
-        //                                fileEnd = resultLoc[j] + targetEnd[fileIndex].Length;
-        //                                fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
-        //                                if (fileEnd > buffer.Length)
-        //                                    fileEnd = 0;
-        //                                if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
-        //                                {
-        //                                    RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
-        //                                    break;
-        //                                }
-        //                                else
-        //                                    fileEnd = 0;
-        //                            }
-        //                        }
-        //                    }
-        //                }
-
-        //                if (fileEnd == 0 && nextHeaderFound)
-        //                    RecordFileLocation(buffer, count, fileIndex, resultLoc[i], nextHeader, "fragmented");
-        //                else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
-        //                    RecordFileLocation(buffer, count, fileIndex, resultLoc[i], Math.Min(resultLoc[i] + fileLength, buffer.Length), "partial");
-
-        //            }
-        //            else
-        //            {
-        //                RecordFileLocation(buffer, count, fileIndex, resultLoc[i], 0, "(non-carvable)");
-        //            }
-        //        }
-        //        i++;
-        //    }
-
-        //    updateFound();
-        //}
-
-        // Records file location information from information passed by processing threads.
-        //private void RecordFileLocation(byte[] buffer, ulong count, int fileIndex, int start, int finish, string tag)
-        //{
-        //    if (finish != 0)
-        //    {
-        //        float fileSize = (finish - start);
-        //        string sizeFormat = "bytes";
-        //        if (fileSize > 1024)
-        //        {
-        //            fileSize = fileSize / 1024;
-        //            sizeFormat = "KB";
-        //        }
-        //        if (fileSize > 1024)
-        //        {
-        //            fileSize = fileSize / 1024;
-        //            sizeFormat = "MB";
-        //        }
-        //        if (fileSize > 1024)
-        //        {
-        //            fileSize = fileSize / 1024;
-        //            sizeFormat = "GB";
-        //        }
-
-        //        resultRecord newEntry = new resultRecord((count + (ulong)start), (count + (ulong)finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
-        //        foundResults.Add(newEntry);
-
-        //        Interlocked.Increment(ref results[fileIndex]);
-        //    }
-        //    else
-        //    {
-        //        resultRecord newEntry = new resultRecord((count + (ulong)start), tag, targetName[fileIndex]);
-        //        foundResults.Add(newEntry);
-
-        //        Interlocked.Increment(ref results[fileIndex]);
-        //    }
-        //}
 
         // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
         private void carveResults(dataReader dataread)
@@ -1481,7 +1340,7 @@ namespace OpenForensics
             }
         }
 
-        // Experimental sqldb Search
+        // Experimental sqldb Search [TODO]
         private int sqldbSearchLength(ref byte[] buffer, int count)
         {
             // Page Size (int16, offset 16) 
