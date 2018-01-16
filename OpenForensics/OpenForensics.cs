@@ -669,7 +669,7 @@ namespace OpenForensics
 
                     int fileLength = 10 * 1048576;
                     if (childnode.SelectSingleNode("MaxLengthMB") != null)
-                        fileLength = Convert.ToInt32(childnode["MaxLengthMB"].InnerText.Trim()) * 1048576;
+                        fileLength = (int)(Convert.ToDouble(childnode["MaxLengthMB"].InnerText.Trim()) * 1048576);
 
                     foreach (XmlNode value in values)
                     {

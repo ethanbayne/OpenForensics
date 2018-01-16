@@ -1260,7 +1260,7 @@ namespace OpenForensics
                         }
                     }
                     else
-                        RecordFileLocation(fileIndex, foundRecords[i].location, 0, "(non-carvable)");
+                        RecordFileLocation(fileIndex, foundRecords[i].location, 0, "non-carvable");
                 }
                 i++;
             }
