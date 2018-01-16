@@ -32,13 +32,14 @@ namespace OpenForensics
         // Version 1.24b - Fixed small logic bug with GPU carving function - thread.atomicAdd(ref resultCount[(int)(state / 2) - 1], 1); > thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
         // Version 1.25b - Incremental refactoring of code.
         // Version 1.30b - Fixed non-Nvidia GPU flaw where multiple instanced use of GPU was mishandled. Implemented GPU locker so that only one thread can utilise the GPU at any given moment.
-        // Version 1.50 - Overhaul and major refactoring of program. Optimised GPU result recording and significantly reduced CPU result processing. 
-        // Version 1.51 - Fixed bugs (processing result method bug when threads > 1). Optimised result preparation.
-        // Version 1.53 - .NET Framework v.4.5, introduced Async refinements to main CPU and GPU processing threads
-        // Version 1.54 - Bug fix for Ryzen processors being counted as GPUs
-        // Version 1.60 - Enhanced processing framework. Introduced post-processing stage after patterns found. Enabled window to be size of pattern rather than file. Transferred jpg checks to search processing. Corrected file reproduction technique.
+        // Version 1.50b - Overhaul and major refactoring of program. Optimised GPU result recording and significantly reduced CPU result processing. 
+        // Version 1.51b - Fixed bugs (processing result method bug when threads > 1). Optimised result preparation.
+        // Version 1.53b - .NET Framework v.4.5, introduced Async refinements to main CPU and GPU processing threads
+        // Version 1.54b - Bug fix for Ryzen processors being counted as GPUs
+        // Version 1.60b - Enhanced processing framework. Introduced post-processing stage after patterns found. Enabled window to be size of pattern rather than file. Transferred jpg checks to search processing. Corrected file reproduction technique.
+        // Version 1.61b - Introduced file length setting in XML (default 10 MiB). Able to set different combinations of headers and footers for the same filetype by using the name format <filetype>-<identifier> (gif-2 provided in default XML as an example).
 
-        private string version = "Public v. 1.60";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.61b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
