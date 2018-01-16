@@ -56,6 +56,7 @@ namespace OpenForensics
         private List<string> targetName = new List<string>();
         private List<string> targetHeader = new List<string>();
         private List<string> targetFooter = new List<string>();
+        private List<int> targetLength = new List<int>();
 
         private List<string> imageNames = new List<string>();
         private List<string> videoNames = new List<string>();
@@ -530,7 +531,6 @@ namespace OpenForensics
                     string fileType = childnode["Type"].InnerText.Trim();
                     string fileName = childnode["Name"].InnerText.Trim();
                     cboFileType.Items.Add(fileName);
-                    XmlNodeList values = childnode.SelectNodes("Value");
 
                     switch (fileType)
                     {
@@ -636,6 +636,7 @@ namespace OpenForensics
                         targetName.Add("\"" + keywordValue + "\"");
                         targetHeader.Add(Engine.StringtoHex(keywordValue));
                         targetFooter.Add(null);
+                        targetLength.Add(0);
                     }
                 }
                 else                                                // Generate Value for Individual Selected
@@ -643,6 +644,7 @@ namespace OpenForensics
                     targetName.Add(keywordValue);
                     targetHeader.Add(Engine.StringtoHex(keywordValue));
                     targetFooter.Add(null);
+                    targetLength.Add(0);
                 }
             }
         }
@@ -664,12 +666,16 @@ namespace OpenForensics
                     if (childnode.SelectSingleNode("EOF") != null)
                         fileEOF = childnode["EOF"].InnerText.Trim();
 
+                    int fileLength = 10 * 1048576;
+                    if (childnode.SelectSingleNode("MaxLengthMB") != null)
+                        fileLength = Convert.ToInt32(childnode["MaxLengthMB"].InnerText.Trim()) * 1048576;
 
                     foreach (XmlNode value in values)
                     {
                         targetName.Add(typeName);
                         targetHeader.Add(value.InnerText);
                         targetFooter.Add(fileEOF);
+                        targetLength.Add(fileLength);
                     }
 
                     break;
@@ -779,6 +785,7 @@ namespace OpenForensics
             input.targetName = targetName;
             input.targetHeader = targetHeader;
             input.targetFooter = targetFooter;
+            input.targetLength = targetLength;
 
             anFrm.InputSet = input;
             anFrm.Show();

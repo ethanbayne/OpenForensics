@@ -14,6 +14,7 @@ using System.Management;
 using System.Collections.Concurrent;
 using System.Xml;
 using System.Xml.Serialization;
+using System.Text.RegularExpressions;
 
 namespace OpenForensics
 {
@@ -344,6 +345,7 @@ namespace OpenForensics
             public List<string> targetName { get; set; }
             public List<string> targetHeader { get; set; }
             public List<string> targetFooter { get; set; }
+            public List<int> targetLength { get; set; }
         }
 
         private volatile bool shouldStop = false;
@@ -363,13 +365,12 @@ namespace OpenForensics
         private List<string> targetName;
         private List<string> targetHeader;
         private List<string> targetFooter;
+        private List<int> targetLength;
 
         private Label[] gpuLabel;
 
-        // Hard coded chunk size and expected maximum file length.
-        // TO-DO: State fileLength in config file.
+        // Hard coded chunk size and result cache size
         private uint chunkSize = 100 * 1048576;
-        private int fileLength = 20 * 1048576;
         private uint resultCache = 1048576;
 
         private Byte[][] target;
@@ -405,6 +406,7 @@ namespace OpenForensics
                 targetName = value.targetName;
                 targetHeader = value.targetHeader;
                 targetFooter = value.targetFooter;
+                targetLength = value.targetLength;
             }
         }
 
@@ -885,7 +887,7 @@ namespace OpenForensics
         private void CarveOnly()
         {
             carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
-            dataReader dataRead = new dataReader(FilePath, fileLength);
+            dataReader dataRead = new dataReader(FilePath, 0);
             carveResults(dataRead);
             dataRead.CloseFile();
             CarveClose();
@@ -1237,6 +1239,7 @@ namespace OpenForensics
                     if (targetEnd[fileIndex] != null)
                     {
                         ulong fileEnd = 0;
+                        ulong searchRange = foundRecords[i].location + (ulong)targetLength[fileIndex];
 
                         for (int j = (i + 1); j < foundRecords.Count; j++)
                         {
@@ -1248,8 +1251,12 @@ namespace OpenForensics
                                 RecordFileLocation(fileIndex, foundRecords[i].location, fileEnd, "");
                                 break;
                             }
-                            if (j == foundRecords.Count)
+
+                            if (foundRecords[j].location > searchRange)
+                            {
                                 RecordFileLocation(fileIndex, foundRecords[i].location, 0, "incomplete");
+                                break;
+                            }
                         }
                     }
                     else
@@ -1284,12 +1291,12 @@ namespace OpenForensics
                     sizeFormat = "GB";
                 }
 
-                resultRecord newEntry = new resultRecord(start, finish, fileSize, sizeFormat, tag, targetName[fileIndex]);
+                resultRecord newEntry = new resultRecord(start, finish, fileSize, sizeFormat, tag, Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty));
                 foundResults.Add(newEntry);                
             }
             else
             {
-                resultRecord newEntry = new resultRecord(start, tag, targetName[fileIndex]);
+                resultRecord newEntry = new resultRecord(start, tag, Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty));
                 foundResults.Add(newEntry);
             }
         }
