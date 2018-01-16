@@ -302,7 +302,7 @@ namespace OpenForensics
                         }
                         else
                         {
-                            int fileEnd = pos + targetEndLength[((state + 1) / 2) - 1];
+                            int fileEnd = i + targetEndLength[((state + 1) / 2) - 1];
                             if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
                             {
                                 int counter = thread.atomicAdd(ref foundCount[0], 1);
