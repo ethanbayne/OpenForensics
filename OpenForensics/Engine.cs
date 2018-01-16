@@ -144,7 +144,7 @@ namespace OpenForensics
                         }
                         else
                         {
-                            int fileEnd = pos + targetEnd[((state + 1) / 2) - 1].Length;
+                            int fileEnd = i + targetEnd[((state + 1) / 2) - 1].Length;
                             if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
                             {
                                 results[state-1]++;
