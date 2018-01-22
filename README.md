@@ -48,7 +48,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 This software includes CUDAfy .NET (Cudafy.NET.dll), developed by Hybrid DSP.
 
-The LGPL v2.1 License applies to CUDAfy .NET. If you wish to modify the code then changes should be re-submitted to Hybrid DSP. If you wish to incorporate Cudafy.NET into your own application instead of redistributing the dll's then please consider a commerical license. Visit http://www.hybriddsp.com. This will also provide you with priority support and contribute to on-going development.
+The LGPL v2.1 License applies to CUDAfy .NET. If you wish to modify the code then changes should be re-submitted to Hybrid DSP. If you wish to incorporate Cudafy.NET into your own application instead of redistributing the dll's then please consider a commerical license. Visit http://www.hybriddsp.nl. This will also provide you with priority support and contribute to on-going development.
 
 Cudafy.NET also utilises the following libraries are made use of:
 The MIT license applies to ILSpy, NRefactory and ICSharpCode.Decompiler (Copyright (c) 2011 AlphaSierraPapa for the SharpDevelop team).
