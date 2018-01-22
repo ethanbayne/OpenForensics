@@ -4,6 +4,7 @@
   <Format>
     <Type>Image</Type>
     <Name>jpg</Name>
+    <MaxLengthMB>10</MaxLengthMB>
     <EOF>FFD9</EOF>
     <Value>FFD8FFE00010</Value>
     <Value>FFD8FFE135FE</Value>
@@ -11,9 +12,16 @@
   <Format>
     <Type>Image</Type>
     <Name>gif</Name>
+    <MaxLengthMB>10</MaxLengthMB>
     <EOF>003B</EOF>
-    <Value>474946383961</Value>
     <Value>474946383761</Value>
+  </Format>
+  <Format>
+    <Type>Image</Type>
+    <Name>gif-2</Name>
+    <MaxLengthMB>10</MaxLengthMB>
+    <EOF>00003B</EOF>
+    <Value>474946383961</Value>
   </Format>
   <Format>
     <Type>Misc</Type>
@@ -24,6 +32,7 @@
   <Format>
     <Type>Image</Type>
     <Name>png</Name>
+    <MaxLengthMB>10</MaxLengthMB>
     <EOF>49454E44AE426082</EOF>
     <Value>89504E470D0A1A0A</Value>
   </Format>
@@ -36,6 +45,7 @@
   <Format>
     <Type>Video</Type>
     <Name>mpg</Name>
+    <MaxLengthMB>10</MaxLengthMB>
     <EOF>000001B7</EOF>
     <Value>000001BA</Value>
     <Value>000001B3</Value>
@@ -85,18 +95,21 @@
   <Format>
     <Type>Document</Type>
     <Name>docx</Name>
+    <MaxLengthMB>10</MaxLengthMB>
     <EOF>504B0506</EOF>
     <Value>504B030414000600</Value>
   </Format>
   <Format>
     <Type>Document</Type>
     <Name>pdf</Name>
+    <MaxLengthMB>10</MaxLengthMB>
     <EOF>0A2525454F46</EOF>
     <Value>25504446</Value>
   </Format>
   <Format>
     <Type>Misc</Type>
     <Name>zip</Name>
+    <MaxLengthMB>10</MaxLengthMB>
     <!--<EOF>504B</EOF>-->
     <Value>504B0304</Value>
     <Value>504B0506</Value>

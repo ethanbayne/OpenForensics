@@ -14,6 +14,7 @@ using System.Management;
 using System.Collections.Concurrent;
 using System.Xml;
 using System.Xml.Serialization;
+using System.Text.RegularExpressions;
 
 namespace OpenForensics
 {
@@ -32,13 +33,25 @@ namespace OpenForensics
             [MarshalAs(UnmanagedType.U4)] FileAttributes fileAttributes,
             IntPtr template);
 
+        public struct foundRecord
+        {
+            public ulong location;
+            public int patternID;
+
+            public foundRecord(ulong location, int patternID)
+            {
+                this.location = location;
+                this.patternID = patternID;
+            }
+        }
+
         public struct resultRecord
         {
-            public double start, end;
+            public ulong start, end;
             public float size;
             public string sizeformat, tag, filetype;
 
-            public resultRecord(double start, double end, float size, string sizeformat, string tag,  string filetype)
+            public resultRecord(ulong start, ulong end, float size, string sizeformat, string tag,  string filetype)
             {
                 this.start = start;
                 this.end = end;
@@ -48,7 +61,7 @@ namespace OpenForensics
                 this.filetype = filetype;
             }
 
-            public resultRecord(double start, string tag, string filetype)
+            public resultRecord(ulong start, string tag, string filetype)
             {
                 this.start = start;
                 this.end = 0;
@@ -115,26 +128,26 @@ namespace OpenForensics
                 sectionEnd = new byte[peek];
             }
 
-            public int GetChunk(byte[] buffer, ref long count, ref double totalProcessed)
+            public ulong GetChunk(byte[] buffer, ref ulong count, ref ulong totalProcessed)
             {
                 //Lock the process so that only one process can read from the drive at any given point.
                 lock (locker)
                 {
-                    count = DDStream.Position;  //Store count as the current byte position in the file/drive
+                    count = (ulong)DDStream.Position;  //Store count as the current byte position in the file/drive
                     int toRead = buffer.Length;
 
                     // Physical Drive Read Boundary Tests
-                    if (physicalDrive && (ulong)count != fileSize && count > (long)(fileSize - 512))    // If data read position on physical drive is less than the 512 byte minimum
+                    if (physicalDrive && (ulong)count != fileSize && count > (ulong)(fileSize - 512))    // If data read position on physical drive is less than the 512 byte minimum
                     {
                         DDStream.Flush();
                         DDStream.Position = (long)(fileSize - 512); // Rewind 512 bytes from the end to ensure data can be analysed
-                        count = DDStream.Position;
+                        count = (ulong)DDStream.Position;
                         toRead = 512;
                     }
-                    if ((ulong)(count + toRead) > fileSize) // Ensure the amount being read does not exceed file/drive size
+                    if (count + (ulong)toRead > (ulong)fileSize) // Ensure the amount being read does not exceed file/drive size
                         toRead = (int)(fileSize - (ulong)count);
 
-                    int result = 0;
+                    ulong result = 0;
                     if (toRead != 0)    // If there's data to read..
                     {
                         int buffSplit = 0;
@@ -144,10 +157,10 @@ namespace OpenForensics
                         // If it's not the final sector and bytes to read is greater than the peek window, 
                         // Copy the window buffer from the last section to the beginning and 
                         // append the length to read by the peek length.
-                        if ((ulong)(count + toRead) != fileSize && count > 0 && toRead > peek)
+                        if (count + (ulong)toRead != fileSize && count > 0 && toRead > peek)
                         {
                             toRead -= peek;
-                            count -= peek;
+                            count -= (ulong)peek;
                             Array.Copy(sectionEnd, buffer, peek);
                         }
                         else
@@ -166,7 +179,7 @@ namespace OpenForensics
                                 buffSplit++;
                         }
 
-                        long currentPos = count;
+                        ulong currentPos = count;
 
                         // Create a read queue to read data from the storage device.
                         ConcurrentQueue<int> queue = new ConcurrentQueue<int>();
@@ -193,7 +206,7 @@ namespace OpenForensics
                             {
                                 int task;
                                 if (queue.TryDequeue(out task))
-                                    result += task;
+                                    result += (ulong)task;
 
                             }, TaskCreationOptions.PreferFairness);
                         }
@@ -204,7 +217,7 @@ namespace OpenForensics
                     }
 
                     // Update the total progressed as being the current position in data.
-                    totalProcessed = DDStream.Position;
+                    totalProcessed = (ulong)DDStream.Position;
                     return result;
                 }
             }
@@ -217,7 +230,7 @@ namespace OpenForensics
 
             // Past chunk is a legacy function that is able to retrieve a chunk of past data in the file stream and then
             // return the position to the last known position.
-            public int PastChunk(ref byte[] buffer, ref long count, long startLocation, int fileLength)
+            public int PastChunk(ref byte[] buffer, ref ulong count, long startLocation, int fileLength)
             {
                 lock (locker)
                 {
@@ -226,7 +239,7 @@ namespace OpenForensics
                     DDStream.Flush();
                     DDStream.Position = startLocation;
 
-                    count = DDStream.Position;
+                    count = (ulong)DDStream.Position;
                     int readLength = DDStream.Read(buffer, 0, fileLength);
 
                     DDStream.Flush();
@@ -332,6 +345,7 @@ namespace OpenForensics
             public List<string> targetName { get; set; }
             public List<string> targetHeader { get; set; }
             public List<string> targetFooter { get; set; }
+            public List<int> targetLength { get; set; }
         }
 
         private volatile bool shouldStop = false;
@@ -351,13 +365,12 @@ namespace OpenForensics
         private List<string> targetName;
         private List<string> targetHeader;
         private List<string> targetFooter;
+        private List<int> targetLength;
 
         private Label[] gpuLabel;
 
-        // Hard coded chunk size and expected maximum file length.
-        // TO-DO: State fileLength in config file.
+        // Hard coded chunk size and result cache size
         private uint chunkSize = 100 * 1048576;
-        private int fileLength = 20 * 1048576;
         private uint resultCache = 1048576;
 
         private Byte[][] target;
@@ -368,9 +381,10 @@ namespace OpenForensics
 
         private Stopwatch watch;
         private int[] results;
-        private double totalProcessed;
+        private ulong totalProcessed;
         private int carveProcessed;
         private uint chunkCount;
+        private ConcurrentBag<foundRecord> foundRecords = new ConcurrentBag<foundRecord>();
         private ConcurrentBag<resultRecord> foundResults = new ConcurrentBag<resultRecord>();
         private List<resultRecord> carvableFiles = new List<resultRecord>();
 
@@ -392,6 +406,7 @@ namespace OpenForensics
                 targetName = value.targetName;
                 targetHeader = value.targetHeader;
                 targetFooter = value.targetFooter;
+                targetLength = value.targetLength;
             }
         }
 
@@ -586,8 +601,8 @@ namespace OpenForensics
         private void updateFound()
         {
             int total = 0;
-            foreach (int count in results)
-                total += count;
+            foreach (int result in results)
+                total += result;
 
             try
             {
@@ -662,7 +677,7 @@ namespace OpenForensics
         }
 
         // Update percentage and time values on interface
-        private void updateProgress(int percent, double position, double total)
+        private void updateProgress(int percent, ulong position, ulong total)
         {
             try
             {
@@ -745,7 +760,7 @@ namespace OpenForensics
                 procShare = 1;
 
                 // Set up data reader
-                dataReader dataRead = new dataReader(FilePath, fileLength);
+                dataReader dataRead = new dataReader(FilePath, longestTarget);
 
                 ulong fileSize = dataRead.GetFileSize();
 
@@ -759,6 +774,15 @@ namespace OpenForensics
                     });
                     Task.WaitAll();
                 });
+
+                List<foundRecord> tmpFoundRecords = new List<foundRecord>();
+                tmpFoundRecords.AddRange(foundRecords.ToArray());
+                tmpFoundRecords.Sort((s1, s2) => s1.location.CompareTo(s2.location));
+                Parallel.For(0, lpCount, async i =>
+                {
+                    await ProcessLocations(i, ref tmpFoundRecords);
+                });
+                Task.WaitAll();
 
                 // Prepare the results file
                 PrepareResults(fileSize, time);
@@ -801,7 +825,7 @@ namespace OpenForensics
                 // Create a GPU object for each GPU selected
                 foreach(int GPUid in gpus)
                 {
-                    Engine gpu = new Engine(GPUid, gpuCoreCount, target, lookup, longestTarget, fileLength, chunkSize);
+                    Engine gpu = new Engine(GPUid, gpuCoreCount, target, targetEnd, lookup, chunkSize);
                     GPUCollection.Add(gpu);
                 }
 
@@ -812,7 +836,7 @@ namespace OpenForensics
                 //procShare = 1; // Force logical CPU cores per GPU
 
                 // Set up data reader
-                dataReader dataRead = new dataReader(FilePath, fileLength);
+                dataReader dataRead = new dataReader(FilePath, longestTarget);
 
                 ulong fileSize = dataRead.GetFileSize();
 
@@ -826,6 +850,15 @@ namespace OpenForensics
                         {
                             await GPUThread(i, j, dataRead);
                         });
+                    });
+                    Task.WaitAll();
+
+                    List<foundRecord> tmpFoundRecords = new List<foundRecord>();
+                    tmpFoundRecords.AddRange(foundRecords.ToArray());
+                    tmpFoundRecords.Sort((s1, s2) => s1.location.CompareTo(s2.location));
+                    Parallel.For(0, lpCount, async i =>
+                    {
+                        await ProcessLocations(i, ref tmpFoundRecords);
                     });
                     Task.WaitAll();
                 });
@@ -854,7 +887,7 @@ namespace OpenForensics
         private void CarveOnly()
         {
             carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
-            dataReader dataRead = new dataReader(FilePath, fileLength);
+            dataReader dataRead = new dataReader(FilePath, 0);
             carveResults(dataRead);
             dataRead.CloseFile();
             CarveClose();
@@ -992,12 +1025,12 @@ namespace OpenForensics
 
         private Task<Boolean> CPUThread(int cpu, dataReader dataRead)
         {
-            long count = 0;
+            ulong count = 0;
             byte[] buffer = new byte[chunkSize];
             byte[] foundID = new byte[resultCache];
             int[] foundLoc = new int[resultCache];
 
-            double bytesRead;      // Location in file read
+            ulong bytesRead;      // Location in file read
             while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Request data chunk until end of file
             {
                 chunkCount++;   // Add one to chunk count
@@ -1005,7 +1038,7 @@ namespace OpenForensics
 
                 // Launch analysis
                 updateGPUAct(cpu, true, false);
-                int[] tmpResults = Engine.CPUPFACAnalyse(buffer, lookup, ref foundID, ref foundLoc, target.Length);
+                int[] tmpResults = Engine.CPUPFACAnalyse(buffer, lookup, targetEnd, ref foundID, ref foundLoc, target.Length);
                 updateGPUAct(cpu, false, false);
 
                 // Are there any matches found?
@@ -1032,20 +1065,17 @@ namespace OpenForensics
                             resultCount = z;
                         }
                     Array.Sort(foundLoc, foundID);
-                    ProcessLocations(cpu, 0, ref buffer, ref count, ref foundID, ref foundLoc);
+                    ProcessFoundResults(0, ref count, ref foundID, ref foundLoc);
                     updateGPUAct(cpu, false, false);
-                    updateFound();
                 }
 
                 // Clear buffer and byteLocation for reuse
                 Array.Clear(buffer, 0, buffer.Length);
-                //Array.Clear(foundID, 0, foundID.Length);   //< Attempts to resize array? unusual.. GC?
-                //Array.Clear(foundLoc, 0, foundLoc.Length);
                 foundID = new byte[resultCache];
                 foundLoc = new int[resultCache];
 
                 // Update progress
-                double Progress = (double)Math.Round(((totalProcessed / dataRead.GetFileSize()) * 100) / 10.0 * 10);
+                double Progress = Math.Round((((float)totalProcessed / dataRead.GetFileSize()) * 100) / 10.0 * 10);
                 updateProgress((int)Progress, totalProcessed, dataRead.GetFileSize());
             }
 
@@ -1061,13 +1091,13 @@ namespace OpenForensics
         private Task<Boolean> GPUThread(int gpu, int gpuCore, dataReader dataRead)
         {
             //MessageBox.Show(gpu.ToString() + " & " + gpuCore.ToString());
-            long count = 0;
+            ulong count = 0;
             byte[] buffer = new byte[chunkSize];
             byte[] foundID = new byte[resultCache];
             int[] foundLoc = new int[resultCache];
             int gpuID = gpu * gpuCoreCount + gpuCore;
 
-            double bytesRead;      // Location in file read
+            ulong bytesRead;      // Location in file read
             while ((bytesRead = dataRead.GetChunk(buffer, ref count, ref totalProcessed)) > 0 && !shouldStop)   // Read into the buffer until end of file
             {
                 chunkCount++;                                       // For each buffer used, increment count
@@ -1111,9 +1141,9 @@ namespace OpenForensics
                             resultCount = z;
                         }
                     Array.Sort(foundLoc, foundID);
-                    Parallel.For(0, procShare, i =>
+                    Parallel.For(0, procShare, async i =>
                     {
-                        ProcessLocations(gpu, i, ref buffer, ref count, ref foundID, ref foundLoc);
+                        await ProcessFoundResults(i, ref count, ref foundID, ref foundLoc);
                     });
                     Task.WaitAll();
                     updateGPUAct(gpuID, false, true);
@@ -1123,7 +1153,7 @@ namespace OpenForensics
                 Array.Clear(buffer, 0, buffer.Length);
 
                 // Update progress
-                double Progress = (double)Math.Round(((totalProcessed / dataRead.GetFileSize()) * 100) / 10.0 * 10);
+                double Progress = Math.Round((((float)totalProcessed / dataRead.GetFileSize()) * 100) / 10.0 * 10);
                 updateProgress((int)Progress, totalProcessed, dataRead.GetFileSize());
             }
 
@@ -1166,17 +1196,35 @@ namespace OpenForensics
 
         #region File Carving Operations
 
-        // Result processing. Buffer is divided between logical cores assigned to file carve.
-        private void ProcessLocations(int gpu, int numThreads, ref byte[] buffer, ref long count, ref byte[] resultID, ref int[] resultLoc)
+        private Task<Boolean> ProcessFoundResults(int threadNo, ref ulong count, ref byte[] resultID, ref int[] resultLoc)
         {
-            int i = (numThreads * (resultLoc.Length / procShare));
-            int end = ((numThreads + 1) * (resultLoc.Length / procShare));
+            int i = (threadNo * (resultLoc.Length / procShare));
+            int end = ((threadNo + 1) * (resultLoc.Length / procShare));
 
             while (i < end && !shouldStop)
             {
+                // +1 to file type "traces" if header and collate resultID and resultLoc to foundRecords
                 if (resultID[i] % 2 != 0)
+                    Interlocked.Increment(ref results[((resultID[i] + 1) / 2) - 1]);
+                foundRecords.Add(new foundRecord(count + (ulong)resultLoc[i], resultID[i]));
+                i++;
+            }
+
+            updateFound();
+            return Task.FromResult(true);
+        }
+
+        // Result processing. Buffer is divided between logical cores assigned to file carve.
+        private Task<Boolean> ProcessLocations(int threadNo, ref List<foundRecord> foundRecords)
+        {
+            int i = (threadNo * (foundRecords.Count / lpCount));
+            int end = ((threadNo + 1) * (foundRecords.Count / lpCount));
+
+            while (i < end)
+            {
+                if (foundRecords[i].patternID % 2 != 0)
                 {
-                    int headerType = (int)resultID[i];
+                    int headerType = (int)foundRecords[i].patternID;
                     int fileIndex = ((headerType + 1) / 2) - 1;
                     int footerType = 0;
                     for (int y = 0; y < targetName.Count; y++)
@@ -1190,75 +1238,38 @@ namespace OpenForensics
 
                     if (targetEnd[fileIndex] != null)
                     {
+                        ulong fileEnd = 0;
+                        ulong searchRange = foundRecords[i].location + (ulong)targetLength[fileIndex];
 
-                        int searchRange = resultID.Length;
-
-                        bool nextHeaderFound = false;
-                        int nextHeader = 0;
-                        int fileEnd = 0;
-
-                        for (int j = (i + 1); j < searchRange; j++)
+                        for (int j = (i + 1); j < foundRecords.Count; j++)
                         {
-                            if (resultID[j] == headerType)
+                            if (foundRecords[j].patternID == footerType)
                             {
-                                nextHeader = resultLoc[j] - 1;
-                                nextHeaderFound = true;
+                                fileEnd = foundRecords[j].location + (ulong)targetEnd[fileIndex].Length;
+                                fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
+
+                                RecordFileLocation(fileIndex, foundRecords[i].location, fileEnd, "");
                                 break;
                             }
-                            else if (resultID[j] == footerType)
+
+                            if (foundRecords[j].location > searchRange)
                             {
-                                if (targetName[fileIndex] == "sqldb")
-                                {
-                                    fileEnd = resultLoc[i] + sqldbSearchLength(ref buffer, resultLoc[i]);
-                                    if (fileEnd > buffer.Length)
-                                        fileEnd = 0;
-                                    if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
-                                    {
-                                        RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
-                                        break;
-                                    }
-                                    else
-                                        fileEnd = 0;
-                                }
-                                else
-                                {
-                                    if ((int)resultID[j] == footerType)
-                                    {
-                                        fileEnd = resultLoc[j] + targetEnd[fileIndex].Length;
-                                        fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
-                                        if (fileEnd > buffer.Length)
-                                            fileEnd = 0;
-                                        if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
-                                        {
-                                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], fileEnd, "");
-                                            break;
-                                        }
-                                        else
-                                            fileEnd = 0;
-                                    }
-                                }
+                                RecordFileLocation(fileIndex, foundRecords[i].location, 0, "incomplete");
+                                break;
                             }
                         }
-
-                        if (fileEnd == 0 && nextHeaderFound)
-                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], nextHeader, "fragmented");
-                        else if (fileEnd == 0 && !nextHeaderFound && searchRange != buffer.Length)
-                            RecordFileLocation(buffer, count, fileIndex, resultLoc[i], Math.Min(resultLoc[i] + fileLength, buffer.Length), "partial");
-
                     }
                     else
-                    {
-                        RecordFileLocation(buffer, count, fileIndex, resultLoc[i], 0, "(non-carvable)");
-                    }
+                        RecordFileLocation(fileIndex, foundRecords[i].location, 0, "non-carvable");
                 }
                 i++;
             }
 
-            updateFound();
+            return Task.FromResult(true);
         }
 
         // Records file location information from information passed by processing threads.
-        private void RecordFileLocation(byte[] buffer, double count, int fileIndex, int start, int finish, string tag)
+        private void RecordFileLocation(int fileIndex, ulong start, ulong finish, string tag)
         {
             if (finish != 0)
             {
@@ -1280,17 +1291,13 @@ namespace OpenForensics
                     sizeFormat = "GB";
                 }
 
-                resultRecord newEntry = new resultRecord((count + start), (count + finish), fileSize, sizeFormat, tag, targetName[fileIndex]);
-                foundResults.Add(newEntry);
-
-                Interlocked.Increment(ref results[fileIndex]);
+                resultRecord newEntry = new resultRecord(start, finish, fileSize, sizeFormat, tag, Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty));
+                foundResults.Add(newEntry);                
             }
             else
             {
-                resultRecord newEntry = new resultRecord((count + start), tag, targetName[fileIndex]);
+                resultRecord newEntry = new resultRecord(start, tag, Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty));
                 foundResults.Add(newEntry);
-
-                Interlocked.Increment(ref results[fileIndex]);
             }
         }
 
@@ -1335,12 +1342,12 @@ namespace OpenForensics
                 }
 
                 // Update progress
-                double Progress = (double)Math.Round((((double)currentFile / carvableFiles.Count) * 100) / 10.0 * 10);
-                updateProgress((int)Progress, currentFile, carvableFiles.Count);
+                double Progress = Math.Round((((double)currentFile / carvableFiles.Count) * 100) / 10.0 * 10);
+                updateProgress((int)Progress, (ulong)currentFile, (ulong)carvableFiles.Count);
             }
         }
 
-        // Experimental sqldb Search
+        // Experimental sqldb Search [TODO]
         private int sqldbSearchLength(ref byte[] buffer, int count)
         {
             // Page Size (int16, offset 16) 
@@ -1372,9 +1379,9 @@ namespace OpenForensics
         }
 
         // Footer adjust for tailed files.
-        private int footerAdjust(int footer, string fileType)
+        private ulong footerAdjust(ulong footer, string fileType)
         {
-            int fileEnd = footer;
+            ulong fileEnd = footer;
 
             if (fileType == "zip")
                 fileEnd += 20;

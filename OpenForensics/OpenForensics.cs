@@ -32,12 +32,14 @@ namespace OpenForensics
         // Version 1.24b - Fixed small logic bug with GPU carving function - thread.atomicAdd(ref resultCount[(int)(state / 2) - 1], 1); > thread.atomicAdd(ref resultCount[(int)((state + 1) / 2) - 1], 1);
         // Version 1.25b - Incremental refactoring of code.
         // Version 1.30b - Fixed non-Nvidia GPU flaw where multiple instanced use of GPU was mishandled. Implemented GPU locker so that only one thread can utilise the GPU at any given moment.
-        // Version 1.50 - Overhaul and major refactoring of program. Optimised GPU result recording and significantly reduced CPU result processing. 
-        // Version 1.51 - Fixed bugs (processing result method bug when threads > 1). Optimised result preparation.
-        // Version 1.53 - .NET Framework v.4.5, introduced Async refinements to main CPU and GPU processing threads
-        // Version 1.54 - Bug fix for Ryzen processors being counted as GPUs
+        // Version 1.50b - Overhaul and major refactoring of program. Optimised GPU result recording and significantly reduced CPU result processing. 
+        // Version 1.51b - Fixed bugs (processing result method bug when threads > 1). Optimised result preparation.
+        // Version 1.53b - .NET Framework v.4.5, introduced Async refinements to main CPU and GPU processing threads
+        // Version 1.54b - Bug fix for Ryzen processors being counted as GPUs
+        // Version 1.60b - Enhanced processing framework. Introduced post-processing stage after patterns found. Enabled window to be size of pattern rather than file. Transferred jpg checks to search processing. Corrected file reproduction technique.
+        // Version 1.61b - Introduced file length setting in XML (default 10 MiB). Able to set different combinations of headers and footers for the same filetype by using the name format <filetype>-<identifier> (gif-2 provided in default XML as an example).
 
-        private string version = "Public v. 1.54";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.61b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
@@ -55,6 +57,7 @@ namespace OpenForensics
         private List<string> targetName = new List<string>();
         private List<string> targetHeader = new List<string>();
         private List<string> targetFooter = new List<string>();
+        private List<int> targetLength = new List<int>();
 
         private List<string> imageNames = new List<string>();
         private List<string> videoNames = new List<string>();
@@ -91,8 +94,8 @@ namespace OpenForensics
             cboFileType.SelectedIndex = 0;
             cboKeywords.SelectedIndex = 0;  // Set Keywords to first entry on list
             TargetTypeUpdate();             // Update Target Type
-            if(txtFile.Text!="")
-                if(txtFile.Text.StartsWith("\\\\.\\"))
+            if (txtFile.Text != "")
+                if (txtFile.Text.StartsWith("\\\\.\\"))
                     btnDriveOpen.BackColor = Color.DarkSeaGreen;
                 else
                     btnFileOpen.BackColor = Color.DarkSeaGreen;
@@ -345,7 +348,7 @@ namespace OpenForensics
                     if (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor"))
                         if (maxGPUMem == 0 || prop.TotalGlobalMem < maxGPUMem)
                             maxGPUMem = prop.TotalGlobalMem;
-                        //MessageBox.Show(maxGPUMem.ToString());
+                    //MessageBox.Show(maxGPUMem.ToString());
                 }
                 cbGPGPU.Enabled = true;     // Enable combo box
             }
@@ -353,13 +356,13 @@ namespace OpenForensics
 
         private void cbGPGPU_SelectedIndexChanged(object sender, EventArgs e)
         {
-                TestType = "OpenCL";        // Set TestType to OpenCL
-                CudafyModes.Target = eGPUType.OpenCL;           // Set Target to OpenCL
-                CudafyTranslator.Language = eLanguage.OpenCL;   // Set Cudafy Translator Language to OpenCL (Kernel Construction)
-                if(multiGPU)
-                    CudafyModes.DeviceId = cbGPGPU.SelectedIndex - 1;
-                else
-                    CudafyModes.DeviceId = cbGPGPU.SelectedIndex;
+            TestType = "OpenCL";        // Set TestType to OpenCL
+            CudafyModes.Target = eGPUType.OpenCL;           // Set Target to OpenCL
+            CudafyTranslator.Language = eLanguage.OpenCL;   // Set Cudafy Translator Language to OpenCL (Kernel Construction)
+            if (multiGPU)
+                CudafyModes.DeviceId = cbGPGPU.SelectedIndex - 1;
+            else
+                CudafyModes.DeviceId = cbGPGPU.SelectedIndex;
         }
 
         private void AnalysisSetup()
@@ -451,7 +454,7 @@ namespace OpenForensics
 
         private bool InputCheck()
         {
-            if(txtFile.Text.StartsWith("\\\\.\\"))
+            if (txtFile.Text.StartsWith("\\\\.\\"))
             {
                 ManagementObjectSearcher mosDisks = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive WHERE DeviceID = '" + txtFile.Text.Replace("\\", "\\\\") + "'");
                 if (mosDisks.Get().Count == 0)
@@ -529,7 +532,6 @@ namespace OpenForensics
                     string fileType = childnode["Type"].InnerText.Trim();
                     string fileName = childnode["Name"].InnerText.Trim();
                     cboFileType.Items.Add(fileName);
-                    XmlNodeList values = childnode.SelectNodes("Value");
 
                     switch (fileType)
                     {
@@ -572,7 +574,7 @@ namespace OpenForensics
             int keywordCount = 0;
             int keywordPos = 0;
             string keywordValue = "";
-            this.Invoke((MethodInvoker)delegate()
+            this.Invoke((MethodInvoker)delegate ()
             {
                 fileTypePos = this.cboFileType.SelectedIndex;
                 fileTypeValue = this.cboFileType.SelectedItem.ToString();
@@ -628,13 +630,14 @@ namespace OpenForensics
                 {
                     for (int i = 1; i < keywordCount; i++)
                     {
-                        this.Invoke((MethodInvoker)delegate()
+                        this.Invoke((MethodInvoker)delegate ()
                         {
                             keywordValue = this.cboKeywords.Items[i].ToString();
                         });
                         targetName.Add("\"" + keywordValue + "\"");
                         targetHeader.Add(Engine.StringtoHex(keywordValue));
                         targetFooter.Add(null);
+                        targetLength.Add(0);
                     }
                 }
                 else                                                // Generate Value for Individual Selected
@@ -642,8 +645,9 @@ namespace OpenForensics
                     targetName.Add(keywordValue);
                     targetHeader.Add(Engine.StringtoHex(keywordValue));
                     targetFooter.Add(null);
+                    targetLength.Add(0);
                 }
-            } 
+            }
         }
 
         private void XmlLoad(string fileType)
@@ -663,12 +667,16 @@ namespace OpenForensics
                     if (childnode.SelectSingleNode("EOF") != null)
                         fileEOF = childnode["EOF"].InnerText.Trim();
 
+                    int fileLength = 10 * 1048576;
+                    if (childnode.SelectSingleNode("MaxLengthMB") != null)
+                        fileLength = (int)(Convert.ToDouble(childnode["MaxLengthMB"].InnerText.Trim()) * 1048576);
 
                     foreach (XmlNode value in values)
                     {
                         targetName.Add(typeName);
                         targetHeader.Add(value.InnerText);
                         targetFooter.Add(fileEOF);
+                        targetLength.Add(fileLength);
                     }
 
                     break;
@@ -709,7 +717,7 @@ namespace OpenForensics
             int keywordPos = 0;
             Boolean fileChecked = false;
 
-            this.Invoke((MethodInvoker)delegate()
+            this.Invoke((MethodInvoker)delegate ()
             {
                 if (rdoGPU.Checked)
                     gpuChoice = this.cbGPGPU.SelectedItem.ToString();
@@ -727,7 +735,7 @@ namespace OpenForensics
             if (rdoGPU.Checked)
                 if (gpuChoice.Contains("CPU") || gpuChoice.Contains("Processor"))
                 {
-                    DialogResult dialogResult = MessageBox.Show("Running OpenCL on the CPU is slow.\nAre you sure you want to continue?", "GPU Selection Check", MessageBoxButtons.YesNo,MessageBoxIcon.Question);
+                    DialogResult dialogResult = MessageBox.Show("Running OpenCL on the CPU is slow.\nAre you sure you want to continue?", "GPU Selection Check", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                     if (dialogResult == DialogResult.No)
                         return;
                 }
@@ -738,7 +746,7 @@ namespace OpenForensics
             string gpuValue = "";
             if (rdoGPU.Checked)
             {
-                this.Invoke((MethodInvoker)delegate()
+                this.Invoke((MethodInvoker)delegate ()
                 {
                     gpuValue = this.cbGPGPU.SelectedItem.ToString();
                 });
@@ -778,6 +786,7 @@ namespace OpenForensics
             input.targetName = targetName;
             input.targetHeader = targetHeader;
             input.targetFooter = targetFooter;
+            input.targetLength = targetLength;
 
             anFrm.InputSet = input;
             anFrm.Show();
