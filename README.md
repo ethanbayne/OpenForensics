@@ -13,7 +13,7 @@ This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.c
     5. Click Analyse.
     6. Choose location to save results.
 
-OpenForensics will create a set of sub-folders and files to store results. The directory and file hierarchy is: 
+OpenForensics will create a set of sub-folders and files to store results. The directory and file hierarchy created is: 
 
     <save-location>
 
@@ -46,7 +46,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 ---
 
-This software includes CUDAfy .NET, a DLL developed by Hybrid DSP.
+This software includes CUDAfy .NET (Cudafy.NET.dll), developed by Hybrid DSP.
 
 The LGPL v2.1 License applies to CUDAfy .NET. If you wish to modify the code then changes should be re-submitted to Hybrid DSP. If you wish to incorporate Cudafy.NET into your own application instead of redistributing the dll's then please consider a commerical license. Visit http://www.hybriddsp.com. This will also provide you with priority support and contribute to on-going development.
 
