@@ -395,7 +395,7 @@ namespace OpenForensics
         private int[][] lookup;
         private Byte[][] targetEnd;
 
-        private int longestTarget;
+        private int longestTarget = 0;
 
         private Stopwatch watch;
         private int[] results;
@@ -496,7 +496,7 @@ namespace OpenForensics
                 }
                 else
                 {
-                    Thread carve = new Thread(new ThreadStart(CarveOnly));
+                    Thread carve = new Thread(new ThreadStart(BeginCarve));
                     carve.Start();
                 }
             }
@@ -580,8 +580,6 @@ namespace OpenForensics
 
             for (int i = 0; i < gpuLabel.Length; i++)                
                 tblGPU.Controls.Add(gpuLabel[i], i, 0);
-
-            tblGPU.Refresh();
         }
 
 
@@ -601,7 +599,6 @@ namespace OpenForensics
                 {
                     lblHeader.Text = text;
                 }
-                lblHeader.Refresh();
             }
             catch (Exception)
             { }
@@ -623,7 +620,6 @@ namespace OpenForensics
                 {
                     lblSegmentsValue.Text = chunkCount.ToString();
                 }
-                lblSegmentsValue.Refresh();
             }
             catch (Exception)
             { }
@@ -642,13 +638,11 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                            lblFoundValue.Text = total.ToString();
+                        lblFoundValue.Text = total.ToString();
                     });
                 }
                 else
-                        lblFoundValue.Text = total.ToString();
-
-                lblFoundValue.Refresh();
+                    lblFoundValue.Text = total.ToString();
             }
             catch (Exception)
             { }
@@ -682,8 +676,6 @@ namespace OpenForensics
                     else
                         gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
                 }
-
-                gpuLabel[gpu].Refresh();
             }
             catch (Exception)
             { }
@@ -706,8 +698,6 @@ namespace OpenForensics
                     {
                         gpuLabel[gpu].BackColor = System.Drawing.Color.DimGray;    // Processing thread finished.
                     }
-
-                    gpuLabel[gpu].Refresh();
                 }
             }
             catch (Exception)
@@ -745,9 +735,6 @@ namespace OpenForensics
                     }
                 }
 
-                lblTimeElapsedValue.Refresh();
-                lblTimeRemainingValue.Refresh();
-
                 if (pbProgress.InvokeRequired)
                 {
                     Invoke((MethodInvoker)delegate
@@ -763,10 +750,6 @@ namespace OpenForensics
                     lblProgress.Text = percent + "%";
                     lblProcess.Text = "Processing: " + position + " / " + total;
                 }
-
-                pbProgress.Refresh();
-                lblProgress.Refresh();
-                lblProcess.Refresh();
             }
             catch (Exception)
             { }
@@ -802,11 +785,13 @@ namespace OpenForensics
                         ListViewItem lvi = new ListViewItem(name);
                         lvi.ImageIndex = thumbCount;
                         lstThumbs.Items.Add(lvi);
+                        lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
                         thumbCount++;
                     }
                     catch { }
                 }
-                lstThumbs.Refresh();
+
+                //lstThumbs.Refresh();
             }
             catch (Exception)
             { }
@@ -877,8 +862,19 @@ namespace OpenForensics
 
                 if (carvableFiles.Count > 0)
                 {
-                    btnCarve.Enabled = true;
-                    btnCarve.BackColor = Color.LightGreen;
+                    if (this.btnCarve.InvokeRequired)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            this.btnCarve.Enabled = true;
+                            this.btnCarve.BackColor = Color.LightGreen;
+                        });
+                    }
+                    else
+                    {
+                        this.btnCarve.Enabled = true;
+                        this.btnCarve.BackColor = Color.LightGreen;
+                    }
                 }
                 //CarveClose();
 
@@ -964,22 +960,24 @@ namespace OpenForensics
 
                 if (carvableFiles.Count > 0)
                 {
-                    btnCarve.Enabled = true;
-                    btnCarve.BackColor = Color.LightGreen;
+                    if (this.btnCarve.InvokeRequired)
+                    {
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            this.btnCarve.Enabled = true;
+                            this.btnCarve.BackColor = Color.LightGreen;
+                        });
+                    }
+                    else
+                    {
+                        this.btnCarve.Enabled = true;
+                        this.btnCarve.BackColor = Color.LightGreen;
+                    }
                 }
-                
+
                 //CarveClose();
                 #endregion
             }
-        }
-
-        private void CarveOnly()
-        {
-            carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
-            dataReader dataRead = new dataReader(FilePath, 0);
-            carveResults(dataRead);
-            dataRead.CloseFile();
-            //CarveClose();
         }
 
         #region Result Prep
@@ -1103,6 +1101,7 @@ namespace OpenForensics
             }
 
             saveCarvableLocations(carvableFiles, saveLocation + "CarvableFileData.of");
+            CarveFilePath = "CarvableFileData.of";
         }
 
         #endregion
@@ -1298,6 +1297,7 @@ namespace OpenForensics
                     int fileIndex = ((resultID[i] + 1) / 2) - 1;
                     Interlocked.Increment(ref results[fileIndex]);
 
+                    // If the file is a jpg, try and generate a thumbnail
                     if (targetName[fileIndex] == "jpg")
                     {
                         int start = resultLoc[i];
@@ -1314,6 +1314,7 @@ namespace OpenForensics
                             }
                         }
 
+                        // If file end found and file size > 100KB, then add a thumbnail from the data whilst in memory.
                         if (finish != 0 && (finish - start) > 100000)
                         {
                             ulong fileID = (count + (ulong)start);
@@ -1327,6 +1328,17 @@ namespace OpenForensics
                 foundRecords.Add(new foundRecord(count + (ulong)resultLoc[i], resultID[i]));
                 i++;
             }
+
+            // Force refresh thumbnails -- experimental fix for <4 core systems
+            if (lstThumbs.InvokeRequired)
+            {
+                this.Invoke((MethodInvoker)delegate
+                {
+                    lstThumbs.Refresh();
+                });
+            }
+            else
+                lstThumbs.Refresh();
 
             updateFound();
             return Task.FromResult(true);
@@ -1424,16 +1436,53 @@ namespace OpenForensics
             }
         }
 
+        private void BeginCarve()
+        {
+            updateHeader("Extracting files from data...");
+
+            if (btnCarve.InvokeRequired)
+            {
+                Invoke((MethodInvoker)delegate
+                {
+                    btnCarve.BackColor = SystemColors.Control;
+                    btnCarve.Enabled = false;
+                });
+            }
+            else
+            {
+                btnCarve.BackColor = SystemColors.Control;
+                btnCarve.Enabled = false;
+            }
+
+            carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
+            dataReader dataRead = new dataReader(FilePath, longestTarget);
+            carveResults(dataRead);
+            dataRead.CloseFile();
+
+            if (btnCarve.InvokeRequired)
+            {
+                Invoke((MethodInvoker)delegate
+                {
+                    btnCarve.Enabled = true;
+                });
+            }
+            else
+            {
+                btnCarve.Enabled = true;
+            }
+
+            updateHeader("Extraction complete!");
+        }
+
         // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
         private void carveResults(dataReader dataread)
         {
-            updateHeader("Extracting files from data...");
             carveProcessed = 0;
             //double timez = MeasureTime(() =>
             //{
-                Parallel.For(0, lpCount, i =>
+                Parallel.For(0, lpCount, async i =>
                 {
-                    carveThread(i, ref dataread);
+                    await carveThread(i, ref dataread);
                 });
                 Task.WaitAll();
             //});
@@ -1441,10 +1490,10 @@ namespace OpenForensics
             //MessageBox.Show(timez.ToString());
         }
 
-        private void carveThread(int cpu, ref dataReader dataread)
+        private Task<Boolean> carveThread(int cpu, ref dataReader dataread)
         {
             int currentFile = 0;
-            while ((currentFile = Interlocked.Increment(ref carveProcessed)) <= carvableFiles.Count)
+            while ((currentFile = Interlocked.Increment(ref carveProcessed)) <= carvableFiles.Count && !shouldStop)
             {
                 if (carvableFiles[currentFile-1].end != 0)
                 {
@@ -1465,9 +1514,11 @@ namespace OpenForensics
                 }
 
                 // Update progress
-                double Progress = Math.Round((((double)currentFile / carvableFiles.Count) * 100) / 10.0 * 10);
-                updateProgress((int)Progress, (ulong)currentFile, (ulong)carvableFiles.Count);
+                double Progress = Math.Round((((double)Math.Min(carveProcessed, carvableFiles.Count) / carvableFiles.Count) * 100) / 10.0 * 10);
+                updateProgress((int)Progress, (ulong)Math.Min(carveProcessed, carvableFiles.Count), (ulong)carvableFiles.Count);
             }
+
+            return Task.FromResult(true);
         }
 
         // Experimental sqldb Search [TODO]
@@ -1596,10 +1647,8 @@ namespace OpenForensics
 
         private void btnCarve_Click(object sender, EventArgs e)
         {
-            dataReader dataRead = new dataReader(FilePath, longestTarget);
-            carveResults(dataRead);
-
-            btnCarve.BackColor = SystemColors.Control;
+            Thread carve = new Thread(new ThreadStart(BeginCarve));
+            carve.Start();
         }
     }
 }
