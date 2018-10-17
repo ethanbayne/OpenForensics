@@ -1155,6 +1155,17 @@ namespace OpenForensics
                     Array.Sort(foundLoc, foundID);
                     ProcessFoundResults(ref buffer, 0, ref count, ref foundID, ref foundLoc);
                     updateGPUAct(cpu, false, false);
+
+                    // Force refresh form -- experimental fix for <4 core systems
+                    if (ActiveForm.InvokeRequired)
+                    {
+                        Invoke((MethodInvoker)delegate
+                        {
+                            ActiveForm.Refresh();
+                        });
+                    }
+                    else
+                        ActiveForm.Refresh();
                 }
 
                 // Clear buffer and byteLocation for reuse
@@ -1235,6 +1246,17 @@ namespace OpenForensics
                     });
                     Task.WaitAll();
                     updateGPUAct(gpuID, false, true);
+
+                    // Force refresh form -- experimental fix for <4 core systems
+                    if (ActiveForm.InvokeRequired)
+                    {
+                        Invoke((MethodInvoker)delegate
+                        {
+                            ActiveForm.Refresh();
+                        });
+                    }
+                    else
+                        ActiveForm.Refresh();
                 }
 
                 // Clear buffer
@@ -1328,17 +1350,6 @@ namespace OpenForensics
                 foundRecords.Add(new foundRecord(count + (ulong)resultLoc[i], resultID[i]));
                 i++;
             }
-
-            // Force refresh thumbnails -- experimental fix for <4 core systems
-            if (lstThumbs.InvokeRequired)
-            {
-                this.Invoke((MethodInvoker)delegate
-                {
-                    lstThumbs.Refresh();
-                });
-            }
-            else
-                lstThumbs.Refresh();
 
             updateFound();
             return Task.FromResult(true);
