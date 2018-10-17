@@ -38,8 +38,9 @@ namespace OpenForensics
         // Version 1.54b - Bug fix for Ryzen processors being counted as GPUs
         // Version 1.60b - Enhanced processing framework. Introduced post-processing stage after patterns found. Enabled window to be size of pattern rather than file. Transferred jpg checks to search processing. Corrected file reproduction technique.
         // Version 1.61b - Introduced file length setting in XML (default 10 MiB). Able to set different combinations of headers and footers for the same filetype by using the name format <filetype>-<identifier> (gif-2 provided in default XML as an example).
+        // Version 1.7b - Introduced visualised analysis. Displays jpg images over 100KB during searching.
 
-        private string version = "v. 1.61b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.7b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
