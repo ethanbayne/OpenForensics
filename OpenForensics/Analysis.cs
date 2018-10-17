@@ -16,6 +16,8 @@ using System.Xml;
 using System.Xml.Serialization;
 using System.Text.RegularExpressions;
 
+using System.Drawing;
+
 namespace OpenForensics
 {
     public partial class Analysis : Form
@@ -32,6 +34,22 @@ namespace OpenForensics
             [MarshalAs(UnmanagedType.U4)] FileMode creationDisposition,
             [MarshalAs(UnmanagedType.U4)] FileAttributes fileAttributes,
             IntPtr template);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        public int MakeLong(short lowPart, short highPart)
+        {
+            return (int)(((ushort)lowPart) | (uint)(highPart << 16));
+        }
+
+        public void ListView_SetSpacing(ListView listview, short cx, short cy)
+        {
+            const int LVM_FIRST = 0x1000;
+            const int LVM_SETICONSPACING = LVM_FIRST + 53;
+            SendMessage(listview.Handle, LVM_SETICONSPACING,
+            IntPtr.Zero, (IntPtr)MakeLong(cx, cy));
+        }
 
         public struct foundRecord
         {
@@ -64,9 +82,9 @@ namespace OpenForensics
             public resultRecord(ulong start, string tag, string filetype)
             {
                 this.start = start;
-                this.end = 0;
-                this.size = 0;
-                this.sizeformat = null;
+                end = 0;
+                size = 0;
+                sizeformat = null;
                 this.tag = tag;
                 this.filetype = filetype;
             }
@@ -390,6 +408,9 @@ namespace OpenForensics
 
         private List<Engine> GPUCollection = new List<Engine>();
 
+        ImageList ilist = new ImageList();
+        int thumbCount = 0;
+
         public Input InputSet
         {
             set
@@ -433,6 +454,13 @@ namespace OpenForensics
 
                 // Initial setup of GPU status
                 DrawGPUStatus();
+
+                lstThumbs.LargeImageList = ilist;
+                lstThumbs.Scrollable = true;
+                ilist.ImageSize = new Size(120, 120);
+                ilist.ColorDepth = ColorDepth.Depth16Bit;
+                ListView_SetSpacing(lstThumbs, 120 + 10, 120 + 4 + 20);
+                lstThumbs.Refresh();
 
                 if (CarveFilePath == "")
                 {
@@ -482,9 +510,9 @@ namespace OpenForensics
         {
             if (!shouldStop)
             {
-                this.Invoke((MethodInvoker)delegate
+                Invoke((MethodInvoker)delegate
                 {
-                    this.Close();
+                    Close();
                 });
             }
         }
@@ -552,6 +580,8 @@ namespace OpenForensics
 
             for (int i = 0; i < gpuLabel.Length; i++)                
                 tblGPU.Controls.Add(gpuLabel[i], i, 0);
+
+            tblGPU.Refresh();
         }
 
 
@@ -560,17 +590,18 @@ namespace OpenForensics
         {
             try
             {
-                if (this.lblHeader.InvokeRequired)
+                if (lblHeader.InvokeRequired)
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    Invoke((MethodInvoker)delegate
                     {
-                        this.lblHeader.Text = text;
+                        lblHeader.Text = text;
                     });
                 }
                 else
                 {
-                    this.lblHeader.Text = text;
+                    lblHeader.Text = text;
                 }
+                lblHeader.Refresh();
             }
             catch (Exception)
             { }
@@ -581,17 +612,18 @@ namespace OpenForensics
         {
             try
             {
-                if (this.lblSegments.InvokeRequired)
+                if (lblSegments.InvokeRequired)
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    Invoke((MethodInvoker)delegate
                     {
-                        this.lblSegmentsValue.Text = chunkCount.ToString();
+                        lblSegmentsValue.Text = chunkCount.ToString();
                     });
                 }
                 else
                 {
-                    this.lblSegmentsValue.Text = chunkCount.ToString();
+                    lblSegmentsValue.Text = chunkCount.ToString();
                 }
+                lblSegmentsValue.Refresh();
             }
             catch (Exception)
             { }
@@ -606,15 +638,17 @@ namespace OpenForensics
 
             try
             {
-                if (this.lblFoundValue.InvokeRequired)
+                if (lblFoundValue.InvokeRequired)
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    Invoke((MethodInvoker)delegate
                     {
-                            this.lblFoundValue.Text = total.ToString();
+                            lblFoundValue.Text = total.ToString();
                     });
                 }
                 else
-                        this.lblFoundValue.Text = total.ToString();
+                        lblFoundValue.Text = total.ToString();
+
+                lblFoundValue.Refresh();
             }
             catch (Exception)
             { }
@@ -625,29 +659,31 @@ namespace OpenForensics
         {
             try
             {
-                if (this.gpuLabel[gpu].InvokeRequired)
+                if (gpuLabel[gpu].InvokeRequired)
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    Invoke((MethodInvoker)delegate
                     {
                         if(status)
                             if(carving)
-                                this.gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Carving files and saving to target drive.
+                                gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Carving files and saving to target drive.
                             else
-                                this.gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
+                                gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
                         else
-                            this.gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+                            gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
                     });
                 }
                 else
                 {
                     if (status)
                         if (carving)
-                            this.gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Carving files and saving to target drive.
+                            gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Carving files and saving to target drive.
                         else
-                            this.gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
+                            gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
                     else
-                        this.gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+                        gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
                 }
+
+                gpuLabel[gpu].Refresh();
             }
             catch (Exception)
             { }
@@ -659,17 +695,19 @@ namespace OpenForensics
             {
                 if (finished)
                 {
-                    if (this.gpuLabel[gpu].InvokeRequired)
+                    if (gpuLabel[gpu].InvokeRequired)
                     {
-                        this.Invoke((MethodInvoker)delegate
+                        Invoke((MethodInvoker)delegate
                         {
-                            this.gpuLabel[gpu].BackColor = System.Drawing.Color.DimGray;    // Processing thread finished.
+                            gpuLabel[gpu].BackColor = System.Drawing.Color.DimGray;    // Processing thread finished.
                         });
                     }
                     else
                     {
-                        this.gpuLabel[gpu].BackColor = System.Drawing.Color.DimGray;    // Processing thread finished.
+                        gpuLabel[gpu].BackColor = System.Drawing.Color.DimGray;    // Processing thread finished.
                     }
+
+                    gpuLabel[gpu].Refresh();
                 }
             }
             catch (Exception)
@@ -692,36 +730,83 @@ namespace OpenForensics
                     if (percent > 0)
                         formattedRemaining = string.Format("{0:00}:{1:00}:{2:00}", timeRemainingSpan.Hours, timeRemainingSpan.Minutes, timeRemainingSpan.Seconds);
 
-                    if (this.pbProgress.InvokeRequired)
+                    if (pbProgress.InvokeRequired)
                     {
-                        this.Invoke((MethodInvoker)delegate
+                        Invoke((MethodInvoker)delegate
                         {
-                            this.lblTimeElapsedValue.Text = formattedElapsed;
-                            this.lblTimeRemainingValue.Text = formattedRemaining;
+                            lblTimeElapsedValue.Text = formattedElapsed;
+                            lblTimeRemainingValue.Text = formattedRemaining;
                         });
                     }
                     else
                     {
-                        this.lblTimeElapsedValue.Text = formattedElapsed;
-                        this.lblTimeRemainingValue.Text = formattedRemaining;
+                        lblTimeElapsedValue.Text = formattedElapsed;
+                        lblTimeRemainingValue.Text = formattedRemaining;
                     }
                 }
 
-                if (this.pbProgress.InvokeRequired)
+                lblTimeElapsedValue.Refresh();
+                lblTimeRemainingValue.Refresh();
+
+                if (pbProgress.InvokeRequired)
                 {
-                    this.Invoke((MethodInvoker)delegate
+                    Invoke((MethodInvoker)delegate
                     {
-                        this.pbProgress.Value = percent;
-                        this.lblProgress.Text = percent + "%";
-                        this.lblProcess.Text = "Processing: " + position + " / " + total;
+                        pbProgress.Value = percent;
+                        lblProgress.Text = percent + "%";
+                        lblProcess.Text = "Processing: " + position + " / " + total;
                     });
                 }
                 else
                 {
-                    this.pbProgress.Value = percent;
-                    this.lblProgress.Text = percent + "%";
-                    this.lblProcess.Text = "Processing: " + position + " / " + total;
-                }              
+                    pbProgress.Value = percent;
+                    lblProgress.Text = percent + "%";
+                    lblProcess.Text = "Processing: " + position + " / " + total;
+                }
+
+                pbProgress.Refresh();
+                lblProgress.Refresh();
+                lblProcess.Refresh();
+            }
+            catch (Exception)
+            { }
+        }
+
+        private void addThumb(byte[] image, string name)
+        {
+            try
+            {
+                if (lblHeader.InvokeRequired)
+                {
+                    Invoke((MethodInvoker)delegate
+                    {
+                        try
+                        {
+                            Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(128, 128, null, new IntPtr());
+                            ilist.Images.Add(thumbnail);
+                            ListViewItem lvi = new ListViewItem(name);
+                            lvi.ImageIndex = thumbCount;
+                            lstThumbs.Items.Add(lvi);
+                            lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
+                            thumbCount++;
+                        }
+                        catch { }
+                    });
+                }
+                else
+                {
+                    try
+                    {
+                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(128, 128, null, new IntPtr());
+                        ilist.Images.Add(thumbnail);
+                        ListViewItem lvi = new ListViewItem(name);
+                        lvi.ImageIndex = thumbCount;
+                        lstThumbs.Items.Add(lvi);
+                        thumbCount++;
+                    }
+                    catch { }
+                }
+                lstThumbs.Refresh();
             }
             catch (Exception)
             { }
@@ -1065,7 +1150,7 @@ namespace OpenForensics
                             resultCount = z;
                         }
                     Array.Sort(foundLoc, foundID);
-                    ProcessFoundResults(0, ref count, ref foundID, ref foundLoc);
+                    ProcessFoundResults(ref buffer, 0, ref count, ref foundID, ref foundLoc);
                     updateGPUAct(cpu, false, false);
                 }
 
@@ -1143,7 +1228,7 @@ namespace OpenForensics
                     Array.Sort(foundLoc, foundID);
                     Parallel.For(0, procShare, async i =>
                     {
-                        await ProcessFoundResults(i, ref count, ref foundID, ref foundLoc);
+                        await ProcessFoundResults(ref buffer, i, ref count, ref foundID, ref foundLoc);
                     });
                     Task.WaitAll();
                     updateGPUAct(gpuID, false, true);
@@ -1196,7 +1281,7 @@ namespace OpenForensics
 
         #region File Carving Operations
 
-        private Task<Boolean> ProcessFoundResults(int threadNo, ref ulong count, ref byte[] resultID, ref int[] resultLoc)
+        private Task<Boolean> ProcessFoundResults(ref byte[] buffer, int threadNo, ref ulong count, ref byte[] resultID, ref int[] resultLoc)
         {
             int i = (threadNo * (resultLoc.Length / procShare));
             int end = ((threadNo + 1) * (resultLoc.Length / procShare));
@@ -1205,7 +1290,36 @@ namespace OpenForensics
             {
                 // +1 to file type "traces" if header and collate resultID and resultLoc to foundRecords
                 if (resultID[i] % 2 != 0)
-                    Interlocked.Increment(ref results[((resultID[i] + 1) / 2) - 1]);
+                {
+                    int fileIndex = ((resultID[i] + 1) / 2) - 1;
+                    Interlocked.Increment(ref results[fileIndex]);
+
+                    if (targetName[fileIndex] == "jpg")
+                    {
+                        int start = resultLoc[i];
+                        int finish = 0;
+
+                        int footerType = FindFooterID(targetName[fileIndex]);
+
+                        for (int j = i; j < resultID.Length && !shouldStop; j++)
+                        {
+                            if (resultID[j] == footerType)
+                            {
+                                finish = resultLoc[j];
+                                break;
+                            }
+                        }
+
+                        if (finish != 0 && (finish - start) > 100000)
+                        {
+                            ulong fileID = (count + (ulong)start);
+                            byte[] fileData = new byte[finish - start];
+                            Array.Copy(buffer, start, fileData, 0, finish - start);
+
+                            addThumb(fileData, fileID.ToString());
+                        }
+                    }
+                }
                 foundRecords.Add(new foundRecord(count + (ulong)resultLoc[i], resultID[i]));
                 i++;
             }
@@ -1226,15 +1340,7 @@ namespace OpenForensics
                 {
                     int headerType = (int)foundRecords[i].patternID;
                     int fileIndex = ((headerType + 1) / 2) - 1;
-                    int footerType = 0;
-                    for (int y = 0; y < targetName.Count; y++)
-                    {
-                        if (targetName[y] == targetName[fileIndex])
-                        {
-                            footerType = (y * 2) + 2;
-                            break;
-                        }
-                    }
+                    int footerType = FindFooterID(targetName[fileIndex]);
 
                     if (targetEnd[fileIndex] != null)
                     {
@@ -1268,6 +1374,19 @@ namespace OpenForensics
             return Task.FromResult(true);
         }
 
+        private int FindFooterID(string fileType)
+        {
+            for (int y = 0; y < targetName.Count; y++)
+            {
+                if (targetName[y] == fileType)
+                {
+                    return (y * 2) + 2;
+                }
+            }
+
+            return 0;
+        }
+
         // Records file location information from information passed by processing threads.
         private void RecordFileLocation(int fileIndex, ulong start, ulong finish, string tag)
         {
@@ -1292,7 +1411,7 @@ namespace OpenForensics
                 }
 
                 resultRecord newEntry = new resultRecord(start, finish, fileSize, sizeFormat, tag, Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty));
-                foundResults.Add(newEntry);                
+                foundResults.Add(newEntry);
             }
             else
             {
@@ -1462,7 +1581,7 @@ namespace OpenForensics
             {
                 shouldStop = true;
                 GC.Collect();
-                this.Owner.Show();
+                Owner.Show();
             }
         }
 

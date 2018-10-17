@@ -44,6 +44,7 @@
             this.lblTimeElapsed = new System.Windows.Forms.Label();
             this.lblFound = new System.Windows.Forms.Label();
             this.lblSegments = new System.Windows.Forms.Label();
+            this.lstThumbs = new System.Windows.Forms.ListView();
             this.grpGPUActivity.SuspendLayout();
             this.grpProcessed.SuspendLayout();
             this.SuspendLayout();
@@ -221,11 +222,22 @@
             this.lblSegments.TabIndex = 0;
             this.lblSegments.Text = "Segments Done:";
             // 
+            // lstThumbs
+            // 
+            this.lstThumbs.BackColor = System.Drawing.SystemColors.ControlDarkDark;
+            this.lstThumbs.ForeColor = System.Drawing.SystemColors.Window;
+            this.lstThumbs.Location = new System.Drawing.Point(12, 191);
+            this.lstThumbs.Name = "lstThumbs";
+            this.lstThumbs.Size = new System.Drawing.Size(551, 256);
+            this.lstThumbs.TabIndex = 8;
+            this.lstThumbs.UseCompatibleStateImageBehavior = false;
+            // 
             // Analysis
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(575, 192);
+            this.ClientSize = new System.Drawing.Size(575, 459);
+            this.Controls.Add(this.lstThumbs);
             this.Controls.Add(this.grpProcessed);
             this.Controls.Add(this.grpGPUActivity);
             this.Controls.Add(this.lblProcess);
@@ -267,5 +279,6 @@
         private System.Windows.Forms.Label lblSegmentsValue;
         private System.Windows.Forms.Label lblTimeRemainingValue;
         private System.Windows.Forms.Label lblTimeElapsedValue;
+        private System.Windows.Forms.ListView lstThumbs;
     }
 }
