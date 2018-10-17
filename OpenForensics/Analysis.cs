@@ -872,14 +872,15 @@ namespace OpenForensics
                 // Prepare the results file
                 PrepareResults(fileSize, time);
 
-                if (carvableFiles.Count > 0)
-                    if (MessageBox.Show("Reproduce found files? (" + carvableFiles.Count + " carvable files found)", "File Carving", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                        carveResults(dataRead);
-
                 // When all threads have finished, close file
                 dataRead.CloseFile();
 
-                CarveClose();
+                if (carvableFiles.Count > 0)
+                {
+                    btnCarve.Enabled = true;
+                    btnCarve.BackColor = Color.LightGreen;
+                }
+                //CarveClose();
 
                 #endregion
             }
@@ -958,13 +959,16 @@ namespace OpenForensics
                 // Prepare the results file
                 PrepareResults(fileSize, time);
 
-                if (carvableFiles.Count > 0)
-                    if (MessageBox.Show("Reproduce found files? (" + carvableFiles.Count + " carvable files found)", "File Carving", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                        carveResults(dataRead);
-
+                // When all threads have finished, close file
                 dataRead.CloseFile();
 
-                CarveClose();
+                if (carvableFiles.Count > 0)
+                {
+                    btnCarve.Enabled = true;
+                    btnCarve.BackColor = Color.LightGreen;
+                }
+                
+                //CarveClose();
                 #endregion
             }
         }
@@ -975,7 +979,7 @@ namespace OpenForensics
             dataReader dataRead = new dataReader(FilePath, 0);
             carveResults(dataRead);
             dataRead.CloseFile();
-            CarveClose();
+            //CarveClose();
         }
 
         #region Result Prep
@@ -1585,5 +1589,17 @@ namespace OpenForensics
             }
         }
 
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            CarveClose();
+        }
+
+        private void btnCarve_Click(object sender, EventArgs e)
+        {
+            dataReader dataRead = new dataReader(FilePath, longestTarget);
+            carveResults(dataRead);
+
+            btnCarve.BackColor = SystemColors.Control;
+        }
     }
 }

@@ -45,6 +45,8 @@
             this.lblFound = new System.Windows.Forms.Label();
             this.lblSegments = new System.Windows.Forms.Label();
             this.lstThumbs = new System.Windows.Forms.ListView();
+            this.btnClose = new System.Windows.Forms.Button();
+            this.btnCarve = new System.Windows.Forms.Button();
             this.grpGPUActivity.SuspendLayout();
             this.grpProcessed.SuspendLayout();
             this.SuspendLayout();
@@ -232,11 +234,36 @@
             this.lstThumbs.TabIndex = 8;
             this.lstThumbs.UseCompatibleStateImageBehavior = false;
             // 
+            // btnClose
+            // 
+            this.btnClose.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnClose.Location = new System.Drawing.Point(465, 453);
+            this.btnClose.Name = "btnClose";
+            this.btnClose.Size = new System.Drawing.Size(98, 27);
+            this.btnClose.TabIndex = 9;
+            this.btnClose.Text = "Close Analysis";
+            this.btnClose.UseVisualStyleBackColor = true;
+            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
+            // 
+            // btnCarve
+            // 
+            this.btnCarve.Enabled = false;
+            this.btnCarve.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnCarve.Location = new System.Drawing.Point(331, 453);
+            this.btnCarve.Name = "btnCarve";
+            this.btnCarve.Size = new System.Drawing.Size(128, 27);
+            this.btnCarve.TabIndex = 10;
+            this.btnCarve.Text = "Reconstruct Files";
+            this.btnCarve.UseVisualStyleBackColor = true;
+            this.btnCarve.Click += new System.EventHandler(this.btnCarve_Click);
+            // 
             // Analysis
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(575, 459);
+            this.ClientSize = new System.Drawing.Size(575, 492);
+            this.Controls.Add(this.btnCarve);
+            this.Controls.Add(this.btnClose);
             this.Controls.Add(this.lstThumbs);
             this.Controls.Add(this.grpProcessed);
             this.Controls.Add(this.grpGPUActivity);
@@ -280,5 +307,7 @@
         private System.Windows.Forms.Label lblTimeRemainingValue;
         private System.Windows.Forms.Label lblTimeElapsedValue;
         private System.Windows.Forms.ListView lstThumbs;
+        private System.Windows.Forms.Button btnClose;
+        private System.Windows.Forms.Button btnCarve;
     }
 }
