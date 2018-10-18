@@ -858,24 +858,6 @@ namespace OpenForensics
                 // When all threads have finished, close file
                 dataRead.CloseFile();
 
-                if (carvableFiles.Count > 0)
-                {
-                    if (this.btnCarve.InvokeRequired)
-                    {
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            this.btnCarve.Enabled = true;
-                            this.btnCarve.BackColor = Color.LightGreen;
-                        });
-                    }
-                    else
-                    {
-                        this.btnCarve.Enabled = true;
-                        this.btnCarve.BackColor = Color.LightGreen;
-                    }
-                }
-                //CarveClose();
-
                 #endregion
             }
             else
@@ -956,26 +938,29 @@ namespace OpenForensics
                 // When all threads have finished, close file
                 dataRead.CloseFile();
 
-                if (carvableFiles.Count > 0)
+                #endregion
+            }
+
+
+            if (carvableFiles.Count > 0)
+            {
+                if (this.btnCarve.InvokeRequired)
                 {
-                    if (this.btnCarve.InvokeRequired)
-                    {
-                        this.Invoke((MethodInvoker)delegate
-                        {
-                            this.btnCarve.Enabled = true;
-                            this.btnCarve.BackColor = Color.LightGreen;
-                        });
-                    }
-                    else
+                    this.Invoke((MethodInvoker)delegate
                     {
                         this.btnCarve.Enabled = true;
                         this.btnCarve.BackColor = Color.LightGreen;
-                    }
+                    });
                 }
-
-                //CarveClose();
-                #endregion
+                else
+                {
+                    this.btnCarve.Enabled = true;
+                    this.btnCarve.BackColor = Color.LightGreen;
+                }
             }
+
+            updateHeader("Analysis Finished!");
+            //CarveClose();
         }
 
         #region Result Prep
