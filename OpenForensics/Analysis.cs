@@ -597,6 +597,8 @@ namespace OpenForensics
                 {
                     lblHeader.Text = text;
                 }
+
+                lblHeader.Refresh();
             }
             catch (Exception)
             { }
@@ -1319,8 +1321,8 @@ namespace OpenForensics
                             }
                         }
 
-                        // If file end found and file size > 150KB, then add a thumbnail from the data whilst in memory.
-                        if (finish != 0 && (finish - start) > 150000)
+                        // If file end found and file size > 300KB, then add a thumbnail from the data whilst in memory.
+                        if (finish != 0 && (finish - start) > 300000)
                         {
                             ulong fileID = (count + (ulong)start);
                             byte[] fileData = new byte[finish - start];
