@@ -461,7 +461,7 @@ namespace OpenForensics
                 ilist.ImageSize = new Size(120, 120);
                 ilist.ColorDepth = ColorDepth.Depth16Bit;
                 ilistlarge.ImageSize = new Size(256, 256);
-                ilistlarge.ColorDepth = ColorDepth.Depth16Bit;
+                ilistlarge.ColorDepth = ColorDepth.Depth32Bit;
                 ListView_SetSpacing(lstThumbs, 120 + 10, 120 + 4 + 20);
                 lstThumbs.Refresh();
 
