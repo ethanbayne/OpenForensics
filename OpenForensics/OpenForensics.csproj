@@ -32,7 +32,7 @@
     <ProductName>OpenForensics</ProductName>
     <PublisherName>Ethan Bayne</PublisherName>
     <ApplicationRevision>0</ApplicationRevision>
-    <ApplicationVersion>1.7.1.0</ApplicationVersion>
+    <ApplicationVersion>1.7.3.0</ApplicationVersion>
     <UseApplicationTrust>true</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>

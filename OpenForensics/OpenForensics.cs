@@ -40,8 +40,9 @@ namespace OpenForensics
         // Version 1.61b - Introduced file length setting in XML (default 10 MiB). Able to set different combinations of headers and footers for the same filetype by using the name format <filetype>-<identifier> (gif-2 provided in default XML as an example).
         // Version 1.7b - Introduced visualised analysis. Displays jpg images over 100KB during searching.
         // Version 1.71b - Analysis message box prompt replaced by buttons.
+        // Version 1.73b - Analysis interface refactored for visualisation. Introduced thread-safe stop search function to safely abort searching.
 
-        private string version = "v. 1.71b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.73b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
