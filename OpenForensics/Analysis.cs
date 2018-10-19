@@ -409,6 +409,7 @@ namespace OpenForensics
         private List<Engine> GPUCollection = new List<Engine>();
 
         ImageList ilist = new ImageList();
+        ImageList ilistlarge = new ImageList();
         int thumbCount = 0;
 
         public Input InputSet
@@ -459,6 +460,8 @@ namespace OpenForensics
                 lstThumbs.Scrollable = true;
                 ilist.ImageSize = new Size(120, 120);
                 ilist.ColorDepth = ColorDepth.Depth16Bit;
+                ilistlarge.ImageSize = new Size(256, 256);
+                ilistlarge.ColorDepth = ColorDepth.Depth16Bit;
                 ListView_SetSpacing(lstThumbs, 120 + 10, 120 + 4 + 20);
                 lstThumbs.Refresh();
 
@@ -765,8 +768,9 @@ namespace OpenForensics
                     {
                         try
                         {
-                            Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(128, 128, null, new IntPtr());
+                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(256, 256, null, new IntPtr());
                             ilist.Images.Add(thumbnail);
+                            ilistlarge.Images.Add(thumbnail);
                             ListViewItem lvi = new ListViewItem(name);
                             lvi.ImageIndex = thumbCount;
                             lstThumbs.Items.Add(lvi);
@@ -780,8 +784,9 @@ namespace OpenForensics
                 {
                     try
                     {
-                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(128, 128, null, new IntPtr());
+                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(256, 256, null, new IntPtr());
                         ilist.Images.Add(thumbnail);
+                        ilistlarge.Images.Add(thumbnail);
                         ListViewItem lvi = new ListViewItem(name);
                         lvi.ImageIndex = thumbCount;
                         lstThumbs.Items.Add(lvi);
@@ -792,6 +797,73 @@ namespace OpenForensics
                 }
 
                 //lstThumbs.Refresh();
+            }
+            catch (Exception)
+            { }
+        }
+
+        private void lstThumbs_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (lstThumbs.SelectedItems.Count == 1)
+                {
+                    using (Form form = new Form())
+                    {
+                        form.Text = "Image Preview";
+                        form.Size = new Size(512, 512);
+                        form.BackgroundImageLayout = ImageLayout.Stretch;
+                        form.BackgroundImage = ilistlarge.Images[lstThumbs.Items.IndexOf(lstThumbs.SelectedItems[0])];
+
+                        form.ShowDialog();
+                    }
+                }
+            }
+            catch (Exception)
+            { }
+        }
+
+        private void StopBtnUsable(bool state)
+        {
+            try
+            {
+                if (btnStop.InvokeRequired)
+                {
+                    Invoke((MethodInvoker)delegate
+                    {
+                        btnStop.Enabled = state;
+                    });
+                }
+                else
+                    btnStop.Enabled = state;
+            }
+            catch (Exception)
+            { }
+        }
+
+        private void CarveBtnUsable(bool state, bool foundFiles)
+        {
+            try
+            {
+                if (btnCarve.InvokeRequired)
+                {
+                    Invoke((MethodInvoker)delegate
+                    {
+                        btnCarve.Enabled = state;
+                        if (foundFiles)
+                            btnCarve.BackColor = Color.LightGreen;
+                        else
+                            btnCarve.BackColor = SystemColors.Control;
+                    });
+                }
+                else
+                {
+                    btnCarve.Enabled = state;
+                    if (foundFiles)
+                        btnCarve.BackColor = Color.LightGreen;
+                    else
+                        btnCarve.BackColor = SystemColors.Control;
+                }
             }
             catch (Exception)
             { }
@@ -945,23 +1017,14 @@ namespace OpenForensics
 
 
             if (carvableFiles.Count > 0)
-            {
-                if (this.btnCarve.InvokeRequired)
-                {
-                    this.Invoke((MethodInvoker)delegate
-                    {
-                        this.btnCarve.Enabled = true;
-                        this.btnCarve.BackColor = Color.LightGreen;
-                    });
-                }
-                else
-                {
-                    this.btnCarve.Enabled = true;
-                    this.btnCarve.BackColor = Color.LightGreen;
-                }
-            }
+                CarveBtnUsable(true, true);
 
-            updateHeader("Analysis Finished!");
+            if (shouldStop)
+                updateHeader("Analysis Halted by User!");
+            else
+                updateHeader("Analysis Finished!");
+
+            StopBtnUsable(false);
             //CarveClose();
         }
 
@@ -1436,36 +1499,14 @@ namespace OpenForensics
         {
             updateHeader("Extracting files from data...");
 
-            if (btnCarve.InvokeRequired)
-            {
-                Invoke((MethodInvoker)delegate
-                {
-                    btnCarve.BackColor = SystemColors.Control;
-                    btnCarve.Enabled = false;
-                });
-            }
-            else
-            {
-                btnCarve.BackColor = SystemColors.Control;
-                btnCarve.Enabled = false;
-            }
+            CarveBtnUsable(false, false);
 
             carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
             dataReader dataRead = new dataReader(FilePath, longestTarget);
             carveResults(dataRead);
             dataRead.CloseFile();
 
-            if (btnCarve.InvokeRequired)
-            {
-                Invoke((MethodInvoker)delegate
-                {
-                    btnCarve.Enabled = true;
-                });
-            }
-            else
-            {
-                btnCarve.Enabled = true;
-            }
+            CarveBtnUsable(true, true);
 
             updateHeader("Extraction complete!");
         }
@@ -1636,9 +1677,10 @@ namespace OpenForensics
             }
         }
 
-        private void btnClose_Click(object sender, EventArgs e)
+        private void btnStop_Click(object sender, EventArgs e)
         {
-            CarveClose();
+            shouldStop = true;
+            StopBtnUsable(false);
         }
 
         private void btnCarve_Click(object sender, EventArgs e)

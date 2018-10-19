@@ -45,7 +45,7 @@
             this.lblFound = new System.Windows.Forms.Label();
             this.lblSegments = new System.Windows.Forms.Label();
             this.lstThumbs = new System.Windows.Forms.ListView();
-            this.btnClose = new System.Windows.Forms.Button();
+            this.btnStop = new System.Windows.Forms.Button();
             this.btnCarve = new System.Windows.Forms.Button();
             this.grpGPUActivity.SuspendLayout();
             this.grpProcessed.SuspendLayout();
@@ -233,25 +233,26 @@
             this.lstThumbs.Size = new System.Drawing.Size(551, 335);
             this.lstThumbs.TabIndex = 8;
             this.lstThumbs.UseCompatibleStateImageBehavior = false;
+            this.lstThumbs.SelectedIndexChanged += new System.EventHandler(this.lstThumbs_SelectedIndexChanged);
             // 
-            // btnClose
+            // btnStop
             // 
-            this.btnClose.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnClose.Location = new System.Drawing.Point(465, 538);
-            this.btnClose.Name = "btnClose";
-            this.btnClose.Size = new System.Drawing.Size(98, 27);
-            this.btnClose.TabIndex = 9;
-            this.btnClose.Text = "Close Analysis";
-            this.btnClose.UseVisualStyleBackColor = true;
-            this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
+            this.btnStop.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnStop.Location = new System.Drawing.Point(406, 538);
+            this.btnStop.Name = "btnStop";
+            this.btnStop.Size = new System.Drawing.Size(157, 27);
+            this.btnStop.TabIndex = 9;
+            this.btnStop.Text = "Stop Analysis";
+            this.btnStop.UseVisualStyleBackColor = true;
+            this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 
             // btnCarve
             // 
             this.btnCarve.Enabled = false;
             this.btnCarve.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnCarve.Location = new System.Drawing.Point(331, 538);
+            this.btnCarve.Location = new System.Drawing.Point(12, 538);
             this.btnCarve.Name = "btnCarve";
-            this.btnCarve.Size = new System.Drawing.Size(128, 27);
+            this.btnCarve.Size = new System.Drawing.Size(157, 27);
             this.btnCarve.TabIndex = 10;
             this.btnCarve.Text = "Reconstruct Files";
             this.btnCarve.UseVisualStyleBackColor = true;
@@ -263,7 +264,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.ClientSize = new System.Drawing.Size(575, 577);
             this.Controls.Add(this.btnCarve);
-            this.Controls.Add(this.btnClose);
+            this.Controls.Add(this.btnStop);
             this.Controls.Add(this.lstThumbs);
             this.Controls.Add(this.grpProcessed);
             this.Controls.Add(this.grpGPUActivity);
@@ -307,7 +308,7 @@
         private System.Windows.Forms.Label lblTimeRemainingValue;
         private System.Windows.Forms.Label lblTimeElapsedValue;
         private System.Windows.Forms.ListView lstThumbs;
-        private System.Windows.Forms.Button btnClose;
+        private System.Windows.Forms.Button btnStop;
         private System.Windows.Forms.Button btnCarve;
     }
 }
