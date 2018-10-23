@@ -271,9 +271,10 @@
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSelect);
             this.Font = new System.Drawing.Font("Century Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            this.MaximizeBox = false;
             this.Name = "PhysicalDriveDialog";
             this.Text = "Select Drive to Use";
             this.Load += new System.EventHandler(this.PhysicalDriveDialog_Load);
