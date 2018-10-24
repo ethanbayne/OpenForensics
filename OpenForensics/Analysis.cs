@@ -869,6 +869,19 @@ namespace OpenForensics
             { }
         }
 
+        private void RefreshForm()
+        {
+            if (this.InvokeRequired)
+            {
+                Invoke((MethodInvoker)delegate
+                {
+                    this.Refresh();
+                });
+            }
+            else
+                this.Refresh();
+        }
+
         #endregion
 
 
@@ -1205,15 +1218,7 @@ namespace OpenForensics
                     updateGPUAct(cpu, false, false);
 
                     // Force refresh form -- experimental fix for <4 core systems
-                    if (ActiveForm.InvokeRequired)
-                    {
-                        Invoke((MethodInvoker)delegate
-                        {
-                            ActiveForm.Refresh();
-                        });
-                    }
-                    else
-                        ActiveForm.Refresh();
+                    RefreshForm();
                 }
 
                 // Clear buffer and byteLocation for reuse
@@ -1296,15 +1301,7 @@ namespace OpenForensics
                     updateGPUAct(gpuID, false, true);
 
                     // Force refresh form -- experimental fix for <4 core systems
-                    if (ActiveForm.InvokeRequired)
-                    {
-                        Invoke((MethodInvoker)delegate
-                        {
-                            ActiveForm.Refresh();
-                        });
-                    }
-                    else
-                        ActiveForm.Refresh();
+                    RefreshForm();
                 }
 
                 // Clear buffer
