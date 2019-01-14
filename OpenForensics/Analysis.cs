@@ -876,10 +876,14 @@ namespace OpenForensics
                 Invoke((MethodInvoker)delegate
                 {
                     this.Refresh();
+                    Application.DoEvents();
                 });
             }
             else
+            {
                 this.Refresh();
+                Application.DoEvents();
+            }
         }
 
         #endregion
@@ -951,6 +955,9 @@ namespace OpenForensics
             {
                 #region DD Carve - GPU Section
 
+                // Uncomment for single-threaded CPU operation
+                //lpCount = 1;
+
                 string gpuText = "";
                 if (gpus.Count > 1)
                     gpuText = GPGPU + " (GPUs: " + gpus.Count + ")";
@@ -982,7 +989,7 @@ namespace OpenForensics
                 procShare = Math.Min(Math.Max(lpCount / gpuCoreCount / GPUCollection.Count, 1), lpCount);
                 //procShare = Math.Min(Math.Max(lpCount / GPUCollection.Count, 1), lpCount);  // Divide between employed GPUs
 
-                //procShare = 1; // Force logical CPU cores per GPU
+                //procShare = 1; gpuCoreCount = 1; // Force logical CPU cores per GPU
 
                 // Set up data reader
                 dataReader dataRead = new dataReader(FilePath, longestTarget);
@@ -992,15 +999,37 @@ namespace OpenForensics
                 // Start stopwatch, open file defined by user
                 double time = MeasureTime(() =>
                 {
-                    // For each GPU employed, launch a dedicated thread
-                    Parallel.For(0, GPUCollection.Count, i =>
+                    //// For each GPU employed, launch a dedicated thread
+                    //Parallel.For(0, GPUCollection.Count, i =>
+                    //{
+                    //    Parallel.For(0, gpuCoreCount, async j =>
+                    //    {
+                    //        await GPUThread(i, j, dataRead);
+                    //    });
+                    //});
+                    //Task.WaitAll();
+
+                    // Create new scheduler to process data. Use logical core count to manage levels of concurrency.
+                    LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
+                    TaskFactory factory = new TaskFactory(scheduler);
+
+                    Task[] tasks = new Task[GPUCollection.Count * gpuCoreCount];
+
+                    // Launch processing threads
+                    for (int nGpu = 0; nGpu < GPUCollection.Count; nGpu++)
                     {
-                        Parallel.For(0, gpuCoreCount, async j =>
+                        for (int nCore = 0; nCore < gpuCoreCount; nCore++)
                         {
-                            await GPUThread(i, j, dataRead);
-                        });
-                    });
-                    Task.WaitAll();
+                            int tmpGPU = nGpu;
+                            int tmpCore = nCore;
+                            tasks[tmpGPU * tmpCore + tmpCore] = factory.StartNew(async delegate
+                            {
+                                await GPUThread(tmpGPU, tmpCore, dataRead);
+                            }, TaskCreationOptions.PreferFairness, TaskCreationOptions.LongRunning).Unwrap();
+                        }
+                    }
+                    Task.WaitAll(tasks);
+                    
 
                     List<foundRecord> tmpFoundRecords = new List<foundRecord>();
                     tmpFoundRecords.AddRange(foundRecords.ToArray());
@@ -1382,7 +1411,7 @@ namespace OpenForensics
                         }
 
                         // If file end found and file size > 300KB, then add a thumbnail from the data whilst in memory.
-                        if (finish != 0 && (finish - start) > 300000)
+                        if (finish != 0)// && (finish - start) > 300000) // Commented for Visualisation Demo
                         {
                             ulong fileID = (count + (ulong)start);
                             byte[] fileData = new byte[finish - start];
