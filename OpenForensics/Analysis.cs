@@ -17,6 +17,7 @@ using System.Xml.Serialization;
 using System.Text.RegularExpressions;
 
 using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace OpenForensics
 {
@@ -409,7 +410,6 @@ namespace OpenForensics
         private List<Engine> GPUCollection = new List<Engine>();
 
         ImageList ilist = new ImageList();
-        ImageList ilistlarge = new ImageList();
         int thumbCount = 0;
 
         public Input InputSet
@@ -460,8 +460,6 @@ namespace OpenForensics
                 lstThumbs.Scrollable = true;
                 ilist.ImageSize = new Size(120, 120);
                 ilist.ColorDepth = ColorDepth.Depth16Bit;
-                ilistlarge.ImageSize = new Size(256, 256);
-                ilistlarge.ColorDepth = ColorDepth.Depth32Bit;
                 ListView_SetSpacing(lstThumbs, 120 + 10, 120 + 4 + 20);
                 lstThumbs.Refresh();
 
@@ -769,9 +767,8 @@ namespace OpenForensics
                     {
                         try
                         {
-                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(256, 256, null, new IntPtr());
+                            Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, new IntPtr());
                             ilist.Images.Add(thumbnail);
-                            ilistlarge.Images.Add(thumbnail);
                             ListViewItem lvi = new ListViewItem(name);
                             lvi.ImageIndex = thumbCount;
                             lstThumbs.Items.Add(lvi);
@@ -785,9 +782,8 @@ namespace OpenForensics
                 {
                     try
                     {
-                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(256, 256, null, new IntPtr());
+                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, new IntPtr());
                         ilist.Images.Add(thumbnail);
-                        ilistlarge.Images.Add(thumbnail);
                         ListViewItem lvi = new ListViewItem(name);
                         lvi.ImageIndex = thumbCount;
                         lstThumbs.Items.Add(lvi);
@@ -814,7 +810,7 @@ namespace OpenForensics
                         form.Text = "Image Preview";
                         form.Size = new Size(512, 512);
                         form.BackgroundImageLayout = ImageLayout.Stretch;
-                        form.BackgroundImage = ilistlarge.Images[lstThumbs.Items.IndexOf(lstThumbs.SelectedItems[0])];
+                        form.BackgroundImage = ilist.Images[lstThumbs.Items.IndexOf(lstThumbs.SelectedItems[0])];
 
                         form.ShowDialog();
                     }
@@ -1000,7 +996,7 @@ namespace OpenForensics
                 // Start stopwatch, open file defined by user
                 double time = MeasureTime(() =>
                 {
-                    //// For each GPU employed, launch a dedicated thread
+                    //// Original Method -- For each GPU employed, launch an asynchronous task
                     //Parallel.For(0, GPUCollection.Count, i =>
                     //{
                     //    Parallel.For(0, gpuCoreCount, async j =>
@@ -1011,7 +1007,10 @@ namespace OpenForensics
                     //Task.WaitAll();
 
 
-
+                    // Method 1 -- Explicit Thread Launching
+                    int completedThreads = 0;
+                    ManualResetEvent threadsDone = new ManualResetEvent(false);
+                    
                     // Launch processing threads
                     Thread[] ProcessingThreads = new Thread[GPUCollection.Count * gpuCoreCount];
                     for (int nGpu = 0; nGpu < GPUCollection.Count; nGpu++)
@@ -1020,15 +1019,20 @@ namespace OpenForensics
                         {
                             int tmpGPU = nGpu;
                             int tmpCore = nCore;
-                            ProcessingThreads[tmpGPU * tmpCore + tmpCore] = new Thread(new ThreadStart(() => GPUThread(tmpGPU, tmpCore, dataRead)));
+                            ProcessingThreads[tmpGPU * tmpCore + tmpCore] = new Thread(() => {
+                                GPUThread(tmpGPU, tmpCore, dataRead);
+                                Interlocked.Increment(ref completedThreads);
+                                if(completedThreads== GPUCollection.Count * gpuCoreCount)
+                                    threadsDone.Set();
+                            });
                             ProcessingThreads[tmpGPU * tmpCore + tmpCore].IsBackground = true;
                             ProcessingThreads[tmpGPU * tmpCore + tmpCore].Start();
                         }
                     }
 
+                    threadsDone.WaitOne();
 
-
-                    //// Create new scheduler to process data. Use logical core count to manage levels of concurrency.
+                    //// Method 2 -- Using TaskFactory to customise scheduler
                     //LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
                     //TaskFactory factory = new TaskFactory(scheduler);
 
@@ -1341,6 +1345,30 @@ namespace OpenForensics
                             resultCount = z;
                         }
                     Array.Sort(foundLoc, foundID);
+
+                    //// Method 1 -- Explicit Thread Launching
+                    //int completedThreads = 0;
+                    //ManualResetEvent threadsDone = new ManualResetEvent(false);
+
+                    //// Launch processing threads
+                    //Thread[] ProcessingThreads = new Thread[procShare];
+                    //for (int i = 0; i < procShare; i++)
+                    //{
+                    //    int tmpIndex = i;
+                    //    ProcessingThreads[tmpIndex] = new Thread(() =>
+                    //    {
+                    //        ProcessFoundResults(ref buffer, tmpIndex, ref count, ref foundID, ref foundLoc);
+                    //        Interlocked.Increment(ref completedThreads);
+                    //        if (completedThreads == procShare)
+                    //            threadsDone.Set();
+                    //    });
+                    //    ProcessingThreads[tmpIndex].IsBackground = true;
+                    //    ProcessingThreads[tmpIndex].Start();
+                    //}
+
+                    //threadsDone.WaitOne();
+
+                    //Old method
                     Parallel.For(0, procShare, async i =>
                     {
                         await ProcessFoundResults(ref buffer, i, ref count, ref foundID, ref foundLoc);
@@ -1403,6 +1431,9 @@ namespace OpenForensics
         {
             int i = (threadNo * (resultLoc.Length / procShare));
             int end = ((threadNo + 1) * (resultLoc.Length / procShare));
+            
+            //BackgroundWorker imageGenerator = new BackgroundWorker();
+            //imageGenerator.WorkerSupportsCancellation = true;
 
             while (i < end && !shouldStop)
             {
@@ -1437,6 +1468,13 @@ namespace OpenForensics
                             Array.Copy(buffer, start, fileData, 0, finish - start);
 
                             addThumb(fileData, fileID.ToString());
+
+                            //imageGenerator.DoWork += (s, a) => addThumb(fileData, fileID.ToString());
+                            //if(!imageGenerator.IsBusy)
+                            //    imageGenerator.RunWorkerAsync();
+
+                            //Thread addThumbnail = new Thread(() => addThumb(fileData, fileID.ToString()));
+                            //addThumbnail.Start();
                         }
                     }
                 }
@@ -1444,7 +1482,12 @@ namespace OpenForensics
                 i++;
             }
 
+            //imageGenerator.RunWorkerAsync();
             updateFound();
+
+            //if (imageGenerator.IsBusy)
+            //    imageGenerator.CancelAsync();
+
             return Task.FromResult(true);
         }
 
