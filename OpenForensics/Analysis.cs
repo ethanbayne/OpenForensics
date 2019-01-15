@@ -495,6 +495,7 @@ namespace OpenForensics
 
                     // Start the main analysis processing thread
                     Thread analysis = new Thread(new ThreadStart(FileAnalysis));
+                    analysis.IsBackground = true;
                     analysis.Start();
                 }
                 else
@@ -1009,26 +1010,44 @@ namespace OpenForensics
                     //});
                     //Task.WaitAll();
 
-                    // Create new scheduler to process data. Use logical core count to manage levels of concurrency.
-                    LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
-                    TaskFactory factory = new TaskFactory(scheduler);
 
-                    Task[] tasks = new Task[GPUCollection.Count * gpuCoreCount];
 
                     // Launch processing threads
+                    Thread[] ProcessingThreads = new Thread[GPUCollection.Count * gpuCoreCount];
                     for (int nGpu = 0; nGpu < GPUCollection.Count; nGpu++)
                     {
                         for (int nCore = 0; nCore < gpuCoreCount; nCore++)
                         {
                             int tmpGPU = nGpu;
                             int tmpCore = nCore;
-                            tasks[tmpGPU * tmpCore + tmpCore] = factory.StartNew(async delegate
-                            {
-                                await GPUThread(tmpGPU, tmpCore, dataRead);
-                            }, TaskCreationOptions.PreferFairness, TaskCreationOptions.LongRunning).Unwrap();
+                            ProcessingThreads[tmpGPU * tmpCore + tmpCore] = new Thread(new ThreadStart(() => GPUThread(tmpGPU, tmpCore, dataRead)));
+                            ProcessingThreads[tmpGPU * tmpCore + tmpCore].IsBackground = true;
+                            ProcessingThreads[tmpGPU * tmpCore + tmpCore].Start();
                         }
                     }
-                    Task.WaitAll(tasks);
+
+
+
+                    //// Create new scheduler to process data. Use logical core count to manage levels of concurrency.
+                    //LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
+                    //TaskFactory factory = new TaskFactory(scheduler);
+
+                    //Task[] tasks = new Task[GPUCollection.Count * gpuCoreCount];
+
+                    //// Launch processing threads
+                    //for (int nGpu = 0; nGpu < GPUCollection.Count; nGpu++)
+                    //{
+                    //    for (int nCore = 0; nCore < gpuCoreCount; nCore++)
+                    //    {
+                    //        int tmpGPU = nGpu;
+                    //        int tmpCore = nCore;
+                    //        tasks[tmpGPU * tmpCore + tmpCore] = factory.StartNew(async delegate
+                    //        {
+                    //            await GPUThread(tmpGPU, tmpCore, dataRead);
+                    //        }, TaskCreationOptions.PreferFairness, TaskCreationOptions.LongRunning).Unwrap();
+                    //    }
+                    //}
+                    //Task.WaitAll(tasks);
                     
 
                     List<foundRecord> tmpFoundRecords = new List<foundRecord>();
@@ -1269,7 +1288,7 @@ namespace OpenForensics
             return Task.FromResult(true);
         }
 
-        private Task<Boolean> GPUThread(int gpu, int gpuCore, dataReader dataRead)
+        private bool GPUThread(int gpu, int gpuCore, dataReader dataRead)
         {
             //MessageBox.Show(gpu.ToString() + " & " + gpuCore.ToString());
             ulong count = 0;
@@ -1347,7 +1366,7 @@ namespace OpenForensics
             foundLoc = new int[1];
             updateGPUAct(gpuID, true);
 
-            return Task.FromResult(true);
+            return true;// Task.FromResult(true);
         }
 
         #endregion
