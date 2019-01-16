@@ -53,7 +53,7 @@
             // 
             // pbProgress
             // 
-            this.pbProgress.Location = new System.Drawing.Point(12, 384);
+            this.pbProgress.Location = new System.Drawing.Point(12, 621);
             this.pbProgress.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.pbProgress.Name = "pbProgress";
             this.pbProgress.Size = new System.Drawing.Size(551, 26);
@@ -64,7 +64,7 @@
             // 
             this.lblHeader.AutoSize = true;
             this.lblHeader.Font = new System.Drawing.Font("Century Gothic", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblHeader.Location = new System.Drawing.Point(12, 358);
+            this.lblHeader.Location = new System.Drawing.Point(12, 595);
             this.lblHeader.Name = "lblHeader";
             this.lblHeader.Size = new System.Drawing.Size(172, 22);
             this.lblHeader.TabIndex = 1;
@@ -75,7 +75,7 @@
             this.lblProgress.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.lblProgress.BackColor = System.Drawing.SystemColors.Control;
             this.lblProgress.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblProgress.Location = new System.Drawing.Point(505, 414);
+            this.lblProgress.Location = new System.Drawing.Point(505, 651);
             this.lblProgress.Name = "lblProgress";
             this.lblProgress.Size = new System.Drawing.Size(57, 20);
             this.lblProgress.TabIndex = 2;
@@ -86,7 +86,7 @@
             // 
             this.lblProcess.AutoSize = true;
             this.lblProcess.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblProcess.Location = new System.Drawing.Point(12, 414);
+            this.lblProcess.Location = new System.Drawing.Point(12, 651);
             this.lblProcess.Name = "lblProcess";
             this.lblProcess.Size = new System.Drawing.Size(91, 20);
             this.lblProcess.TabIndex = 3;
@@ -96,7 +96,7 @@
             // 
             this.grpGPUActivity.Controls.Add(this.tblGPU);
             this.grpGPUActivity.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.grpGPUActivity.Location = new System.Drawing.Point(175, 438);
+            this.grpGPUActivity.Location = new System.Drawing.Point(175, 675);
             this.grpGPUActivity.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.grpGPUActivity.Name = "grpGPUActivity";
             this.grpGPUActivity.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -135,7 +135,7 @@
             this.grpProcessed.Controls.Add(this.lblFound);
             this.grpProcessed.Controls.Add(this.lblSegments);
             this.grpProcessed.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.grpProcessed.Location = new System.Drawing.Point(12, 438);
+            this.grpProcessed.Location = new System.Drawing.Point(12, 675);
             this.grpProcessed.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.grpProcessed.Name = "grpProcessed";
             this.grpProcessed.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -230,7 +230,7 @@
             this.lstThumbs.ForeColor = System.Drawing.SystemColors.Window;
             this.lstThumbs.Location = new System.Drawing.Point(12, 12);
             this.lstThumbs.Name = "lstThumbs";
-            this.lstThumbs.Size = new System.Drawing.Size(551, 335);
+            this.lstThumbs.Size = new System.Drawing.Size(551, 571);
             this.lstThumbs.TabIndex = 8;
             this.lstThumbs.UseCompatibleStateImageBehavior = false;
             this.lstThumbs.SelectedIndexChanged += new System.EventHandler(this.lstThumbs_SelectedIndexChanged);
@@ -238,7 +238,7 @@
             // btnStop
             // 
             this.btnStop.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnStop.Location = new System.Drawing.Point(406, 538);
+            this.btnStop.Location = new System.Drawing.Point(406, 775);
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(157, 27);
             this.btnStop.TabIndex = 9;
@@ -250,7 +250,7 @@
             // 
             this.btnCarve.Enabled = false;
             this.btnCarve.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnCarve.Location = new System.Drawing.Point(12, 538);
+            this.btnCarve.Location = new System.Drawing.Point(12, 775);
             this.btnCarve.Name = "btnCarve";
             this.btnCarve.Size = new System.Drawing.Size(157, 27);
             this.btnCarve.TabIndex = 10;
@@ -262,7 +262,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(575, 577);
+            this.ClientSize = new System.Drawing.Size(575, 810);
             this.Controls.Add(this.btnCarve);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.lstThumbs);

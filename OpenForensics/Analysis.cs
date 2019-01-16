@@ -17,7 +17,7 @@ using System.Xml.Serialization;
 using System.Text.RegularExpressions;
 
 using System.Drawing;
-using System.Drawing.Imaging;
+using System.Drawing.Drawing2D;
 
 namespace OpenForensics
 {
@@ -411,6 +411,8 @@ namespace OpenForensics
 
         ImageList ilist = new ImageList();
         int thumbCount = 0;
+        TaskFactory thumbnailQueue;
+
 
         public Input InputSet
         {
@@ -757,7 +759,7 @@ namespace OpenForensics
             { }
         }
 
-        private void addThumb(byte[] image, string name)
+        private Task<Boolean> addThumb(byte[] image, string name)
         {
             try
             {
@@ -767,7 +769,7 @@ namespace OpenForensics
                     {
                         try
                         {
-                            Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, new IntPtr());
+                            Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120,120,null,IntPtr.Zero);
                             ilist.Images.Add(thumbnail);
                             ListViewItem lvi = new ListViewItem(name);
                             lvi.ImageIndex = thumbCount;
@@ -793,10 +795,13 @@ namespace OpenForensics
                     catch { }
                 }
 
+                return Task.FromResult(true);
                 //lstThumbs.Refresh();
             }
             catch (Exception)
-            { }
+            {
+                return Task.FromResult(false);
+            }
         }
 
         private void lstThumbs_SelectedIndexChanged(object sender, EventArgs e)
@@ -991,6 +996,9 @@ namespace OpenForensics
                 // Set up data reader
                 dataReader dataRead = new dataReader(FilePath, longestTarget);
 
+                LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
+                thumbnailQueue = new TaskFactory(scheduler);
+
                 ulong fileSize = dataRead.GetFileSize();
 
                 // Start stopwatch, open file defined by user
@@ -1005,7 +1013,6 @@ namespace OpenForensics
                     //    });
                     //});
                     //Task.WaitAll();
-
 
                     // Method 1 -- Explicit Thread Launching
                     int completedThreads = 0;
@@ -1031,7 +1038,7 @@ namespace OpenForensics
                     }
 
                     threadsDone.WaitOne();
-
+                    
                     //// Method 2 -- Using TaskFactory to customise scheduler
                     //LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
                     //TaskFactory factory = new TaskFactory(scheduler);
@@ -1052,7 +1059,7 @@ namespace OpenForensics
                     //    }
                     //}
                     //Task.WaitAll(tasks);
-                    
+
 
                     List<foundRecord> tmpFoundRecords = new List<foundRecord>();
                     tmpFoundRecords.AddRange(foundRecords.ToArray());
@@ -1433,7 +1440,6 @@ namespace OpenForensics
             int end = ((threadNo + 1) * (resultLoc.Length / procShare));
             
             //BackgroundWorker imageGenerator = new BackgroundWorker();
-            //imageGenerator.WorkerSupportsCancellation = true;
 
             while (i < end && !shouldStop)
             {
@@ -1467,11 +1473,14 @@ namespace OpenForensics
                             byte[] fileData = new byte[finish - start];
                             Array.Copy(buffer, start, fileData, 0, finish - start);
 
-                            addThumb(fileData, fileID.ToString());
+                            //addThumb(fileData, fileID.ToString());
+
+                            thumbnailQueue.StartNew(async delegate
+                            {
+                                await addThumb(fileData, fileID.ToString());
+                            }, TaskCreationOptions.PreferFairness).Unwrap();
 
                             //imageGenerator.DoWork += (s, a) => addThumb(fileData, fileID.ToString());
-                            //if(!imageGenerator.IsBusy)
-                            //    imageGenerator.RunWorkerAsync();
 
                             //Thread addThumbnail = new Thread(() => addThumb(fileData, fileID.ToString()));
                             //addThumbnail.Start();
@@ -1483,10 +1492,10 @@ namespace OpenForensics
             }
 
             //imageGenerator.RunWorkerAsync();
-            updateFound();
+            //while (imageGenerator.IsBusy)
+                //Application.DoEvents();
 
-            //if (imageGenerator.IsBusy)
-            //    imageGenerator.CancelAsync();
+            updateFound();
 
             return Task.FromResult(true);
         }
