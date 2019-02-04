@@ -100,7 +100,7 @@
             this.grpGPUActivity.Size = new System.Drawing.Size(388, 95);
             this.grpGPUActivity.TabIndex = 4;
             this.grpGPUActivity.TabStop = false;
-            this.grpGPUActivity.Text = "GPU Activity";
+            this.grpGPUActivity.Text = "Thread Activity";
             // 
             // tblGPU
             // 
