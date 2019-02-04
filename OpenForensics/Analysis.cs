@@ -927,12 +927,33 @@ namespace OpenForensics
                 // Start stopwatch, open file defined by user
                 double time = MeasureTime(() =>
                 {
-                    // Launch a thread for each logical core of the CPU
-                    Parallel.For(0, lpCount, async i =>
+                    //// Original Method -- Parallel For Method (each logical Core employed, launch an async task)
+                    //Parallel.For(0, lpCount, async i =>
+                    //{
+                    //    await CPUThread(i, dataRead);
+                    //});
+                    //Task.WaitAll();
+
+                    // Method 1 -- Explicit Thread Launching -- Fastest
+                    int completedThreads = 0;
+                    ManualResetEvent threadsDone = new ManualResetEvent(false);
+
+                    // Launch processing threads
+                    Thread[] ProcessingThreads = new Thread[lpCount];
+                    for (int nCPU = 0; nCPU < lpCount; nCPU++)
                     {
-                        await CPUThread(i, dataRead);
-                    });
-                    Task.WaitAll();
+                        int tmpCPU = nCPU;
+                        ProcessingThreads[tmpCPU] = new Thread(() => {
+                            CPUThread(tmpCPU, dataRead);
+                            Interlocked.Increment(ref completedThreads);
+                            if (completedThreads == lpCount)
+                                threadsDone.Set();
+                        });
+                        ProcessingThreads[tmpCPU].IsBackground = true;
+                        ProcessingThreads[tmpCPU].Start();
+                    }
+
+                    threadsDone.WaitOne();
                 });
 
                 List<foundRecord> tmpFoundRecords = new List<foundRecord>();
