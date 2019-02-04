@@ -1,7 +1,7 @@
 # OpenForensics
-OpenForensics is an open-source OpenCL Digital Forensics analysis and file carving tool. This prototype tool was built in conjunction with PhD research from Dr Ethan Bayne as a platform to demonstrate the performance enhancements possible when applying GPGPU processing and an optimised PFAC algorithm to the problem of string searching in the field of Digital Forensics. Details of the supporting research can be found in the completed thesis by Dr Ethan Bayne:
+OpenForensics is an open-source OpenCL Digital Forensics analysis and file carving tool. This prototype tool was built in conjunction with PhD research from Dr Ethan Bayne as a platform to demonstrate the performance enhancements possible when applying GPGPU processing and an optimised PFAC algorithm to the problem of string searching in the field of Digital Forensics. Details of the supporting research can be found in the completed thesis by Dr Ethan Bayne: https://rke.abertay.ac.uk/en/studentTheses/accelerating-digital-forensic-searching-through-gpgpu-parallel-pr
 
-https://rke.abertay.ac.uk/en/studentTheses/accelerating-digital-forensic-searching-through-gpgpu-parallel-pr
+Further later enhancements to the processing framework can be found detailed within the paper presented at DFRWS 2018. You can read the proceedings published by Digital Investigation: https://www.sciencedirect.com/science/article/pii/S1742287618300379 
 
 This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.com/). Currently, the file carving provided by this tool is considered basic (carves data between found header and footer). Whilst it is intended to develop more advanced file carving features in time, we would welcome collaborators to help build upon the functionality of the tool.
 
@@ -36,7 +36,7 @@ File-types are populated from the FileTypes.xml file. OpenForensics will load th
     5. MaxLengthMB (Optional) -- Specifies the maximum file length for the type of file (Default: 10 MiB).
 
 # Open-source License
-OpenForensics Copyright © 2016 - 2018 Ethan Bayne
+OpenForensics Copyright © 2016 - 2019 Ethan Bayne
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
 
