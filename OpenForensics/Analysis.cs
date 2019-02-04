@@ -17,7 +17,6 @@ using System.Xml.Serialization;
 using System.Text.RegularExpressions;
 
 using System.Drawing;
-using System.Drawing.Drawing2D;
 
 namespace OpenForensics
 {
@@ -1004,7 +1003,7 @@ namespace OpenForensics
                 // Start stopwatch, open file defined by user
                 double time = MeasureTime(() =>
                 {
-                    //// Original Method -- For each GPU employed, launch an asynchronous task
+                    //// Original Method -- Parallel For Method (each GPU employed, launch an async task)
                     //Parallel.For(0, GPUCollection.Count, i =>
                     //{
                     //    Parallel.For(0, gpuCoreCount, async j =>
@@ -1014,7 +1013,7 @@ namespace OpenForensics
                     //});
                     //Task.WaitAll();
 
-                    // Method 1 -- Explicit Thread Launching
+                    // Method 1 -- Explicit Thread Launching -- Fastest
                     int completedThreads = 0;
                     ManualResetEvent threadsDone = new ManualResetEvent(false);
                     
@@ -1038,8 +1037,8 @@ namespace OpenForensics
                     }
 
                     threadsDone.WaitOne();
-                    
-                    //// Method 2 -- Using TaskFactory to customise scheduler
+
+                    //// Method 2 -- Using TaskFactory for a customised scheduler
                     //LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
                     //TaskFactory factory = new TaskFactory(scheduler);
 
@@ -1375,7 +1374,7 @@ namespace OpenForensics
 
                     //threadsDone.WaitOne();
 
-                    //Old method
+                    // Parallel.For Method
                     Parallel.For(0, procShare, async i =>
                     {
                         await ProcessFoundResults(ref buffer, i, ref count, ref foundID, ref foundLoc);
@@ -1467,7 +1466,7 @@ namespace OpenForensics
                         }
 
                         // If file end found and file size > 300KB, then add a thumbnail from the data whilst in memory.
-                        if (finish != 0)// && (finish - start) > 300000) // Commented for Visualisation Demo
+                        if (finish != 0 && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
                         {
                             ulong fileID = (count + (ulong)start);
                             byte[] fileData = new byte[finish - start];
@@ -1479,21 +1478,12 @@ namespace OpenForensics
                             {
                                 await addThumb(fileData, fileID.ToString());
                             }, TaskCreationOptions.PreferFairness).Unwrap();
-
-                            //imageGenerator.DoWork += (s, a) => addThumb(fileData, fileID.ToString());
-
-                            //Thread addThumbnail = new Thread(() => addThumb(fileData, fileID.ToString()));
-                            //addThumbnail.Start();
                         }
                     }
                 }
                 foundRecords.Add(new foundRecord(count + (ulong)resultLoc[i], resultID[i]));
                 i++;
             }
-
-            //imageGenerator.RunWorkerAsync();
-            //while (imageGenerator.IsBusy)
-                //Application.DoEvents();
 
             updateFound();
 
