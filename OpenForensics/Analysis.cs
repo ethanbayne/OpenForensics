@@ -17,6 +17,7 @@ using System.Xml.Serialization;
 using System.Text.RegularExpressions;
 
 using System.Drawing;
+using System.Reflection;
 
 namespace OpenForensics
 {
@@ -411,6 +412,7 @@ namespace OpenForensics
         ImageList ilist = new ImageList();
         int thumbCount = 0;
         TaskFactory thumbnailQueue;
+        object thumbnailLocker = new Object();
 
 
         public Input InputSet
@@ -461,6 +463,8 @@ namespace OpenForensics
                 lstThumbs.Scrollable = true;
                 ilist.ImageSize = new Size(120, 120);
                 ilist.ColorDepth = ColorDepth.Depth16Bit;
+                typeof(Control).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(lstThumbs, true, null);
+                lstThumbs.ListViewItemSorter = null;
                 ListView_SetSpacing(lstThumbs, 120 + 10, 120 + 4 + 20);
                 lstThumbs.Refresh();
 
@@ -771,10 +775,15 @@ namespace OpenForensics
                             Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120,120,null,IntPtr.Zero);
                             ilist.Images.Add(thumbnail);
                             ListViewItem lvi = new ListViewItem(name);
-                            lvi.ImageIndex = thumbCount;
-                            lstThumbs.Items.Add(lvi);
-                            lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
-                            thumbCount++;
+                            lock (thumbnailLocker)
+                            {
+                                lvi.ImageIndex = thumbCount;
+                                lstThumbs.BeginUpdate();
+                                lstThumbs.Items.Add(lvi);
+                                lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
+                                lstThumbs.EndUpdate();
+                                thumbCount++;
+                            }
                         }
                         catch { }
                     });
@@ -786,10 +795,15 @@ namespace OpenForensics
                         Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, new IntPtr());
                         ilist.Images.Add(thumbnail);
                         ListViewItem lvi = new ListViewItem(name);
-                        lvi.ImageIndex = thumbCount;
-                        lstThumbs.Items.Add(lvi);
-                        lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
-                        thumbCount++;
+                        lock (thumbnailLocker)
+                        {
+                            lvi.ImageIndex = thumbCount;
+                            lstThumbs.BeginUpdate();
+                            lstThumbs.Items.Add(lvi);
+                            lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
+                            lstThumbs.EndUpdate();
+                            thumbCount++;
+                        }
                     }
                     catch { }
                 }
