@@ -91,7 +91,7 @@ namespace OpenForensics
 
         private void Setup()
         {
-            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;  // Sets Priority of Process to High
+            //Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;  // Sets Priority of Process to High
             PopulateGPGPUComboBox();        // Populate GPGPU Selection Box
             PopulateFileTypes();         // Get File Types from XML
             cboFileType.SelectedIndex = 0;
@@ -309,51 +309,63 @@ namespace OpenForensics
                 cbGPGPU.Items.Clear();                          // Clear GPGPU Selection box
                 multiGPU = false;
 
-                if (CudafyHost.GetDeviceCount(CudafyModes.Target = eGPUType.OpenCL) > 1)
+                try
                 {
-                    int gpuCount = 0;
-                    foreach (GPGPUProperties prop in CudafyHost.GetDeviceProperties(CudafyModes.Target = eGPUType.OpenCL))
-                        if (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor"))
-                            gpuCount++;
-
-                    if (gpuCount > 1)
+                    if (CudafyHost.GetDeviceCount(CudafyModes.Target = eGPUType.OpenCL) >= 1)
                     {
-                        cbGPGPU.Items.Add("Multi-GPU");
-                        multiGPU = true;
-                        cbGPGPU.SelectedIndex = 0;
-                        lblPlatformDefault.Text = "Recommended Default Settings (Multi-GPU)";
+                        int gpuCount = 0;
+                        foreach (GPGPUProperties prop in CudafyHost.GetDeviceProperties(CudafyModes.Target = eGPUType.OpenCL))
+                            if (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor"))
+                                gpuCount++;
+
+                        if (gpuCount > 1)
+                        {
+                            cbGPGPU.Items.Add("Multi-GPU");
+                            multiGPU = true;
+                            cbGPGPU.SelectedIndex = 0;
+                            lblPlatformDefault.Text = "Recommended Default Settings (Multi-GPU)";
+                        }
+
+                        foreach (GPGPUProperties prop in CudafyHost.GetDeviceProperties(CudafyModes.Target = eGPUType.OpenCL))
+                        {
+                            // Add all GPGPUs to combo box belonging to OpenCL
+                            cbGPGPU.Items.Add(prop.Name.Trim() + "   ||   OpenCL platform: " + prop.PlatformName.Trim());
+                            if (multiGPU == false && (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor")))
+                            {
+                                cbGPGPU.SelectedIndex = cbGPGPU.Items.Count - 1;
+                                lblPlatformDefault.Text = "Recommended Default Settings (" + prop.Name.Trim() + ")";
+                            }
+                            if (multiGPU == true && (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor")))
+                                gpus.Add(prop.DeviceId);
+
+                            gpuMem.Add(prop.TotalGlobalMem);
+
+                            if (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor"))
+                                if (maxGPUMem == 0 || prop.TotalGlobalMem < maxGPUMem)
+                                    maxGPUMem = prop.TotalGlobalMem;
+                            //MessageBox.Show(maxGPUMem.ToString());
+                        }
+                        cbGPGPU.Enabled = true;     // Enable combo box
                     }
-                    else if (gpuCount == 0)
+                    else
                     {
                         cbGPGPU.Items.Add("No GPU detected on system");
+                        cbGPGPU.SelectedIndex = cbGPGPU.Items.Count - 1;
                         lblPlatformDefault.Text = "Recommended Default Settings (CPU)";
                         cbGPGPU.Enabled = false;
                         rdoGPU.Enabled = false;
                         rdoCPU.Checked = true;
-                        return;
                     }
                 }
-
-                foreach (GPGPUProperties prop in CudafyHost.GetDeviceProperties(CudafyModes.Target = eGPUType.OpenCL))
+                catch
                 {
-                    // Add all GPGPUs to combo box belonging to OpenCL
-                    cbGPGPU.Items.Add(prop.Name.Trim() + "   ||   OpenCL platform: " + prop.PlatformName.Trim());
-                    if (multiGPU == false && (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor")))
-                    {
-                        cbGPGPU.SelectedIndex = cbGPGPU.Items.Count - 1;
-                        lblPlatformDefault.Text = "Recommended Default Settings (" + prop.Name.Trim() + ")";
-                    }
-                    if (multiGPU == true && (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor")))
-                        gpus.Add(prop.DeviceId);
-
-                    gpuMem.Add(prop.TotalGlobalMem);
-
-                    if (!prop.Name.Contains("CPU") && !prop.Name.Contains("Processor"))
-                        if (maxGPUMem == 0 || prop.TotalGlobalMem < maxGPUMem)
-                            maxGPUMem = prop.TotalGlobalMem;
-                    //MessageBox.Show(maxGPUMem.ToString());
+                    cbGPGPU.Items.Add("Error populating GPUs on system");
+                    cbGPGPU.SelectedIndex = cbGPGPU.Items.Count - 1;
+                    lblPlatformDefault.Text = "Recommended Default Settings (CPU)";
+                    cbGPGPU.Enabled = false;
+                    rdoGPU.Enabled = false;
+                    rdoCPU.Checked = true;
                 }
-                cbGPGPU.Enabled = true;     // Enable combo box
             }
         }
 
