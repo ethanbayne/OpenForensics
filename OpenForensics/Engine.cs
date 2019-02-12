@@ -26,7 +26,7 @@ namespace OpenForensics
         private int initialState;
         private int[][] resultCount;
 
-        private static object[] gpuThreadLock;
+        private static object[] gpuThreadLock = new object[CudafyHost.GetDeviceCount(CudafyModes.Target = eGPUType.OpenCL)];
         private byte[][] dev_buffer;
         private int[,] dev_lookup;
         private int[] dev_targetEndLength;
@@ -53,9 +53,7 @@ namespace OpenForensics
             for (int i = 0; i < gpuCoreCount; i++)
                 gpu.CreateStream(i);
 
-            gpuThreadLock = new object[coreCount];
-            for (int i = 0; i < gpuThreadLock.Length; i++)
-                gpuThreadLock[i] = new Object();
+            gpuThreadLock[GPUid] = new object();
 
             prop = gpu.GetDeviceProperties();
             gpuCoreCount = coreCount;
