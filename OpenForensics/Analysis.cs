@@ -770,27 +770,23 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                        try
+                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, IntPtr.Zero);
+                        ilist.Images.Add(thumbnail);
+                        ListViewItem lvi = new ListViewItem(name);
+                        lock (thumbnailLocker)
                         {
-                            Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120,120,null,IntPtr.Zero);
-                            ilist.Images.Add(thumbnail);
-                            ListViewItem lvi = new ListViewItem(name);
-                            lock (thumbnailLocker)
-                            {
-                                lvi.ImageIndex = thumbCount;
-                                lstThumbs.BeginUpdate();
-                                lstThumbs.Items.Add(lvi);
-                                lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
-                                lstThumbs.EndUpdate();
-                                thumbCount++;
-                            }
+                            lvi.ImageIndex = thumbCount;
+                            lstThumbs.BeginUpdate();
+                            lstThumbs.Items.Add(lvi);
+                            lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
+                            lstThumbs.EndUpdate();
+                            thumbCount++;
                         }
-                        catch { }
                     });
                 }
                 else
                 {
-                    try
+                    if (!shouldStop)
                     {
                         Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, new IntPtr());
                         ilist.Images.Add(thumbnail);
@@ -805,7 +801,6 @@ namespace OpenForensics
                             thumbCount++;
                         }
                     }
-                    catch { }
                 }
 
                 return Task.FromResult(true);
