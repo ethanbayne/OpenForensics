@@ -459,12 +459,14 @@ namespace OpenForensics
                 // Initial setup of GPU status
                 DrawGPUStatus();
 
-                lstThumbs.LargeImageList = ilist;
-                lstThumbs.Scrollable = true;
                 ilist.ImageSize = new Size(120, 120);
                 ilist.ColorDepth = ColorDepth.Depth16Bit;
+
                 typeof(Control).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(lstThumbs, true, null);
+                lstThumbs.LargeImageList = ilist;
+                lstThumbs.Scrollable = true;
                 lstThumbs.ListViewItemSorter = null;
+                lstThumbs.Sorting = SortOrder.None;
                 ListView_SetSpacing(lstThumbs, 120 + 10, 120 + 4 + 20);
                 lstThumbs.Refresh();
 
@@ -770,7 +772,7 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, IntPtr.Zero);
+                        Image thumbnail = Image.FromStream(new MemoryStream(image), false, false);//.GetThumbnailImage(120, 120, null, IntPtr.Zero);
                         ilist.Images.Add(thumbnail);
                         ListViewItem lvi = new ListViewItem(name);
                         lock (thumbnailLocker)
@@ -788,7 +790,7 @@ namespace OpenForensics
                 {
                     if (!shouldStop)
                     {
-                        Image thumbnail = Image.FromStream(new MemoryStream(image)).GetThumbnailImage(120, 120, null, new IntPtr());
+                        Image thumbnail = Image.FromStream(new MemoryStream(image), false, false);//.GetThumbnailImage(120, 120, null, new IntPtr());
                         ilist.Images.Add(thumbnail);
                         ListViewItem lvi = new ListViewItem(name);
                         lock (thumbnailLocker)

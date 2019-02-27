@@ -229,6 +229,7 @@
             this.lstThumbs.BackColor = System.Drawing.SystemColors.ControlDarkDark;
             this.lstThumbs.ForeColor = System.Drawing.SystemColors.Window;
             this.lstThumbs.Location = new System.Drawing.Point(12, 12);
+            this.lstThumbs.MultiSelect = false;
             this.lstThumbs.Name = "lstThumbs";
             this.lstThumbs.Size = new System.Drawing.Size(551, 571);
             this.lstThumbs.TabIndex = 8;
