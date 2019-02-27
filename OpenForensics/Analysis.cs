@@ -764,6 +764,69 @@ namespace OpenForensics
             { }
         }
 
+        private Image getThumbnaiImage(int width, Image img)
+        {
+            Image thumb = new Bitmap(width, width);
+            Image tmp = null;
+
+            if (img.Width < width && img.Height < width)
+            {
+                using (Graphics g = Graphics.FromImage(thumb))
+                {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                    g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                    int xoffset = (int)((width - img.Width) / 2);
+                    int yoffset = (int)((width - img.Height) / 2);
+                    g.DrawImage(img, xoffset, yoffset, img.Width, img.Height);
+                }
+            }
+            else
+            {
+                Image.GetThumbnailImageAbort myCallback = new Image.GetThumbnailImageAbort(ThumbnailCallback);
+
+                if (img.Width == img.Height)
+                {
+                    thumb = img.GetThumbnailImage(width, width, myCallback, IntPtr.Zero);
+                }
+                else
+                {
+                    int k = 0;
+                    int xoffset = 0;
+                    int yoffset = 0;
+
+                    if (img.Width < img.Height)
+                    {
+                        k = (int)(width * img.Width / img.Height);
+                        tmp = img.GetThumbnailImage(k, width, myCallback, IntPtr.Zero);
+                        xoffset = (int)((width - k) / 2);
+                    }
+
+                    if (img.Width > img.Height)
+                    {
+                        k = (int)(width * img.Height / img.Width);
+                        tmp = img.GetThumbnailImage(width, k, myCallback, IntPtr.Zero);
+                        yoffset = (int)((width - k) / 2);
+                    }
+
+                    using (Graphics g = Graphics.FromImage(thumb))
+                    {
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                        g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                        g.DrawImage(tmp, xoffset, yoffset, tmp.Width, tmp.Height);
+                    }
+                }
+            }
+            
+            return thumb;
+        }
+
+
+
+        public bool ThumbnailCallback()
+        {
+            return true;
+        }
+
         private Task<Boolean> addThumb(byte[] image, string name)
         {
             try
@@ -772,8 +835,8 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                        Image thumbnail = Image.FromStream(new MemoryStream(image), false, false);//.GetThumbnailImage(120, 120, null, IntPtr.Zero);
-                        ilist.Images.Add(thumbnail);
+                        Image memImage = Image.FromStream(new MemoryStream(image), false, false);
+                        ilist.Images.Add(getThumbnaiImage(ilist.ImageSize.Width, memImage));
                         ListViewItem lvi = new ListViewItem(name);
                         lock (thumbnailLocker)
                         {
@@ -790,8 +853,8 @@ namespace OpenForensics
                 {
                     if (!shouldStop)
                     {
-                        Image thumbnail = Image.FromStream(new MemoryStream(image), false, false);//.GetThumbnailImage(120, 120, null, new IntPtr());
-                        ilist.Images.Add(thumbnail);
+                        Image memImage = Image.FromStream(new MemoryStream(image), false, false);
+                        ilist.Images.Add(getThumbnaiImage(ilist.ImageSize.Width, memImage));
                         ListViewItem lvi = new ListViewItem(name);
                         lock (thumbnailLocker)
                         {
