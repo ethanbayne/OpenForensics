@@ -664,7 +664,7 @@ namespace OpenForensics
         }
 
         // Update the visual representation of GPU status.
-        private void updateGPUAct(int gpu, bool status, bool carving)
+        private void updateGPUAct(int gpu, int status)
         {
             try
             {
@@ -672,26 +672,42 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                        if(status)
-                            if(carving)
-                                gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Carving files and saving to target drive.
-                            else
+                        switch (status)
+                        {
+                            case 1:
                                 gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
-                        else
-                            gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+                                break;
+                            case 2:
+                                gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Processing Results.
+                                break;
+                            case 3:
+                                gpuLabel[gpu].BackColor = System.Drawing.Color.Purple;  // Processing Thumbnails.
+                                break;
+                            default:
+                                gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+                                break;
+                        }
 
                         gpuLabel[gpu].Refresh();
                     });
                 }
                 else
                 {
-                    if (status)
-                        if (carving)
-                            gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Carving files and saving to target drive.
-                        else
+                    switch (status)
+                    {
+                        case 1:
                             gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
-                    else
-                        gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+                            break;
+                        case 2:
+                            gpuLabel[gpu].BackColor = System.Drawing.Color.LightBlue;  // Processing Results.
+                            break;
+                        case 3:
+                            gpuLabel[gpu].BackColor = System.Drawing.Color.Purple;  // Processing Thumbnails.
+                            break;
+                        default:
+                            gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+                            break;
+                    }
 
                     gpuLabel[gpu].Refresh();
                 }
@@ -857,20 +873,24 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                        Image memImage = Image.FromStream(new MemoryStream(image), false, false);
-                        ilist.Images.Add(getThumbnaiImage(ilist.ImageSize.Width, memImage));
-                        ListViewItem lvi = new ListViewItem(name);
-                        lock (thumbnailLocker)
+                        if (!shouldStop)
                         {
-                            lvi.ImageIndex = thumbCount;
-                            lstThumbs.BeginUpdate();
-                            lstThumbs.Items.Add(lvi);
-                            lstThumbs.EndUpdate();
-                            thumbCount++;
-                            if (thumbCount % 4 == 0)
+                            Image memImage = Image.FromStream(new MemoryStream(image), false, false);
+                            ilist.Images.Add(getThumbnaiImage(ilist.ImageSize.Width, memImage));
+                            ListViewItem lvi = new ListViewItem(name);
+                            lock (thumbnailLocker)
                             {
-                                GoToLastThumbnail();
-                                lstThumbs.Refresh();
+                                lvi.ImageIndex = thumbCount;
+                                lstThumbs.BeginUpdate();
+                                lstThumbs.Items.Add(lvi);
+                                lstThumbs.EndUpdate();
+                                thumbCount++;
+                                if (thumbCount % 4 == 0)
+                                {
+                                    GoToLastThumbnail();
+                                    lstThumbs.Refresh();
+                                    Application.DoEvents();
+                                }
                             }
                         }
                     });
@@ -893,6 +913,7 @@ namespace OpenForensics
                             {
                                 GoToLastThumbnail();
                                 lstThumbs.Refresh();
+                                Application.DoEvents();
                             }
                         }
                     }
@@ -962,7 +983,7 @@ namespace OpenForensics
             { }
         }
 
-        private void CarveBtnUsable(bool state, bool foundFiles)
+        private void AfterAnalysisButtons(bool state, bool foundFiles)
         {
             try
             {
@@ -970,7 +991,8 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                        btnCarve.Enabled = state;
+                        btnAnalysisLog.Enabled = state;
+                        btnCarve.Enabled = foundFiles;
                         if (foundFiles)
                             btnCarve.BackColor = Color.LightGreen;
                         else
@@ -981,7 +1003,8 @@ namespace OpenForensics
                 }
                 else
                 {
-                    btnCarve.Enabled = state;
+                    btnAnalysisLog.Enabled = state;
+                    btnCarve.Enabled = foundFiles;
                     if (foundFiles)
                         btnCarve.BackColor = Color.LightGreen;
                     else
@@ -1139,7 +1162,7 @@ namespace OpenForensics
                 // Set up data reader
                 dataReader dataRead = new dataReader(FilePath, longestTarget);
 
-                LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
+                LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(Math.Min(4,lpCount/2));
                 thumbnailQueue = new TaskFactory(scheduler);
 
                 ulong fileSize = dataRead.GetFileSize();
@@ -1233,9 +1256,8 @@ namespace OpenForensics
                 #endregion
             }
 
-
             if (carvableFiles.Count > 0)
-                CarveBtnUsable(true, true);
+                AfterAnalysisButtons(true, true);
 
             if (shouldStop)
                 updateHeader("Analysis Halted by User!");
@@ -1358,8 +1380,6 @@ namespace OpenForensics
 
                 }
 
-                System.Diagnostics.Process.Start(saveLocation + "LogFile.txt");
-
             }
             catch (Exception ex)
             {
@@ -1377,7 +1397,7 @@ namespace OpenForensics
 
         #region Processor Thread Functions
 
-        private Task<Boolean> CPUThread(int cpu, dataReader dataRead)
+        private bool CPUThread(int cpu, dataReader dataRead)
         {
             ulong count = 0;
             byte[] buffer = new byte[chunkSize];
@@ -1391,9 +1411,9 @@ namespace OpenForensics
                 updateSegments();   // UI update
 
                 // Launch analysis
-                updateGPUAct(cpu, true, false);
+                updateGPUAct(cpu, 1);
                 int[] tmpResults = Engine.CPUPFACAnalyse(buffer, lookup, targetEnd, ref foundID, ref foundLoc, target.Length);
-                updateGPUAct(cpu, false, false);
+                updateGPUAct(cpu, 0);
 
                 // Are there any matches found?
                 bool matchesFound = false;
@@ -1409,7 +1429,7 @@ namespace OpenForensics
                 // Carve if mactches exist, update UI
                 if (matchesFound)
                 {
-                    updateGPUAct(cpu, true, true);
+                    updateGPUAct(cpu, 2);
                     int resultCount = 0;
                     for (int z = 0; z < foundID.Length; z++)
                         if (foundID[z] == 0)
@@ -1420,7 +1440,7 @@ namespace OpenForensics
                         }
                     Array.Sort(foundLoc, foundID);
                     ProcessFoundResults(ref buffer, 0, ref count, ref foundID, ref foundLoc);
-                    updateGPUAct(cpu, false, false);
+                    updateGPUAct(cpu, 0);
                 }
 
                 // Clear buffer and byteLocation for reuse
@@ -1439,7 +1459,7 @@ namespace OpenForensics
             foundLoc = new int[1];
             updateGPUAct(cpu, true);
 
-            return Task.FromResult(true);
+            return true; // Task.FromResult(true);
         }
 
         private bool GPUThread(int gpu, int gpuCore, dataReader dataRead)
@@ -1457,14 +1477,12 @@ namespace OpenForensics
                 chunkCount++;                                       // For each buffer used, increment count
                 updateSegments();
 
-                updateGPUAct(gpuID, true, false);
+                updateGPUAct(gpuID, 1);
                 GPUCollection[gpu].CopyToDevice(gpuCore, buffer);            // Copy buffer contents to GPU for processing  
-                updateGPUAct(gpuID, false, false);
 
                 // Launch file carving on GPU
-                updateGPUAct(gpuID, true, false);
                 GPUCollection[gpu].LaunchPFACCarving(gpuCore);
-                updateGPUAct(gpuID, false, false);
+                updateGPUAct(gpuID, 0);
 
                 // Validate whether matches were found
                 bool matchesFound = false;
@@ -1485,7 +1503,7 @@ namespace OpenForensics
                 // If matches found, perform file carving on CPU
                 if (matchesFound)
                 {
-                    updateGPUAct(gpuID, true, true);
+                    updateGPUAct(gpuID, 2);
                     int resultCount = 0;
                     for (int z = 0; z < foundID.Length; z++)
                         if (foundID[z] == 0)
@@ -1496,35 +1514,58 @@ namespace OpenForensics
                         }
                     Array.Sort(foundLoc, foundID);
 
-                    //// Method 1 -- Explicit Thread Launching
+                    // Method 1 -- Explicit Thread Launching
+                    int completedThreads = 0;
+                    ManualResetEvent threadsDone = new ManualResetEvent(false);
+
+                    // Launch processing threads
+                    Thread[] ProcessingThreads = new Thread[procShare];
+                    for (int i = 0; i < procShare; i++)
+                    {
+                        int tmpIndex = i;
+                        ProcessingThreads[tmpIndex] = new Thread(() =>
+                        {
+                            ProcessFoundResults(ref buffer, tmpIndex, ref count, ref foundID, ref foundLoc);
+                            Interlocked.Increment(ref completedThreads);
+                            if (completedThreads == procShare)
+                                threadsDone.Set();
+                        });
+                        ProcessingThreads[tmpIndex].IsBackground = true;
+                        ProcessingThreads[tmpIndex].Start();
+                    }
+
+                    threadsDone.WaitOne();
+
+                    // Method 2 -- Using TaskFactory for a customised scheduler
+                    //TaskFactory factory = new TaskFactory();
+
                     //int completedThreads = 0;
                     //ManualResetEvent threadsDone = new ManualResetEvent(false);
 
+                    //Task[] tasks = new Task[gpuCoreCount];
+
                     //// Launch processing threads
-                    //Thread[] ProcessingThreads = new Thread[procShare];
-                    //for (int i = 0; i < procShare; i++)
+                    //for (int i = 0; i < gpuCoreCount; i++)
                     //{
                     //    int tmpIndex = i;
-                    //    ProcessingThreads[tmpIndex] = new Thread(() =>
+                    //    tasks[i] = factory.StartNew(async delegate
                     //    {
-                    //        ProcessFoundResults(ref buffer, tmpIndex, ref count, ref foundID, ref foundLoc);
+                    //        await ProcessFoundResults(ref buffer, tmpIndex, ref count, ref foundID, ref foundLoc);
                     //        Interlocked.Increment(ref completedThreads);
-                    //        if (completedThreads == procShare)
+                    //        if (completedThreads == gpuCoreCount)
                     //            threadsDone.Set();
-                    //    });
-                    //    ProcessingThreads[tmpIndex].IsBackground = true;
-                    //    ProcessingThreads[tmpIndex].Start();
+                    //    }, TaskCreationOptions.PreferFairness, TaskCreationOptions.LongRunning).Unwrap();
                     //}
-
                     //threadsDone.WaitOne();
 
                     // Parallel.For Method
-                    Parallel.For(0, procShare, async i =>
-                    {
-                        await ProcessFoundResults(ref buffer, i, ref count, ref foundID, ref foundLoc);
-                    });
-                    Task.WaitAll();
-                    updateGPUAct(gpuID, false, true);
+                    //Parallel.For(0, procShare, async i =>
+                    //{
+                    //    await ProcessFoundResults(ref buffer, i, ref count, ref foundID, ref foundLoc);
+                    //});
+                    //Task.WaitAll();
+
+                    updateGPUAct(gpuID, 0);
                 }
 
                 // Clear buffer
@@ -1574,7 +1615,7 @@ namespace OpenForensics
 
         #region File Carving Operations
 
-        private Task<Boolean> ProcessFoundResults(ref byte[] buffer, int threadNo, ref ulong count, ref byte[] resultID, ref int[] resultLoc)
+        private bool ProcessFoundResults(ref byte[] buffer, int threadNo, ref ulong count, ref byte[] resultID, ref int[] resultLoc)
         {
             int i = (threadNo * (resultLoc.Length / procShare));
             int end = ((threadNo + 1) * (resultLoc.Length / procShare));
@@ -1618,7 +1659,7 @@ namespace OpenForensics
                             thumbnailQueue.StartNew(async delegate
                             {
                                 await addThumb(fileData, fileID.ToString());
-                            }, TaskCreationOptions.AttachedToParent).Unwrap();
+                            }, TaskCreationOptions.PreferFairness).Unwrap();
                         }
                     }
                 }
@@ -1628,7 +1669,7 @@ namespace OpenForensics
 
             updateFound();
 
-            return Task.FromResult(true);
+            return true; // Task.FromResult(true);
         }
 
         // Result processing. Buffer is divided between logical cores assigned to file carve.
@@ -1727,14 +1768,14 @@ namespace OpenForensics
         {
             updateHeader("Extracting files from data...");
 
-            CarveBtnUsable(false, false);
+            AfterAnalysisButtons(false, false);
 
             carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
             dataReader dataRead = new dataReader(FilePath, longestTarget);
             carveResults(dataRead);
             dataRead.CloseFile();
 
-            CarveBtnUsable(true, true);
+            AfterAnalysisButtons(true, true);
 
             updateHeader("Extraction complete!");
         }
@@ -1762,7 +1803,7 @@ namespace OpenForensics
             {
                 if (carvableFiles[currentFile-1].end != 0)
                 {
-                    updateGPUAct(cpu, true, true);
+                    updateGPUAct(cpu, 2);
                     string filePath = saveLocation + carvableFiles[currentFile-1].filetype + "/";
                     if (!Directory.Exists(filePath))
                         Directory.CreateDirectory(filePath);
@@ -1775,7 +1816,7 @@ namespace OpenForensics
                         }
                         catch { }
                     }
-                    updateGPUAct(cpu, false, true);
+                    updateGPUAct(cpu, 0);
                 }
 
                 // Update progress
@@ -1915,6 +1956,11 @@ namespace OpenForensics
         {
             Thread carve = new Thread(new ThreadStart(BeginCarve));
             carve.Start();
+        }
+
+        private void btnAnalysisLog_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(saveLocation + "LogFile.txt");
         }
     }
 }

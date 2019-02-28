@@ -47,6 +47,7 @@
             this.lstThumbs = new System.Windows.Forms.ListView();
             this.btnStop = new System.Windows.Forms.Button();
             this.btnCarve = new System.Windows.Forms.Button();
+            this.btnAnalysisLog = new System.Windows.Forms.Button();
             this.grpGPUActivity.SuspendLayout();
             this.grpProcessed.SuspendLayout();
             this.SuspendLayout();
@@ -259,11 +260,24 @@
             this.btnCarve.UseVisualStyleBackColor = true;
             this.btnCarve.Click += new System.EventHandler(this.btnCarve_Click);
             // 
+            // btnAnalysisLog
+            // 
+            this.btnAnalysisLog.Enabled = false;
+            this.btnAnalysisLog.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnAnalysisLog.Location = new System.Drawing.Point(175, 775);
+            this.btnAnalysisLog.Name = "btnAnalysisLog";
+            this.btnAnalysisLog.Size = new System.Drawing.Size(157, 27);
+            this.btnAnalysisLog.TabIndex = 11;
+            this.btnAnalysisLog.Text = "Open Analysis Log";
+            this.btnAnalysisLog.UseVisualStyleBackColor = true;
+            this.btnAnalysisLog.Click += new System.EventHandler(this.btnAnalysisLog_Click);
+            // 
             // Analysis
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.ClientSize = new System.Drawing.Size(575, 810);
+            this.Controls.Add(this.btnAnalysisLog);
             this.Controls.Add(this.btnCarve);
             this.Controls.Add(this.btnStop);
             this.Controls.Add(this.lstThumbs);
@@ -312,5 +326,6 @@
         private System.Windows.Forms.ListView lstThumbs;
         private System.Windows.Forms.Button btnStop;
         private System.Windows.Forms.Button btnCarve;
+        private System.Windows.Forms.Button btnAnalysisLog;
     }
 }
