@@ -462,7 +462,7 @@ namespace OpenForensics
                 ilist.ImageSize = new Size(120, 120);
                 ilist.ColorDepth = ColorDepth.Depth16Bit;
 
-                //typeof(Control).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(lstThumbs, true, null);
+                typeof(Control).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(lstThumbs, true, null);
                 lstThumbs.LargeImageList = ilist;
                 lstThumbs.Scrollable = true;
                 lstThumbs.ListViewItemSorter = null;
