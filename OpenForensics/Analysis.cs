@@ -600,14 +600,14 @@ namespace OpenForensics
                     Invoke((MethodInvoker)delegate
                     {
                         lblHeader.Text = text;
+                        lblHeader.Refresh();
                     });
                 }
                 else
                 {
                     lblHeader.Text = text;
+                    lblHeader.Refresh();
                 }
-
-                lblHeader.Refresh();
             }
             catch (Exception)
             { }
@@ -623,11 +623,13 @@ namespace OpenForensics
                     Invoke((MethodInvoker)delegate
                     {
                         lblSegmentsValue.Text = chunkCount.ToString();
+                        lblSegmentsValue.Refresh();
                     });
                 }
                 else
                 {
                     lblSegmentsValue.Text = chunkCount.ToString();
+                    lblSegmentsValue.Refresh();
                 }
             }
             catch (Exception)
@@ -648,10 +650,14 @@ namespace OpenForensics
                     Invoke((MethodInvoker)delegate
                     {
                         lblFoundValue.Text = total.ToString();
+                        lblFoundValue.Refresh();
                     });
                 }
                 else
+                {
                     lblFoundValue.Text = total.ToString();
+                    lblFoundValue.Refresh();
+                }
             }
             catch (Exception)
             { }
@@ -673,6 +679,8 @@ namespace OpenForensics
                                 gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
                         else
                             gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+
+                        gpuLabel[gpu].Refresh();
                     });
                 }
                 else
@@ -684,6 +692,8 @@ namespace OpenForensics
                             gpuLabel[gpu].BackColor = System.Drawing.Color.LightGreen; // Actively Searching.
                     else
                         gpuLabel[gpu].BackColor = System.Drawing.Color.Green;  // Idle.
+
+                    gpuLabel[gpu].Refresh();
                 }
             }
             catch (Exception)
@@ -701,11 +711,13 @@ namespace OpenForensics
                         Invoke((MethodInvoker)delegate
                         {
                             gpuLabel[gpu].BackColor = System.Drawing.Color.DimGray;    // Processing thread finished.
+                            gpuLabel[gpu].Refresh();
                         });
                     }
                     else
                     {
                         gpuLabel[gpu].BackColor = System.Drawing.Color.DimGray;    // Processing thread finished.
+                        gpuLabel[gpu].Refresh();
                     }
                 }
             }
@@ -735,12 +747,16 @@ namespace OpenForensics
                         {
                             lblTimeElapsedValue.Text = formattedElapsed;
                             lblTimeRemainingValue.Text = formattedRemaining;
+                            lblTimeElapsedValue.Refresh();
+                            lblTimeRemainingValue.Refresh();
                         });
                     }
                     else
                     {
                         lblTimeElapsedValue.Text = formattedElapsed;
                         lblTimeRemainingValue.Text = formattedRemaining;
+                        lblTimeElapsedValue.Refresh();
+                        lblTimeRemainingValue.Refresh();
                     }
                 }
 
@@ -751,6 +767,9 @@ namespace OpenForensics
                         pbProgress.Value = percent;
                         lblProgress.Text = percent + "%";
                         lblProcess.Text = "Processing: " + position + " / " + total;
+                        pbProgress.Refresh();
+                        lblProgress.Refresh();
+                        lblProcess.Refresh();
                     });
                 }
                 else
@@ -758,6 +777,9 @@ namespace OpenForensics
                     pbProgress.Value = percent;
                     lblProgress.Text = percent + "%";
                     lblProcess.Text = "Processing: " + position + " / " + total;
+                    pbProgress.Refresh();
+                    lblProgress.Refresh();
+                    lblProcess.Refresh();
                 }
             }
             catch (Exception)
@@ -767,17 +789,18 @@ namespace OpenForensics
         private Image getThumbnaiImage(int width, Image img)
         {
             Image thumb = new Bitmap(width, width);
-            Image tmp = null;
+            //Image tmpThumb = null;
 
             if (img.Width < width && img.Height < width)
             {
-                using (Graphics g = Graphics.FromImage(thumb))
+                using (Graphics drawThumb = Graphics.FromImage(thumb))
                 {
-                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-                    g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                    int xoffset = (int)((width - img.Width) / 2);
-                    int yoffset = (int)((width - img.Height) / 2);
-                    g.DrawImage(img, xoffset, yoffset, img.Width, img.Height);
+                    drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
+                    drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                    drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                    int xOffset = (int)((width - img.Width) / 2);
+                    int yOffset = (int)((width - img.Height) / 2);
+                    drawThumb.DrawImage(img, xOffset, yOffset, img.Width, img.Height);
                 }
             }
             else
@@ -790,37 +813,36 @@ namespace OpenForensics
                 }
                 else
                 {
-                    int k = 0;
-                    int xoffset = 0;
-                    int yoffset = 0;
+                    int height = 0;
+                    int xOffset = 0;
+                    int yOffset = 0;
 
                     if (img.Width < img.Height)
                     {
-                        k = (int)(width * img.Width / img.Height);
-                        tmp = img.GetThumbnailImage(k, width, myCallback, IntPtr.Zero);
-                        xoffset = (int)((width - k) / 2);
+                        height = (int)(width * img.Width / img.Height);
+                        //tmpThumb = img.GetThumbnailImage(height, width, myCallback, IntPtr.Zero);
+                        xOffset = (int)((width - height) / 2);
                     }
 
                     if (img.Width > img.Height)
                     {
-                        k = (int)(width * img.Height / img.Width);
-                        tmp = img.GetThumbnailImage(width, k, myCallback, IntPtr.Zero);
-                        yoffset = (int)((width - k) / 2);
+                        height = (int)(width * img.Height / img.Width);
+                        //tmpThumb = img.GetThumbnailImage(width, height, myCallback, IntPtr.Zero);
+                        yOffset = (int)((width - height) / 2);
                     }
 
-                    using (Graphics g = Graphics.FromImage(thumb))
+                    using (Graphics drawThumb = Graphics.FromImage(thumb))
                     {
-                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-                        g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                        g.DrawImage(tmp, xoffset, yoffset, tmp.Width, tmp.Height);
+                        drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
+                        drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                        drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                        drawThumb.DrawImage(img, xOffset, yOffset, width, height);
                     }
                 }
             }
             
             return thumb;
         }
-
-
 
         public bool ThumbnailCallback()
         {
@@ -846,6 +868,8 @@ namespace OpenForensics
                             lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
                             lstThumbs.EndUpdate();
                             thumbCount++;
+                            if (thumbCount % 4 == 0)
+                                lstThumbs.Refresh();
                         }
                     });
                 }
@@ -864,12 +888,13 @@ namespace OpenForensics
                             lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
                             lstThumbs.EndUpdate();
                             thumbCount++;
+                            if (thumbCount % 4 == 0)
+                                lstThumbs.Refresh();
                         }
                     }
                 }
 
                 return Task.FromResult(true);
-                //lstThumbs.Refresh();
             }
             catch (Exception)
             {
@@ -907,10 +932,14 @@ namespace OpenForensics
                     Invoke((MethodInvoker)delegate
                     {
                         btnStop.Enabled = state;
+                        btnStop.Refresh();
                     });
                 }
                 else
+                {
                     btnStop.Enabled = state;
+                    btnStop.Refresh();
+                }
             }
             catch (Exception)
             { }
@@ -929,6 +958,8 @@ namespace OpenForensics
                             btnCarve.BackColor = Color.LightGreen;
                         else
                             btnCarve.BackColor = SystemColors.Control;
+
+                        btnCarve.Refresh();
                     });
                 }
                 else
@@ -938,6 +969,8 @@ namespace OpenForensics
                         btnCarve.BackColor = Color.LightGreen;
                     else
                         btnCarve.BackColor = SystemColors.Control;
+
+                    btnCarve.Refresh();
                 }
             }
             catch (Exception)
@@ -951,14 +984,10 @@ namespace OpenForensics
                 Invoke((MethodInvoker)delegate
                 {
                     this.Refresh();
-                    Application.DoEvents();
                 });
             }
             else
-            {
                 this.Refresh();
-                Application.DoEvents();
-            }
         }
 
         #endregion
@@ -1029,6 +1058,8 @@ namespace OpenForensics
 
                     threadsDone.WaitOne();
                 });
+
+                RefreshForm();
 
                 List<foundRecord> tmpFoundRecords = new List<foundRecord>();
                 tmpFoundRecords.AddRange(foundRecords.ToArray());
@@ -1154,16 +1185,19 @@ namespace OpenForensics
                     //}
                     //Task.WaitAll(tasks);
 
-
-                    List<foundRecord> tmpFoundRecords = new List<foundRecord>();
-                    tmpFoundRecords.AddRange(foundRecords.ToArray());
-                    tmpFoundRecords.Sort((s1, s2) => s1.location.CompareTo(s2.location));
-                    Parallel.For(0, lpCount, async i =>
-                    {
-                        await ProcessLocations(i, ref tmpFoundRecords);
-                    });
-                    Task.WaitAll();
                 });
+
+
+                RefreshForm();
+
+                List<foundRecord> tmpFoundRecords = new List<foundRecord>();
+                tmpFoundRecords.AddRange(foundRecords.ToArray());
+                tmpFoundRecords.Sort((s1, s2) => s1.location.CompareTo(s2.location));
+                Parallel.For(0, lpCount, async i =>
+                {
+                    await ProcessLocations(i, ref tmpFoundRecords);
+                });
+                Task.WaitAll();
 
                 // When all threads complete, free memory and close file
                 for (int i = 0; i < GPUCollection.Count; i++)
@@ -1369,9 +1403,6 @@ namespace OpenForensics
                     Array.Sort(foundLoc, foundID);
                     ProcessFoundResults(ref buffer, 0, ref count, ref foundID, ref foundLoc);
                     updateGPUAct(cpu, false, false);
-
-                    // Force refresh form -- experimental fix for <4 core systems
-                    RefreshForm();
                 }
 
                 // Clear buffer and byteLocation for reuse
@@ -1476,9 +1507,6 @@ namespace OpenForensics
                     });
                     Task.WaitAll();
                     updateGPUAct(gpuID, false, true);
-
-                    // Force refresh form -- experimental fix for <4 core systems
-                    RefreshForm();
                 }
 
                 // Clear buffer
@@ -1572,7 +1600,7 @@ namespace OpenForensics
                             thumbnailQueue.StartNew(async delegate
                             {
                                 await addThumb(fileData, fileID.ToString());
-                            }, TaskCreationOptions.PreferFairness).Unwrap();
+                            }, TaskCreationOptions.AttachedToParent).Unwrap();
                         }
                     }
                 }
