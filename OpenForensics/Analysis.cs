@@ -853,7 +853,7 @@ namespace OpenForensics
         {
             try
             {
-                if (lblHeader.InvokeRequired)
+                if (lstThumbs.InvokeRequired)
                 {
                     Invoke((MethodInvoker)delegate
                     {
@@ -865,11 +865,13 @@ namespace OpenForensics
                             lvi.ImageIndex = thumbCount;
                             lstThumbs.BeginUpdate();
                             lstThumbs.Items.Add(lvi);
-                            lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
                             lstThumbs.EndUpdate();
                             thumbCount++;
                             if (thumbCount % 4 == 0)
+                            {
+                                GoToLastThumbnail();
                                 lstThumbs.Refresh();
+                            }
                         }
                     });
                 }
@@ -885,11 +887,13 @@ namespace OpenForensics
                             lvi.ImageIndex = thumbCount;
                             lstThumbs.BeginUpdate();
                             lstThumbs.Items.Add(lvi);
-                            lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
                             lstThumbs.EndUpdate();
                             thumbCount++;
                             if (thumbCount % 4 == 0)
+                            {
+                                GoToLastThumbnail();
                                 lstThumbs.Refresh();
+                            }
                         }
                     }
                 }
@@ -902,6 +906,19 @@ namespace OpenForensics
             }
         }
 
+        private void GoToLastThumbnail()
+        {
+            if (lstThumbs.InvokeRequired)
+            {
+                Invoke((MethodInvoker)delegate
+                {
+                    lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
+                });
+            }
+            else
+                lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
+        }
+
         private void lstThumbs_SelectedIndexChanged(object sender, EventArgs e)
         {
             try
@@ -911,7 +928,7 @@ namespace OpenForensics
                     using (Form form = new Form())
                     {
                         form.Text = "Image Preview";
-                        form.Size = new Size(512, 512);
+                        form.Size = new Size(256, 256);
                         form.BackgroundImageLayout = ImageLayout.Stretch;
                         form.BackgroundImage = ilist.Images[lstThumbs.Items.IndexOf(lstThumbs.SelectedItems[0])];
 
@@ -1059,6 +1076,7 @@ namespace OpenForensics
                     threadsDone.WaitOne();
                 });
 
+                GoToLastThumbnail();
                 RefreshForm();
 
                 List<foundRecord> tmpFoundRecords = new List<foundRecord>();
@@ -1187,7 +1205,7 @@ namespace OpenForensics
 
                 });
 
-
+                GoToLastThumbnail();
                 RefreshForm();
 
                 List<foundRecord> tmpFoundRecords = new List<foundRecord>();
