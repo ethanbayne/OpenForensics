@@ -31,11 +31,11 @@ If data exists for the case and file/storage device, an option will present itse
 
 File-types are populated from the FileTypes.xml file. OpenForensics will load the file-types specified in this file when the program launches. Each file-type specified in FileTypes.xml should have values for:
 
-    1. Type -- (Image/Video/Audio/Document/Misc) -- used to categorise file types for batch searching.
-    2. Name -- Used as a file identifier and also for file extension for carved files.
-    3. Value -- File header in byte format without spaces (e.g. FFD8FFE00010).
-    4. EOF (Optional) -- File footer in byte format without spaces (e.g. FFD9). Required for file carving.
-    5. MaxLengthMB (Optional) -- Specifies the maximum file length for the type of file (Default: 10 MiB).
+   1. __Type__ - _(Image/Video/Audio/Document/Misc)_ - used to categorise file types for batch searching.
+   2. __Name__ - Used as a file identifier and also for file extension for carved files.
+   3. __Value__ - File header in byte format without spaces _(e.g. FFD8FFE00010)_.
+   4. __EOF__ ___(Optional - Required for file carving)___ - File footer in byte format without spaces _(e.g. FFD9)_.
+   5. __MaxLengthMB__ ___(Optional)___ - Specifies the maximum file length for the type of file _(Default: 10 MiB)_.
 
 # Open-source License
 OpenForensics Copyright © 2016 - 2018 Ethan Bayne
