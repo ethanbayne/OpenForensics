@@ -42,8 +42,9 @@ namespace OpenForensics
         // Version 1.71b - Analysis message box prompt replaced by buttons.
         // Version 1.73b - Analysis interface refactored for visualisation. Introduced thread-safe stop search function to safely abort searching.
         // Version 1.76b - Further refactoring and concurrency improvements with visualisation introduction.
+        // Version 1.78b - Preparing visualisation branch merge into master by enabling optional image preview processing
 
-        private string version = "v. 1.76b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.78b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
