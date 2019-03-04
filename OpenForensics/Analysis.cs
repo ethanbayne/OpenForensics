@@ -765,33 +765,12 @@ namespace OpenForensics
                 // Start stopwatch, open file defined by user
                 double time = MeasureTime(() =>
                 {
-                    //// Original Method -- Parallel For Method (each logical Core employed, launch an async task)
-                    //Parallel.For(0, lpCount, async i =>
-                    //{
-                    //    await CPUThread(i, dataRead);
-                    //});
-                    //Task.WaitAll();
-
-                    // Method 1 -- Explicit Thread Launching -- Fastest
-                    int completedThreads = 0;
-                    ManualResetEvent threadsDone = new ManualResetEvent(false);
-
-                    // Launch processing threads
-                    Thread[] ProcessingThreads = new Thread[lpCount];
-                    for (int nCPU = 0; nCPU < lpCount; nCPU++)
+                    // Launch a thread for each logical core of the CPU
+                    Parallel.For(0, lpCount, async i =>
                     {
-                        int tmpCPU = nCPU;
-                        ProcessingThreads[tmpCPU] = new Thread(() => {
-                            CPUThread(tmpCPU, dataRead);
-                            Interlocked.Increment(ref completedThreads);
-                            if (completedThreads == lpCount)
-                                threadsDone.Set();
-                        });
-                        ProcessingThreads[tmpCPU].IsBackground = true;
-                        ProcessingThreads[tmpCPU].Start();
-                    }
-
-                    threadsDone.WaitOne();
+                        await CPUThread(i, dataRead);
+                    });
+                    Task.WaitAll();
                 });
 
                 List<foundRecord> tmpFoundRecords = new List<foundRecord>();
@@ -862,61 +841,15 @@ namespace OpenForensics
                 // Start stopwatch, open file defined by user
                 double time = MeasureTime(() =>
                 {
-                    //// Original Method -- Parallel For Method (each GPU employed, launch an async task)
-                    //Parallel.For(0, GPUCollection.Count, i =>
-                    //{
-                    //    Parallel.For(0, gpuCoreCount, async j =>
-                    //    {
-                    //        await GPUThread(i, j, dataRead);
-                    //    });
-                    //});
-                    //Task.WaitAll();
-
-                    // Method 1 -- Explicit Thread Launching -- Fastest
-                    int completedThreads = 0;
-                    ManualResetEvent threadsDone = new ManualResetEvent(false);
-
-                    // Launch processing threads
-                    Thread[] ProcessingThreads = new Thread[GPUCollection.Count * gpuCoreCount];
-                    for (int nGpu = 0; nGpu < GPUCollection.Count; nGpu++)
+                    // For each GPU employed, launch a dedicated thread
+                    Parallel.For(0, GPUCollection.Count, i =>
                     {
-                        for (int nCore = 0; nCore < gpuCoreCount; nCore++)
+                        Parallel.For(0, gpuCoreCount, async j =>
                         {
-                            int tmpGPU = nGpu;
-                            int tmpCore = nCore;
-                            ProcessingThreads[tmpGPU * tmpCore + tmpCore] = new Thread(() => {
-                                GPUThread(tmpGPU, tmpCore, dataRead);
-                                Interlocked.Increment(ref completedThreads);
-                                if (completedThreads == GPUCollection.Count * gpuCoreCount)
-                                    threadsDone.Set();
-                            });
-                            ProcessingThreads[tmpGPU * tmpCore + tmpCore].IsBackground = true;
-                            ProcessingThreads[tmpGPU * tmpCore + tmpCore].Start();
-                        }
-                    }
-
-                    threadsDone.WaitOne();
-
-                    //// Method 2 -- Using TaskFactory for a customised scheduler
-                    //LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(lpCount);
-                    //TaskFactory factory = new TaskFactory(scheduler);
-
-                    //Task[] tasks = new Task[GPUCollection.Count * gpuCoreCount];
-
-                    //// Launch processing threads
-                    //for (int nGpu = 0; nGpu < GPUCollection.Count; nGpu++)
-                    //{
-                    //    for (int nCore = 0; nCore < gpuCoreCount; nCore++)
-                    //    {
-                    //        int tmpGPU = nGpu;
-                    //        int tmpCore = nCore;
-                    //        tasks[tmpGPU * tmpCore + tmpCore] = factory.StartNew(async delegate
-                    //        {
-                    //            await GPUThread(tmpGPU, tmpCore, dataRead);
-                    //        }, TaskCreationOptions.PreferFairness, TaskCreationOptions.LongRunning).Unwrap();
-                    //    }
-                    //}
-                    //Task.WaitAll(tasks);
+                            await GPUThread(i, j, dataRead);
+                        });
+                    });
+                    Task.WaitAll();
 
                     List<foundRecord> tmpFoundRecords = new List<foundRecord>();
                     tmpFoundRecords.AddRange(foundRecords.ToArray());
