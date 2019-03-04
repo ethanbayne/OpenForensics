@@ -18,14 +18,12 @@ This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.c
 OpenForensics will create a set of sub-folders and files to store results. The directory and file hierarchy created is: 
 
     <save-location>
-
       └─ <case-reference> default:"OpenForensics Output"
- 
-        └─ <evidence-reference> default:file/drive name
+         └─ <evidence-reference> default:file/drive name
             ├─ LogFile.txt
             ├─ CarvableFileData.of
             └─ <Folder of each file-type carved>
-                └─ <Files carved>
+               └─ <Files carved>
 
 If data exists for the case and file/storage device, an option will present itself to query whether you want to reproduce files using existing results. Selecting No will prompt whether you want to overwrite the existing results with a new search. Warning: Old results will be erased when proceeding.
 
