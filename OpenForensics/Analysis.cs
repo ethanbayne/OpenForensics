@@ -1943,6 +1943,11 @@ namespace OpenForensics
 
         private void btnCarve_Click(object sender, EventArgs e)
         {
+            if(imagePreview)
+            {
+                shouldStop = true;
+                StopBtnUsable(false);
+            }
             Thread carve = new Thread(new ThreadStart(BeginCarve));
             carve.Start();
         }
