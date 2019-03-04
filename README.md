@@ -1,4 +1,5 @@
-# OpenForensics
+![alt text](https://github.com/ethanbayne/OpenForensics/blob/master/OpenForensics/Resources/OpenForensicsLogo2.png "OpenForensics Logo")
+
 OpenForensics is an open-source OpenCL Digital Forensics analysis and file carving tool. This prototype tool was built in conjunction with PhD research from Dr Ethan Bayne as a platform to demonstrate the performance enhancements possible when applying GPGPU processing and an optimised PFAC algorithm to the problem of string searching in the field of Digital Forensics. Details of the supporting research can be found in the completed thesis by Dr Ethan Bayne:
 
 https://rke.abertay.ac.uk/en/studentTheses/accelerating-digital-forensic-searching-through-gpgpu-parallel-pr
@@ -6,14 +7,13 @@ https://rke.abertay.ac.uk/en/studentTheses/accelerating-digital-forensic-searchi
 This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.com/). Currently, the file carving provided by this tool is considered basic (carves data between found header and footer). Whilst it is intended to develop more advanced file carving features in time, we would welcome collaborators to help build upon the functionality of the tool.
 
 # Basic Usage
-    1. (Optional) Provide a case reference and evidence reference.
-    2. Select either a physical drive or a file to perform physical searching on.
-    3. Select targets (either file-types or keywords).
-    4. (Optional) Choose processing technique (GPU usage recommended).
-    5. (Optional) Choose whether you would like to generate a live preview of JPG images found during searching. 
-                  (Searching will be slower and will cause higher memory usage with this enabled.)
-    5. Click Analyse.
-    6. Choose location to save results.
+   1. ___(Optional)___ Provide a case reference and evidence reference.
+   2. Select either a physical drive or a file to perform physical searching on.
+   3. Select targets _(either file-types or keywords)_.
+   4. ___(Optional)___ Choose processing technique _(GPU usage recommended)_.
+   5. ___(Optional)___ Choose whether you would like to generate a live preview of JPG images found during searching. _(Searching will be slower and will cause higher memory usage with this enabled.)_
+   6. Click Analyse.
+   7. Choose location to save results.
 
 OpenForensics will create a set of sub-folders and files to store results. The directory and file hierarchy created is: 
 
