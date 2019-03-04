@@ -10,6 +10,7 @@ This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.c
     2. Select either a physical drive or a file to perform physical searching on.
     3. Select targets (either file-types or keywords).
     4. (Optional) Choose processing technique (GPU usage recommended).
+    5. (Optional) Choose whether you would like to generate a live preview of JPG images found during searching (searching will be slower and preview images will cause higher memory usage)
     5. Click Analyse.
     6. Choose location to save results.
 
