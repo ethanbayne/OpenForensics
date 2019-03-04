@@ -7,11 +7,11 @@ https://rke.abertay.ac.uk/en/studentTheses/accelerating-digital-forensic-searchi
 This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.com/). Currently, the file carving provided by this tool is considered basic (carves data between found header and footer). Whilst it is intended to develop more advanced file carving features in time, we would welcome collaborators to help build upon the functionality of the tool.
 
 # Basic Usage
-   1. ___(Optional)___ Provide a case reference and evidence reference.
+   1. Provide a case reference and evidence reference ___(Optional)___.
    2. Select either a physical drive or a file to perform physical searching on.
    3. Select targets _(either file-types or keywords)_.
-   4. ___(Optional)___ Choose processing technique _(GPU usage recommended)_.
-   5. ___(Optional)___ Choose whether you would like to generate a live preview of JPG images found during searching. _(Searching will be slower and will cause higher memory usage with this enabled.)_
+   4. Choose processing technique ___(Optional - GPU usage recommended)___.
+   5. Choose whether you would like to generate a live preview of JPG images found during searching. ___(Optional - Searching will be slower and will cause higher memory usage with this enabled)___.
    6. Click Analyse.
    7. Choose location to save results.
 
