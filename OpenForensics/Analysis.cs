@@ -446,8 +446,8 @@ namespace OpenForensics
                 if(!imagePreview)
                 {
                     lstThumbs.Visible = false;
-                    this.Size = new Size (this.Size.Width, this.Size.Height - lstThumbs.Size.Height);
-                    pnlControls.Location = new Point(0, 15);
+                    this.Size = new Size (this.Size.Width, this.Size.Height - (lstThumbs.Size.Height + 10));
+                    pnlControls.Location = new Point(0, 5);
                     this.CenterToScreen();
                 }
 
