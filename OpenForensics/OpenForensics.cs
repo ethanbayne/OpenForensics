@@ -57,6 +57,8 @@ namespace OpenForensics
         private string fileName = "";
         private string carvableFileRecord = "";
 
+        private bool imagePreview = false;
+
         // Arrays for all search target types
         private List<string> targetName = new List<string>();
         private List<string> targetHeader = new List<string>();
@@ -284,6 +286,11 @@ namespace OpenForensics
                 btnFileOpen.BackColor = Color.DarkSeaGreen;
                 btnDriveOpen.BackColor = SystemColors.Control;
             }
+        }
+        
+        private void chkImagePreview_CheckedChanged(object sender, EventArgs e)
+        {
+            imagePreview = chkImagePreview.Checked;
         }
 
         #endregion
@@ -803,6 +810,7 @@ namespace OpenForensics
             input.targetHeader = targetHeader;
             input.targetFooter = targetFooter;
             input.targetLength = targetLength;
+            input.imagePreview = imagePreview;
 
             anFrm.InputSet = input;
             anFrm.Show();

@@ -365,6 +365,7 @@ namespace OpenForensics
             public List<string> targetHeader { get; set; }
             public List<string> targetFooter { get; set; }
             public List<int> targetLength { get; set; }
+            public bool imagePreview { get; set; }
         }
 
         private volatile bool shouldStop = false;
@@ -409,10 +410,11 @@ namespace OpenForensics
 
         private List<Engine> GPUCollection = new List<Engine>();
 
-        ImageList ilist = new ImageList();
-        int thumbCount = 0;
-        TaskFactory thumbnailQueue;
-        object thumbnailLocker = new Object();
+        private bool imagePreview;
+        private ImageList ilist = new ImageList();
+        private int thumbCount = 0;
+        private TaskFactory thumbnailQueue;
+        private object thumbnailLocker = new Object();
 
 
         public Input InputSet
@@ -432,6 +434,7 @@ namespace OpenForensics
                 targetHeader = value.targetHeader;
                 targetFooter = value.targetFooter;
                 targetLength = value.targetLength;
+                imagePreview = value.imagePreview;
             }
         }
 
@@ -439,6 +442,14 @@ namespace OpenForensics
         {
             try
             {
+                // Live Preview form adjustments
+                if(!imagePreview)
+                {
+                    lstThumbs.Visible = false;
+                    this.Size = new Size (this.Size.Width, this.Size.Height - lstThumbs.Size.Height);
+                    pnlControls.Location = new Point(0, 15);
+                    this.CenterToScreen();
+                }
 
                 // Interface updates for tech
                 string techUsed = "";
@@ -1038,6 +1049,33 @@ namespace OpenForensics
         // Main analysis function
         private void FileAnalysis()
         {
+            #region Common Setup
+
+            String path = FilePath;                                 // Target DD File
+            LookupTableGen();
+            results = new int[target.Length / 2];           // Number of Results Found
+
+            // Figure out what will be the longest header
+            for (int i = 0; i < target.Length; i++)
+                if (target[i] != null && target[i].Length > longestTarget)
+                    longestTarget = target[i].Length;
+
+            // Set up data reader
+            dataReader dataRead = new dataReader(FilePath, longestTarget);
+            ulong fileSize = dataRead.GetFileSize();
+
+            totalProcessed = 0;
+            chunkCount = 0;                                 // Number of segments processed
+
+            if (imagePreview)
+            {
+                LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(Math.Min(4, lpCount / 2));
+                thumbnailQueue = new TaskFactory(scheduler);
+            }
+
+            double time = 0;
+
+            #endregion
 
             if (TestType == "CPU")
             {
@@ -1048,27 +1086,11 @@ namespace OpenForensics
                 // Uncomment for single-threaded CPU operation
                 //lpCount = 1;
 
-                String path = FilePath;                                 // Target DD File
-
-                LookupTableGen();
-
-                results = new int[target.Length/2];           // Number of Results Found
-
-                // Figure out what will be the longest header
-                for (int i = 0; i < target.Length; i++)
-                    if (target[i] != null && target[i].Length > longestTarget)
-                        longestTarget = target[i].Length;
-
                 // Each logical CPU core used will rely on the same thread to carve
                 procShare = 1;
 
-                // Set up data reader
-                dataReader dataRead = new dataReader(FilePath, longestTarget);
-
-                ulong fileSize = dataRead.GetFileSize();
-
                 // Start stopwatch, open file defined by user
-                double time = MeasureTime(() =>
+                time = MeasureTime(() =>
                 {
                     //// Original Method -- Parallel For Method (each logical Core employed, launch an async task)
                     //Parallel.For(0, lpCount, async i =>
@@ -1099,24 +1121,6 @@ namespace OpenForensics
                     threadsDone.WaitOne();
                 });
 
-                GoToLastThumbnail();
-                RefreshForm();
-
-                List<foundRecord> tmpFoundRecords = new List<foundRecord>();
-                tmpFoundRecords.AddRange(foundRecords.ToArray());
-                tmpFoundRecords.Sort((s1, s2) => s1.location.CompareTo(s2.location));
-                Parallel.For(0, lpCount, async i =>
-                {
-                    await ProcessLocations(i, ref tmpFoundRecords);
-                });
-                Task.WaitAll();
-
-                // Prepare the results file
-                PrepareResults(fileSize, time);
-
-                // When all threads have finished, close file
-                dataRead.CloseFile();
-
                 #endregion
             }
             else
@@ -1134,18 +1138,6 @@ namespace OpenForensics
 
                 updateHeader("Analysis Started using " + gpuText);
 
-                LookupTableGen();
-                
-                results = new int[target.Length / 2];                  // Number of Results Found
-
-                totalProcessed = 0;
-                chunkCount = 0;                                 // Number of segments processed
-
-                // Find longest header
-                for (int i = 0; i < target.Length; i++)
-                    if (target[i] != null && target[i].Length > longestTarget)
-                        longestTarget = target[i].Length;
-
                 // Create a GPU object for each GPU selected
                 foreach(int GPUid in gpus)
                 {
@@ -1159,16 +1151,8 @@ namespace OpenForensics
 
                 //procShare = 1; gpuCoreCount = 1; // Force logical CPU cores per GPU
 
-                // Set up data reader
-                dataReader dataRead = new dataReader(FilePath, longestTarget);
-
-                LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(Math.Min(4,lpCount/2));
-                thumbnailQueue = new TaskFactory(scheduler);
-
-                ulong fileSize = dataRead.GetFileSize();
-
                 // Start stopwatch, open file defined by user
-                double time = MeasureTime(() =>
+                time = MeasureTime(() =>
                 {
                     //// Original Method -- Parallel For Method (each GPU employed, launch an async task)
                     //Parallel.For(0, GPUCollection.Count, i =>
@@ -1228,33 +1212,36 @@ namespace OpenForensics
 
                 });
 
-                GoToLastThumbnail();
-                RefreshForm();
-
-                List<foundRecord> tmpFoundRecords = new List<foundRecord>();
-                tmpFoundRecords.AddRange(foundRecords.ToArray());
-                tmpFoundRecords.Sort((s1, s2) => s1.location.CompareTo(s2.location));
-                Parallel.For(0, lpCount, async i =>
-                {
-                    await ProcessLocations(i, ref tmpFoundRecords);
-                });
-                Task.WaitAll();
-
-                // When all threads complete, free memory and close file
-                for (int i = 0; i < GPUCollection.Count; i++)
-                {
-                    GPUCollection[i].FreeAll();                                   // Free all GPU resources
-                    GPUCollection[i].HostFreeAll();
-                }
-
-                // Prepare the results file
-                PrepareResults(fileSize, time);
-
-                // When all threads have finished, close file
-                dataRead.CloseFile();
-
                 #endregion
             }
+
+            #region Common Finish
+
+            if (imagePreview)
+                GoToLastThumbnail();
+            RefreshForm();
+
+            List<foundRecord> tmpFoundRecords = new List<foundRecord>();
+            tmpFoundRecords.AddRange(foundRecords.ToArray());
+            tmpFoundRecords.Sort((s1, s2) => s1.location.CompareTo(s2.location));
+            Parallel.For(0, lpCount, async i =>
+            {
+                await ProcessLocations(i, ref tmpFoundRecords);
+            });
+            Task.WaitAll();
+
+            // When all threads complete, free memory and close file
+            for (int i = 0; i < GPUCollection.Count; i++)
+            {
+                GPUCollection[i].FreeAll();                                   // Free all GPU resources
+                GPUCollection[i].HostFreeAll();
+            }
+
+            // Prepare the results file
+            PrepareResults(fileSize, time);
+
+            // When all threads have finished, close file
+            dataRead.CloseFile();
 
             if (carvableFiles.Count > 0)
                 AfterAnalysisButtons(true, true);
@@ -1264,8 +1251,10 @@ namespace OpenForensics
             else
                 updateHeader("Analysis Finished!");
 
-            StopBtnUsable(false);
-            //CarveClose();
+            if (!imagePreview)
+                StopBtnUsable(false);
+
+            #endregion
         }
 
         #region Result Prep
@@ -1648,7 +1637,7 @@ namespace OpenForensics
                         }
 
                         // If file end found and file size > 300KB, then add a thumbnail from the data whilst in memory.
-                        if (finish != 0 && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
+                        if (imagePreview && finish != 0 && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
                         {
                             ulong fileID = (count + (ulong)start);
                             byte[] fileData = new byte[finish - start];

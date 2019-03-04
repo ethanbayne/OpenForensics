@@ -54,6 +54,7 @@
             this.lblVersion = new System.Windows.Forms.Label();
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.pnlMainInterface = new System.Windows.Forms.Panel();
+            this.chkImagePreview = new System.Windows.Forms.CheckBox();
             this.txtEvidenceName = new System.Windows.Forms.TextBox();
             this.lblEvidenceName = new System.Windows.Forms.Label();
             this.txtCaseName = new System.Windows.Forms.TextBox();
@@ -351,6 +352,7 @@
             // 
             this.pnlMainInterface.BackColor = System.Drawing.SystemColors.Control;
             this.pnlMainInterface.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pnlMainInterface.Controls.Add(this.chkImagePreview);
             this.pnlMainInterface.Controls.Add(this.txtEvidenceName);
             this.pnlMainInterface.Controls.Add(this.lblEvidenceName);
             this.pnlMainInterface.Controls.Add(this.txtCaseName);
@@ -366,6 +368,17 @@
             this.pnlMainInterface.Name = "pnlMainInterface";
             this.pnlMainInterface.Size = new System.Drawing.Size(512, 473);
             this.pnlMainInterface.TabIndex = 43;
+            // 
+            // chkImagePreview
+            // 
+            this.chkImagePreview.AutoSize = true;
+            this.chkImagePreview.Location = new System.Drawing.Point(165, 440);
+            this.chkImagePreview.Name = "chkImagePreview";
+            this.chkImagePreview.Size = new System.Drawing.Size(134, 20);
+            this.chkImagePreview.TabIndex = 44;
+            this.chkImagePreview.Text = "Live Image Preview";
+            this.chkImagePreview.UseVisualStyleBackColor = true;
+            this.chkImagePreview.CheckedChanged += new System.EventHandler(this.chkImagePreview_CheckedChanged);
             // 
             // txtEvidenceName
             // 
@@ -517,6 +530,7 @@
         private System.Windows.Forms.Label lblCaseName;
         private System.Windows.Forms.TextBox txtEvidenceName;
         private System.Windows.Forms.Label lblEvidenceName;
+        private System.Windows.Forms.CheckBox chkImagePreview;
     }
 }
 

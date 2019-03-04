@@ -48,13 +48,15 @@
             this.btnStop = new System.Windows.Forms.Button();
             this.btnCarve = new System.Windows.Forms.Button();
             this.btnAnalysisLog = new System.Windows.Forms.Button();
+            this.pnlControls = new System.Windows.Forms.Panel();
             this.grpGPUActivity.SuspendLayout();
             this.grpProcessed.SuspendLayout();
+            this.pnlControls.SuspendLayout();
             this.SuspendLayout();
             // 
             // pbProgress
             // 
-            this.pbProgress.Location = new System.Drawing.Point(12, 621);
+            this.pbProgress.Location = new System.Drawing.Point(11, 32);
             this.pbProgress.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.pbProgress.Name = "pbProgress";
             this.pbProgress.Size = new System.Drawing.Size(551, 26);
@@ -65,7 +67,7 @@
             // 
             this.lblHeader.AutoSize = true;
             this.lblHeader.Font = new System.Drawing.Font("Century Gothic", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblHeader.Location = new System.Drawing.Point(12, 595);
+            this.lblHeader.Location = new System.Drawing.Point(11, 6);
             this.lblHeader.Name = "lblHeader";
             this.lblHeader.Size = new System.Drawing.Size(172, 22);
             this.lblHeader.TabIndex = 1;
@@ -76,7 +78,7 @@
             this.lblProgress.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.lblProgress.BackColor = System.Drawing.SystemColors.Control;
             this.lblProgress.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblProgress.Location = new System.Drawing.Point(505, 651);
+            this.lblProgress.Location = new System.Drawing.Point(505, 62);
             this.lblProgress.Name = "lblProgress";
             this.lblProgress.Size = new System.Drawing.Size(57, 20);
             this.lblProgress.TabIndex = 2;
@@ -87,7 +89,7 @@
             // 
             this.lblProcess.AutoSize = true;
             this.lblProcess.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblProcess.Location = new System.Drawing.Point(12, 651);
+            this.lblProcess.Location = new System.Drawing.Point(11, 62);
             this.lblProcess.Name = "lblProcess";
             this.lblProcess.Size = new System.Drawing.Size(91, 20);
             this.lblProcess.TabIndex = 3;
@@ -97,7 +99,7 @@
             // 
             this.grpGPUActivity.Controls.Add(this.tblGPU);
             this.grpGPUActivity.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.grpGPUActivity.Location = new System.Drawing.Point(175, 675);
+            this.grpGPUActivity.Location = new System.Drawing.Point(174, 86);
             this.grpGPUActivity.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.grpGPUActivity.Name = "grpGPUActivity";
             this.grpGPUActivity.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -136,7 +138,7 @@
             this.grpProcessed.Controls.Add(this.lblFound);
             this.grpProcessed.Controls.Add(this.lblSegments);
             this.grpProcessed.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.grpProcessed.Location = new System.Drawing.Point(12, 675);
+            this.grpProcessed.Location = new System.Drawing.Point(11, 86);
             this.grpProcessed.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.grpProcessed.Name = "grpProcessed";
             this.grpProcessed.Padding = new System.Windows.Forms.Padding(3, 4, 3, 4);
@@ -240,7 +242,7 @@
             // btnStop
             // 
             this.btnStop.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnStop.Location = new System.Drawing.Point(406, 775);
+            this.btnStop.Location = new System.Drawing.Point(405, 186);
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(157, 27);
             this.btnStop.TabIndex = 9;
@@ -252,7 +254,7 @@
             // 
             this.btnCarve.Enabled = false;
             this.btnCarve.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnCarve.Location = new System.Drawing.Point(12, 775);
+            this.btnCarve.Location = new System.Drawing.Point(11, 186);
             this.btnCarve.Name = "btnCarve";
             this.btnCarve.Size = new System.Drawing.Size(157, 27);
             this.btnCarve.TabIndex = 10;
@@ -264,7 +266,7 @@
             // 
             this.btnAnalysisLog.Enabled = false;
             this.btnAnalysisLog.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnAnalysisLog.Location = new System.Drawing.Point(175, 775);
+            this.btnAnalysisLog.Location = new System.Drawing.Point(174, 186);
             this.btnAnalysisLog.Name = "btnAnalysisLog";
             this.btnAnalysisLog.Size = new System.Drawing.Size(157, 27);
             this.btnAnalysisLog.TabIndex = 11;
@@ -272,21 +274,29 @@
             this.btnAnalysisLog.UseVisualStyleBackColor = true;
             this.btnAnalysisLog.Click += new System.EventHandler(this.btnAnalysisLog_Click);
             // 
+            // pnlControls
+            // 
+            this.pnlControls.Controls.Add(this.btnStop);
+            this.pnlControls.Controls.Add(this.lblProgress);
+            this.pnlControls.Controls.Add(this.btnAnalysisLog);
+            this.pnlControls.Controls.Add(this.lblHeader);
+            this.pnlControls.Controls.Add(this.grpGPUActivity);
+            this.pnlControls.Controls.Add(this.btnCarve);
+            this.pnlControls.Controls.Add(this.pbProgress);
+            this.pnlControls.Controls.Add(this.lblProcess);
+            this.pnlControls.Controls.Add(this.grpProcessed);
+            this.pnlControls.Location = new System.Drawing.Point(1, 589);
+            this.pnlControls.Name = "pnlControls";
+            this.pnlControls.Size = new System.Drawing.Size(574, 221);
+            this.pnlControls.TabIndex = 12;
+            // 
             // Analysis
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
             this.ClientSize = new System.Drawing.Size(575, 810);
-            this.Controls.Add(this.btnAnalysisLog);
-            this.Controls.Add(this.btnCarve);
-            this.Controls.Add(this.btnStop);
             this.Controls.Add(this.lstThumbs);
-            this.Controls.Add(this.grpProcessed);
-            this.Controls.Add(this.grpGPUActivity);
-            this.Controls.Add(this.lblProcess);
-            this.Controls.Add(this.lblProgress);
-            this.Controls.Add(this.lblHeader);
-            this.Controls.Add(this.pbProgress);
+            this.Controls.Add(this.pnlControls);
             this.Font = new System.Drawing.Font("Century Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -295,14 +305,16 @@
             this.Name = "Analysis";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "File Analysis";
+            this.TopMost = true;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Carve_FormClosing);
             this.Load += new System.EventHandler(this.Carve_Load);
             this.grpGPUActivity.ResumeLayout(false);
             this.grpGPUActivity.PerformLayout();
             this.grpProcessed.ResumeLayout(false);
             this.grpProcessed.PerformLayout();
+            this.pnlControls.ResumeLayout(false);
+            this.pnlControls.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -327,5 +339,6 @@
         private System.Windows.Forms.Button btnStop;
         private System.Windows.Forms.Button btnCarve;
         private System.Windows.Forms.Button btnAnalysisLog;
+        private System.Windows.Forms.Panel pnlControls;
     }
 }
