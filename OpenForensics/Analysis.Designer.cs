@@ -246,7 +246,7 @@
             this.btnStop.Name = "btnStop";
             this.btnStop.Size = new System.Drawing.Size(157, 27);
             this.btnStop.TabIndex = 9;
-            this.btnStop.Text = "Stop Analysis";
+            this.btnStop.Text = "Stop Processing";
             this.btnStop.UseVisualStyleBackColor = true;
             this.btnStop.Click += new System.EventHandler(this.btnStop_Click);
             // 

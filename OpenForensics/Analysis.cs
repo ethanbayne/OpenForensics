@@ -23,6 +23,9 @@ namespace OpenForensics
 {
     public partial class Analysis : Form
     {
+
+        #region Structs and DLL Extensions
+
         // Import possibility to gather raw access to devices
         // with global \\.\ paths which is prohibited by normal
         // .NET <cref>FileStream</cref> class.
@@ -98,6 +101,8 @@ namespace OpenForensics
                     return start.ToString() + " \t\t " + end.ToString() + " \t\t " + Math.Round(size, 4).ToString() + " " + sizeformat + " \t\t " + tag + " " + filetype;
             }
         }
+
+        #endregion
 
 
         #region Data Reading
@@ -343,7 +348,7 @@ namespace OpenForensics
         #endregion
 
 
-        #region Form Load and Special Functions
+        #region Class Variables
 
         public Analysis()
         {
@@ -414,6 +419,7 @@ namespace OpenForensics
         private ImageList ilist = new ImageList();
         private int thumbCount = 0;
         private TaskFactory thumbnailQueue;
+        private int thumbnailQueueCount;
         private object thumbnailLocker = new Object();
 
 
@@ -437,6 +443,11 @@ namespace OpenForensics
                 imagePreview = value.imagePreview;
             }
         }
+
+        #endregion
+
+
+        #region Form Load and Special Functions
 
         private void Carve_Load(object sender, EventArgs e)
         {
@@ -879,7 +890,8 @@ namespace OpenForensics
         private Task<Boolean> addThumb(byte[] image, string name)
         {
             try
-            {
+            { 
+                Interlocked.Increment(ref thumbnailQueueCount);
                 if (lstThumbs.InvokeRequired)
                 {
                     Invoke((MethodInvoker)delegate
@@ -930,10 +942,12 @@ namespace OpenForensics
                     }
                 }
 
+                Interlocked.Decrement(ref thumbnailQueueCount);
                 return Task.FromResult(true);
             }
             catch (Exception)
             {
+                Interlocked.Decrement(ref thumbnailQueueCount);
                 return Task.FromResult(false);
             }
         }
@@ -1006,9 +1020,7 @@ namespace OpenForensics
                         btnCarve.Enabled = foundFiles;
                         if (foundFiles)
                             btnCarve.BackColor = Color.LightGreen;
-                        else
-                            btnCarve.Text = "No Carvable Files Found";
-
+                        
                         btnCarve.Refresh();
                         btnAnalysisLog.Refresh();
                     });
@@ -1019,8 +1031,6 @@ namespace OpenForensics
                     btnCarve.Enabled = foundFiles;
                     if (foundFiles)
                         btnCarve.BackColor = Color.LightGreen;
-                    else
-                        btnCarve.Text = "No Carvable Files Found";
 
                     btnCarve.Refresh();
                     btnAnalysisLog.Refresh();
@@ -1042,6 +1052,40 @@ namespace OpenForensics
             else
                 this.Refresh();
         }
+
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            shouldStop = true;
+            StopBtnUsable(false);
+        }
+
+        private void btnCarve_Click(object sender, EventArgs e)
+        {
+            if (imagePreview)
+            {
+                shouldStop = true;
+                StopBtnUsable(false);
+            }
+            Thread carve = new Thread(new ThreadStart(BeginCarve));
+            carve.Start();
+        }
+
+        private void btnAnalysisLog_Click(object sender, EventArgs e)
+        {
+            System.Diagnostics.Process.Start(saveLocation + "LogFile.txt");
+        }        
+        
+        // Clean up before closing form
+        private void Carve_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                shouldStop = true;
+                GC.Collect();
+                Owner.Show();
+            }
+        }
+
 
         #endregion
 
@@ -1073,6 +1117,7 @@ namespace OpenForensics
             {
                 LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(Math.Min(4, lpCount / 2));
                 thumbnailQueue = new TaskFactory(scheduler);
+                thumbnailQueueCount = 0;
             }
 
             double time = 0;
@@ -1212,6 +1257,12 @@ namespace OpenForensics
                     //}
                     //Task.WaitAll(tasks);
 
+                    // When all threads complete, free memory
+                    for (int i = 0; i < GPUCollection.Count; i++)
+                    {
+                        GPUCollection[i].FreeAll();                                   // Free all GPU resources
+                        GPUCollection[i].HostFreeAll();
+                    }
                 });
 
                 #endregion
@@ -1219,9 +1270,8 @@ namespace OpenForensics
 
             #region Common Finish
 
-            if (imagePreview)
-                GoToLastThumbnail();
-            RefreshForm();
+            // When all threads have finished, close file
+            dataRead.CloseFile();
 
             List<foundRecord> tmpFoundRecords = new List<foundRecord>();
             tmpFoundRecords.AddRange(foundRecords.ToArray());
@@ -1232,34 +1282,35 @@ namespace OpenForensics
             });
             Task.WaitAll();
 
-            // When all threads complete, free memory and close file
-            for (int i = 0; i < GPUCollection.Count; i++)
-            {
-                GPUCollection[i].FreeAll();                                   // Free all GPU resources
-                GPUCollection[i].HostFreeAll();
-            }
-
             // Prepare the results file
             PrepareResults(fileSize, time);
-
-            // When all threads have finished, close file
-            dataRead.CloseFile();
 
             if (carvableFiles.Count > 0)
                 AfterAnalysisButtons(true, true);
             else
                 AfterAnalysisButtons(true, false);
 
-            if (shouldStop)
-                updateHeader("Analysis Halted by User!");
-            else
-                updateHeader("Analysis Finished!");
+            if (imagePreview)
+                updateHeader("Analysis Complete. Processing image previews...");
 
-            if (!imagePreview)
-                StopBtnUsable(false);
+            GC.Collect();
 
+            while (!shouldStop && imagePreview && thumbnailQueueCount > 0)
+                Thread.Sleep(2000);
+
+            if (imagePreview)
+                GoToLastThumbnail();
+
+            if (!shouldStop)
+                updateHeader("Analysis Complete!");
+            else if (shouldStop)
+                updateHeader("Processing Halted by User!");
+            RefreshForm();
+
+            StopBtnUsable(false);
+            
             #endregion
-        }
+            }
 
         #region Result Prep
 
@@ -1624,7 +1675,7 @@ namespace OpenForensics
                     Interlocked.Increment(ref results[fileIndex]);
 
                     // If the file is a jpg, try and generate a thumbnail
-                    if (targetName[fileIndex] == "jpg")
+                    if (imagePreview && targetName[fileIndex] == "jpg")
                     {
                         int start = resultLoc[i];
                         int finish = 0;
@@ -1641,7 +1692,7 @@ namespace OpenForensics
                         }
 
                         // If file end found and file size > 300KB, then add a thumbnail from the data whilst in memory.
-                        if (imagePreview && finish != 0 && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
+                        if (finish != 0)// && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
                         {
                             ulong fileID = (count + (ulong)start);
                             byte[] fileData = new byte[finish - start];
@@ -1761,6 +1812,9 @@ namespace OpenForensics
         {
             updateHeader("Extracting files from data...");
 
+            shouldStop = false;
+            StopBtnUsable(true);
+
             AfterAnalysisButtons(false, false);
 
             carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
@@ -1768,9 +1822,12 @@ namespace OpenForensics
             carveResults(dataRead);
             dataRead.CloseFile();
 
-            AfterAnalysisButtons(true, true);
+            if (!shouldStop)
+                updateHeader("Extraction Complete!");
+            else
+                updateHeader("Extraction Halted by User!");
 
-            updateHeader("Extraction complete!");
+            AfterAnalysisButtons(true, true);
         }
 
         // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
@@ -1817,6 +1874,7 @@ namespace OpenForensics
                 updateProgress((int)Progress, (ulong)Math.Min(carveProcessed, carvableFiles.Count), (ulong)carvableFiles.Count);
             }
 
+            updateGPUAct(cpu, true);
             return Task.FromResult(true);
         }
 
@@ -1928,37 +1986,5 @@ namespace OpenForensics
 
         #endregion
 
-        // Clean up before closing form
-        private void Carve_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (e.CloseReason == CloseReason.UserClosing)
-            {
-                shouldStop = true;
-                GC.Collect();
-                Owner.Show();
-            }
-        }
-
-        private void btnStop_Click(object sender, EventArgs e)
-        {
-            shouldStop = true;
-            StopBtnUsable(false);
-        }
-
-        private void btnCarve_Click(object sender, EventArgs e)
-        {
-            if(imagePreview)
-            {
-                shouldStop = true;
-                StopBtnUsable(false);
-            }
-            Thread carve = new Thread(new ThreadStart(BeginCarve));
-            carve.Start();
-        }
-
-        private void btnAnalysisLog_Click(object sender, EventArgs e)
-        {
-            System.Diagnostics.Process.Start(saveLocation + "LogFile.txt");
-        }
     }
 }

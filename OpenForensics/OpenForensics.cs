@@ -146,6 +146,7 @@ namespace OpenForensics
             OFToolTips.SetToolTip(this.btnClearKeywords, "Clear all keywords in the keyword list.");
             OFToolTips.SetToolTip(this.btnFileOpen, "Open file to analyse.");
             OFToolTips.SetToolTip(this.btnDriveOpen, "Open physical drive to analyse.");
+            OFToolTips.SetToolTip(this.chkImagePreview, "Generate Image Previews whilst processing. [High RAM Usage with large datasets!]");
         }
 
         #endregion
