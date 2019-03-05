@@ -1007,9 +1007,10 @@ namespace OpenForensics
                         if (foundFiles)
                             btnCarve.BackColor = Color.LightGreen;
                         else
-                            btnCarve.BackColor = SystemColors.Control;
+                            btnCarve.Text = "No Carvable Files Found";
 
                         btnCarve.Refresh();
+                        btnAnalysisLog.Refresh();
                     });
                 }
                 else
@@ -1019,9 +1020,10 @@ namespace OpenForensics
                     if (foundFiles)
                         btnCarve.BackColor = Color.LightGreen;
                     else
-                        btnCarve.BackColor = SystemColors.Control;
+                        btnCarve.Text = "No Carvable Files Found";
 
                     btnCarve.Refresh();
+                    btnAnalysisLog.Refresh();
                 }
             }
             catch (Exception)
@@ -1245,6 +1247,8 @@ namespace OpenForensics
 
             if (carvableFiles.Count > 0)
                 AfterAnalysisButtons(true, true);
+            else
+                AfterAnalysisButtons(true, false);
 
             if (shouldStop)
                 updateHeader("Analysis Halted by User!");
