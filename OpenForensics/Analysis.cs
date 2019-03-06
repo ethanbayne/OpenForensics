@@ -967,23 +967,24 @@ namespace OpenForensics
 
         private void lstThumbs_SelectedIndexChanged(object sender, EventArgs e)
         {
-            try
-            {
-                if (lstThumbs.SelectedItems.Count == 1)
-                {
-                    using (Form form = new Form())
-                    {
-                        form.Text = "Image Preview";
-                        form.Size = new Size(256, 256);
-                        form.BackgroundImageLayout = ImageLayout.Stretch;
-                        form.BackgroundImage = ilist.Images[lstThumbs.Items.IndexOf(lstThumbs.SelectedItems[0])];
+            // Disabled -- Useless in current iteration
+            //try
+            //{
+            //    if (lstThumbs.SelectedItems.Count == 1)
+            //    {
+            //        using (Form form = new Form())
+            //        {
+            //            form.Text = "Image Preview";
+            //            form.Size = new Size(256, 256);
+            //            form.BackgroundImageLayout = ImageLayout.Stretch;
+            //            form.BackgroundImage = ilist.Images[lstThumbs.Items.IndexOf(lstThumbs.SelectedItems[0])];
 
-                        form.ShowDialog();
-                    }
-                }
-            }
-            catch (Exception)
-            { }
+            //            form.ShowDialog();
+            //        }
+            //    }
+            //}
+            //catch (Exception)
+            //{ }
         }
 
         private void StopBtnUsable(bool state)

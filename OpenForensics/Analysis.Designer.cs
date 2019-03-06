@@ -305,7 +305,6 @@
             this.Name = "Analysis";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "File Analysis";
-            this.TopMost = true;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Carve_FormClosing);
             this.Load += new System.EventHandler(this.Carve_Load);
             this.grpGPUActivity.ResumeLayout(false);
