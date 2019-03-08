@@ -1828,6 +1828,7 @@ namespace OpenForensics
             else
                 updateHeader("Extraction Halted by User!");
 
+            StopBtnUsable(false);
             AfterAnalysisButtons(true, true);
         }
 
