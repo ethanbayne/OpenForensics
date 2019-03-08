@@ -1291,7 +1291,7 @@ namespace OpenForensics
             else
                 AfterAnalysisButtons(true, false);
 
-            if (imagePreview)
+            if (!shouldStop && imagePreview)
                 updateHeader("Analysis Complete. Processing image previews...");
 
             GC.Collect();
