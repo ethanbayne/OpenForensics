@@ -170,14 +170,20 @@ namespace OpenForensics
             return prop.DeviceId.ToString() + ": " + prop.Name.Trim();
         }
 
-        public void CopyToDevice(int gpuCore, byte[] buffer)
+        public Boolean CopyToDevice(int gpuCore, byte[] buffer)
         {
-            bufferSize = (uint)buffer.Length;
-            gpu.SetCurrentContext();
-            gpu.CopyToDevice<byte>(buffer, dev_buffer[gpuCore]);
+            try
+            {
+                bufferSize = (uint)buffer.Length;
+                gpu.SetCurrentContext();
+                gpu.CopyToDevice<byte>(buffer, dev_buffer[gpuCore]);
+
+                return true;
+            }
+            catch { return false; }
         }
 
-        public void FreeBuffers(int gpuCore)
+        public Boolean FreeBuffers(int gpuCore)
         {
             try
             {
@@ -188,40 +194,52 @@ namespace OpenForensics
                 gpu.Set(dev_foundCount[gpuCore]);
                 gpu.Set(dev_foundID[gpuCore]);
                 gpu.Set(dev_foundLoc[gpuCore]);
+
+                return true;
             }
-            catch { }
+            catch { return false; }
         }
 
-        public void FreeAll()
+        public Boolean FreeAll()
         {
             try
             {
                 gpu.SetCurrentContext();
                 gpu.FreeAll();
+
+                return true;
             }
-            catch { }
+            catch { return false; }
         }
 
-        public void HostFreeAll()
+        public Boolean HostFreeAll()
         {
             try
             {
                 gpu.SetCurrentContext();
                 gpu.HostFreeAll();
+
+                return true;
             }
-            catch { }
+            catch { return false; }
         }
 
-        public void LoadModule()
+        public Boolean LoadModule()
         {
-            CudafyModule km = CudafyModule.TryDeserialize();    // Look for cdfy module file before generating
-
-            // Ensure if using Cuda, use 2.0 architecture for Atomics compatibility
-            if (km == null || !km.TryVerifyChecksums())
+            try
             {
-                km = CudafyTranslator.Cudafy();
+                CudafyModule km = CudafyModule.TryDeserialize();    // Look for cdfy module file before generating
+
+                // Ensure if using Cuda, use 2.0 architecture for Atomics compatibility
+                if (km == null || !km.TryVerifyChecksums())
+                {
+                    km = CudafyTranslator.Cudafy();
+                }
+                gpu.LoadModule(km);
+
+                return true;
             }
-            gpu.LoadModule(km);
+            catch { return false; }
         }
 
         public byte[] ReturnResultID(int gpuCore)
@@ -241,31 +259,36 @@ namespace OpenForensics
         }
 
         //GPU PFAC Carving - using PFAC for searching Bytes
-        public void LaunchPFACCarving(int gpuCore)
+        public Boolean LaunchPFACCarving(int gpuCore)
         {
-
-            lock (gpuThreadLock[GPUid])
+            try
             {
-                gpu.SetCurrentContext();
-
-                gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, dev_lookup, dev_targetEndLength, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
-                gpu.SynchronizeStream(gpuCore);
-            }
-
-            gpu.CopyFromDevice(dev_resultCount[gpuCore], resultCount[gpuCore]);
-
-            for (int i = 0; i < resultCount[gpuCore].Length; i++)
-            {
-                if (resultCount[gpuCore][i] > 0)
+                lock (gpuThreadLock[GPUid])
                 {
-                    gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);
-                    gpu.CopyFromDevice(dev_foundLoc[gpuCore], foundLoc[gpuCore]);
-                    break;
-                }
-            }
+                    gpu.SetCurrentContext();
 
-            //gpu.Synchronize();
-            FreeBuffers(gpuCore);
+                    gpu.LaunchAsync(gpuOperatingCores, blockSize, gpuCore, "PFACAnalyse", dev_buffer[gpuCore], initialState, dev_lookup, dev_targetEndLength, dev_resultCount[gpuCore], dev_foundCount[gpuCore], dev_foundID[gpuCore], dev_foundLoc[gpuCore]);
+                    gpu.SynchronizeStream(gpuCore);
+                }
+
+                gpu.CopyFromDevice(dev_resultCount[gpuCore], resultCount[gpuCore]);
+
+                for (int i = 0; i < resultCount[gpuCore].Length; i++)
+                {
+                    if (resultCount[gpuCore][i] > 0)
+                    {
+                        gpu.CopyFromDevice(dev_foundID[gpuCore], foundID[gpuCore]);
+                        gpu.CopyFromDevice(dev_foundLoc[gpuCore], foundLoc[gpuCore]);
+                        break;
+                    }
+                }
+
+                //gpu.Synchronize();
+                FreeBuffers(gpuCore);
+
+                return true;
+            }
+            catch { return false; }
         }
 
         //GPU PFAC Analyse - using PFAC for searching Bytes
