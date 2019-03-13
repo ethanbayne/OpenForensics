@@ -284,9 +284,16 @@ namespace OpenForensics
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
                 txtFile.Text = openFileDialog.InitialDirectory + openFileDialog.FileName;
-                fileName = openFileDialog.FileName.ToString();
-                btnFileOpen.BackColor = Color.DarkSeaGreen;
-                btnDriveOpen.BackColor = SystemColors.Control;
+                if (!FileOpenedElsewhere(openFileDialog.FileName.ToString()))
+                {
+                    fileName = openFileDialog.FileName.ToString();
+                    btnFileOpen.BackColor = Color.DarkSeaGreen;
+                    btnDriveOpen.BackColor = SystemColors.Control;
+                }
+                else
+                {
+                    MessageBox.Show("Selected file is not accessible. This file may currently be in use by another process.", "File locked!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
         
@@ -493,6 +500,11 @@ namespace OpenForensics
                 if (File.Exists(txtFile.Text) == false)
                 {
                     MessageBox.Show("Selected file cannot be found - Check if file exists", "Cannot find selected file", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+                if (FileOpenedElsewhere(txtFile.Text))
+                {
+                    MessageBox.Show("Selected file is not accessible. This file may currently be in use by another process.", "File not accessible!", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return false;
                 }
             }
@@ -728,6 +740,23 @@ namespace OpenForensics
             }
 
             return false;
+        }
+
+        private bool FileOpenedElsewhere(string fileLoc)
+        {
+            FileStream fs = null;
+            try
+            {
+                fs = new FileStream(fileLoc, FileMode.Open, FileAccess.Read);
+            }
+            catch (IOException) { return true; }    // If IO Exception, return true
+            finally
+            {
+                if (fs != null)
+                    fs.Close();
+            }
+
+            return false;   // If opened correctly, return false
         }
 
         #endregion
