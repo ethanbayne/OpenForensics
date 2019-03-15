@@ -6,7 +6,7 @@ The refined pattern matching technique employed by OpenForensics was also presen
 
 This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.com/). Currently, the file carving provided by this tool is considered basic (carves data between found header and footer). Whilst it is intended to develop more advanced file carving features in time, we would welcome collaborators to help build upon the functionality of the tool.
 
-# Basic Usage (v.1.78b)
+# Basic Usage (v.1.78b onwards)
    1. Provide a case reference and evidence reference. ___(Optional)___
    2. Select either a physical drive or a file to perform physical searching on.
    3. Select targets. _(either file-types or keywords)_
