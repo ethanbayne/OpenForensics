@@ -49,7 +49,6 @@
             this.cbGPGPU = new System.Windows.Forms.ComboBox();
             this.rdoCPU = new System.Windows.Forms.RadioButton();
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
-            this.lblMode = new System.Windows.Forms.Label();
             this.btnCarve = new System.Windows.Forms.Button();
             this.lblVersion = new System.Windows.Forms.Label();
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
@@ -81,7 +80,8 @@
             this.grpTargetFile.Controls.Add(this.cboKeywords);
             this.grpTargetFile.Controls.Add(this.rdoFile);
             this.grpTargetFile.Controls.Add(this.cboFileType);
-            this.grpTargetFile.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.grpTargetFile.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.grpTargetFile.Font = new System.Drawing.Font("Bahnschrift", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.grpTargetFile.Location = new System.Drawing.Point(13, 258);
             this.grpTargetFile.Name = "grpTargetFile";
             this.grpTargetFile.Size = new System.Drawing.Size(485, 114);
@@ -91,15 +91,16 @@
             // 
             // txtInput
             // 
-            this.txtInput.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtInput.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtInput.Location = new System.Drawing.Point(7, 84);
             this.txtInput.Name = "txtInput";
-            this.txtInput.Size = new System.Drawing.Size(150, 22);
+            this.txtInput.Size = new System.Drawing.Size(150, 23);
             this.txtInput.TabIndex = 9;
             // 
             // btnClearKeywords
             // 
-            this.btnClearKeywords.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnClearKeywords.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.btnClearKeywords.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnClearKeywords.Location = new System.Drawing.Point(377, 84);
             this.btnClearKeywords.Name = "btnClearKeywords";
             this.btnClearKeywords.Size = new System.Drawing.Size(101, 23);
@@ -110,18 +111,20 @@
             // 
             // btnRemoveKeyword
             // 
-            this.btnRemoveKeyword.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnRemoveKeyword.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.btnRemoveKeyword.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnRemoveKeyword.Location = new System.Drawing.Point(269, 84);
             this.btnRemoveKeyword.Name = "btnRemoveKeyword";
             this.btnRemoveKeyword.Size = new System.Drawing.Size(102, 23);
             this.btnRemoveKeyword.TabIndex = 11;
-            this.btnRemoveKeyword.Text = "Remove Keyword";
+            this.btnRemoveKeyword.Text = "Delete Keyword";
             this.btnRemoveKeyword.UseVisualStyleBackColor = true;
             this.btnRemoveKeyword.Click += new System.EventHandler(this.btnRemoveKeyword_Click);
             // 
             // btnAddKeyword
             // 
-            this.btnAddKeyword.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnAddKeyword.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.btnAddKeyword.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnAddKeyword.Location = new System.Drawing.Point(161, 84);
             this.btnAddKeyword.Name = "btnAddKeyword";
             this.btnAddKeyword.Size = new System.Drawing.Size(102, 23);
@@ -133,10 +136,11 @@
             // rdoKeyword
             // 
             this.rdoKeyword.AutoSize = true;
-            this.rdoKeyword.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.rdoKeyword.Location = new System.Drawing.Point(26, 55);
+            this.rdoKeyword.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.rdoKeyword.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
+            this.rdoKeyword.Location = new System.Drawing.Point(15, 55);
             this.rdoKeyword.Name = "rdoKeyword";
-            this.rdoKeyword.Size = new System.Drawing.Size(77, 21);
+            this.rdoKeyword.Size = new System.Drawing.Size(83, 21);
             this.rdoKeyword.TabIndex = 7;
             this.rdoKeyword.TabStop = true;
             this.rdoKeyword.Text = "Keyword";
@@ -146,23 +150,25 @@
             // cboKeywords
             // 
             this.cboKeywords.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboKeywords.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cboKeywords.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.cboKeywords.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cboKeywords.FormattingEnabled = true;
             this.cboKeywords.Items.AddRange(new object[] {
             "No keywords present - add keywords below"});
             this.cboKeywords.Location = new System.Drawing.Point(109, 54);
             this.cboKeywords.Name = "cboKeywords";
-            this.cboKeywords.Size = new System.Drawing.Size(369, 25);
+            this.cboKeywords.Size = new System.Drawing.Size(369, 24);
             this.cboKeywords.TabIndex = 8;
             // 
             // rdoFile
             // 
             this.rdoFile.AutoSize = true;
             this.rdoFile.Checked = true;
-            this.rdoFile.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.rdoFile.Location = new System.Drawing.Point(27, 28);
+            this.rdoFile.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.rdoFile.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
+            this.rdoFile.Location = new System.Drawing.Point(15, 28);
             this.rdoFile.Name = "rdoFile";
-            this.rdoFile.Size = new System.Drawing.Size(76, 21);
+            this.rdoFile.Size = new System.Drawing.Size(81, 21);
             this.rdoFile.TabIndex = 5;
             this.rdoFile.TabStop = true;
             this.rdoFile.Text = "File Type";
@@ -172,11 +178,12 @@
             // cboFileType
             // 
             this.cboFileType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.cboFileType.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cboFileType.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.cboFileType.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cboFileType.FormattingEnabled = true;
             this.cboFileType.Location = new System.Drawing.Point(109, 27);
             this.cboFileType.Name = "cboFileType";
-            this.cboFileType.Size = new System.Drawing.Size(369, 25);
+            this.cboFileType.Size = new System.Drawing.Size(369, 24);
             this.cboFileType.TabIndex = 6;
             // 
             // grpFilePath
@@ -185,7 +192,8 @@
             this.grpFilePath.Controls.Add(this.btnFileOpen);
             this.grpFilePath.Controls.Add(this.txtFile);
             this.grpFilePath.Controls.Add(this.lblFilePath);
-            this.grpFilePath.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.grpFilePath.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.grpFilePath.Font = new System.Drawing.Font("Bahnschrift", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.grpFilePath.Location = new System.Drawing.Point(13, 60);
             this.grpFilePath.Name = "grpFilePath";
             this.grpFilePath.Size = new System.Drawing.Size(485, 192);
@@ -198,7 +206,7 @@
             this.btnDriveOpen.BackgroundImage = global::OpenForensics.Properties.Resources.driveIcon;
             this.btnDriveOpen.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.btnDriveOpen.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnDriveOpen.Font = new System.Drawing.Font("Segoe UI", 7.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnDriveOpen.Font = new System.Drawing.Font("Bahnschrift", 7.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnDriveOpen.Location = new System.Drawing.Point(9, 28);
             this.btnDriveOpen.Name = "btnDriveOpen";
             this.btnDriveOpen.Size = new System.Drawing.Size(232, 130);
@@ -212,7 +220,7 @@
             this.btnFileOpen.BackgroundImage = global::OpenForensics.Properties.Resources.fileIcon;
             this.btnFileOpen.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.btnFileOpen.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnFileOpen.Font = new System.Drawing.Font("Segoe UI", 7.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnFileOpen.Font = new System.Drawing.Font("Bahnschrift", 7.875F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnFileOpen.Location = new System.Drawing.Point(247, 28);
             this.btnFileOpen.Name = "btnFileOpen";
             this.btnFileOpen.Size = new System.Drawing.Size(232, 130);
@@ -223,32 +231,34 @@
             // 
             // txtFile
             // 
-            this.txtFile.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtFile.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtFile.Location = new System.Drawing.Point(43, 164);
             this.txtFile.Name = "txtFile";
             this.txtFile.ReadOnly = true;
-            this.txtFile.Size = new System.Drawing.Size(436, 22);
+            this.txtFile.Size = new System.Drawing.Size(436, 23);
             this.txtFile.TabIndex = 3;
             this.txtFile.TabStop = false;
             // 
             // lblFilePath
             // 
             this.lblFilePath.AutoSize = true;
-            this.lblFilePath.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblFilePath.Location = new System.Drawing.Point(6, 167);
+            this.lblFilePath.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.lblFilePath.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
+            this.lblFilePath.Location = new System.Drawing.Point(12, 167);
             this.lblFilePath.Name = "lblFilePath";
-            this.lblFilePath.Size = new System.Drawing.Size(35, 17);
+            this.lblFilePath.Size = new System.Drawing.Size(34, 16);
             this.lblFilePath.TabIndex = 3;
             this.lblFilePath.Text = "Path";
             // 
             // grpCustomPlatform
             // 
+            this.grpCustomPlatform.Controls.Add(this.cbGPGPU);
             this.grpCustomPlatform.Controls.Add(this.btnDefault);
             this.grpCustomPlatform.Controls.Add(this.rdoGPU);
-            this.grpCustomPlatform.Controls.Add(this.cbGPGPU);
             this.grpCustomPlatform.Controls.Add(this.rdoCPU);
             this.grpCustomPlatform.Enabled = false;
-            this.grpCustomPlatform.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.grpCustomPlatform.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.grpCustomPlatform.Font = new System.Drawing.Font("Bahnschrift", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.grpCustomPlatform.Location = new System.Drawing.Point(13, 376);
             this.grpCustomPlatform.Name = "grpCustomPlatform";
             this.grpCustomPlatform.Size = new System.Drawing.Size(485, 52);
@@ -260,7 +270,7 @@
             // 
             this.btnDefault.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnDefault.BackgroundImage")));
             this.btnDefault.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.btnDefault.Font = new System.Drawing.Font("Tahoma", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnDefault.Font = new System.Drawing.Font("Bahnschrift", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnDefault.Location = new System.Drawing.Point(454, 24);
             this.btnDefault.Name = "btnDefault";
             this.btnDefault.Size = new System.Drawing.Size(25, 23);
@@ -272,10 +282,11 @@
             // 
             this.rdoGPU.AutoSize = true;
             this.rdoGPU.Checked = true;
-            this.rdoGPU.Font = new System.Drawing.Font("Century Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rdoGPU.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.rdoGPU.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
             this.rdoGPU.Location = new System.Drawing.Point(60, 25);
             this.rdoGPU.Name = "rdoGPU";
-            this.rdoGPU.Size = new System.Drawing.Size(51, 20);
+            this.rdoGPU.Size = new System.Drawing.Size(57, 21);
             this.rdoGPU.TabIndex = 12;
             this.rdoGPU.TabStop = true;
             this.rdoGPU.Text = "GPU";
@@ -286,9 +297,10 @@
             // 
             this.cbGPGPU.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbGPGPU.DropDownWidth = 450;
-            this.cbGPGPU.Font = new System.Drawing.Font("Century Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cbGPGPU.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.cbGPGPU.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cbGPGPU.FormattingEnabled = true;
-            this.cbGPGPU.Location = new System.Drawing.Point(111, 24);
+            this.cbGPGPU.Location = new System.Drawing.Point(111, 22);
             this.cbGPGPU.Name = "cbGPGPU";
             this.cbGPGPU.Size = new System.Drawing.Size(337, 24);
             this.cbGPGPU.TabIndex = 15;
@@ -297,10 +309,11 @@
             // rdoCPU
             // 
             this.rdoCPU.AutoSize = true;
-            this.rdoCPU.Font = new System.Drawing.Font("Century Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rdoCPU.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.rdoCPU.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
             this.rdoCPU.Location = new System.Drawing.Point(10, 25);
             this.rdoCPU.Name = "rdoCPU";
-            this.rdoCPU.Size = new System.Drawing.Size(50, 20);
+            this.rdoCPU.Size = new System.Drawing.Size(57, 21);
             this.rdoCPU.TabIndex = 11;
             this.rdoCPU.TabStop = true;
             this.rdoCPU.Text = "CPU";
@@ -311,19 +324,10 @@
             // 
             this.openFileDialog.Filter = "DD files|*.dd|All files|*.*";
             // 
-            // lblMode
-            // 
-            this.lblMode.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblMode.Location = new System.Drawing.Point(13, 436);
-            this.lblMode.Name = "lblMode";
-            this.lblMode.Size = new System.Drawing.Size(87, 25);
-            this.lblMode.TabIndex = 39;
-            this.lblMode.Text = "xx-bit Mode";
-            this.lblMode.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            // 
             // btnCarve
             // 
-            this.btnCarve.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnCarve.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.btnCarve.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnCarve.Location = new System.Drawing.Point(305, 436);
             this.btnCarve.Name = "btnCarve";
             this.btnCarve.Size = new System.Drawing.Size(193, 25);
@@ -335,7 +339,7 @@
             // lblVersion
             // 
             this.lblVersion.BackColor = System.Drawing.Color.Transparent;
-            this.lblVersion.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblVersion.Font = new System.Drawing.Font("Bahnschrift SemiLight", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblVersion.Location = new System.Drawing.Point(358, 35);
             this.lblVersion.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lblVersion.Name = "lblVersion";
@@ -355,15 +359,14 @@
             this.pnlMainInterface.Controls.Add(this.chkImagePreview);
             this.pnlMainInterface.Controls.Add(this.txtEvidenceName);
             this.pnlMainInterface.Controls.Add(this.lblEvidenceName);
+            this.pnlMainInterface.Controls.Add(this.grpDefaultPlatform);
             this.pnlMainInterface.Controls.Add(this.txtCaseName);
             this.pnlMainInterface.Controls.Add(this.lblCaseName);
-            this.pnlMainInterface.Controls.Add(this.grpDefaultPlatform);
             this.pnlMainInterface.Controls.Add(this.grpCustomPlatform);
             this.pnlMainInterface.Controls.Add(this.grpFilePath);
             this.pnlMainInterface.Controls.Add(this.btnCarve);
             this.pnlMainInterface.Controls.Add(this.grpTargetFile);
-            this.pnlMainInterface.Controls.Add(this.lblMode);
-            this.pnlMainInterface.Font = new System.Drawing.Font("Century Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.pnlMainInterface.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.pnlMainInterface.Location = new System.Drawing.Point(13, 67);
             this.pnlMainInterface.Name = "pnlMainInterface";
             this.pnlMainInterface.Size = new System.Drawing.Size(512, 473);
@@ -372,47 +375,51 @@
             // chkImagePreview
             // 
             this.chkImagePreview.AutoSize = true;
-            this.chkImagePreview.Location = new System.Drawing.Point(165, 440);
+            this.chkImagePreview.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.chkImagePreview.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkImagePreview.Location = new System.Drawing.Point(13, 439);
             this.chkImagePreview.Name = "chkImagePreview";
-            this.chkImagePreview.Size = new System.Drawing.Size(134, 20);
-            this.chkImagePreview.TabIndex = 44;
+            this.chkImagePreview.Size = new System.Drawing.Size(145, 21);
+            this.chkImagePreview.TabIndex = 17;
             this.chkImagePreview.Text = "Live Image Preview";
             this.chkImagePreview.UseVisualStyleBackColor = true;
             this.chkImagePreview.CheckedChanged += new System.EventHandler(this.chkImagePreview_CheckedChanged);
             // 
             // txtEvidenceName
             // 
-            this.txtEvidenceName.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtEvidenceName.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtEvidenceName.Location = new System.Drawing.Point(155, 32);
             this.txtEvidenceName.Name = "txtEvidenceName";
-            this.txtEvidenceName.Size = new System.Drawing.Size(336, 22);
+            this.txtEvidenceName.Size = new System.Drawing.Size(343, 23);
             this.txtEvidenceName.TabIndex = 2;
             // 
             // lblEvidenceName
             // 
             this.lblEvidenceName.AutoSize = true;
-            this.lblEvidenceName.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblEvidenceName.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.lblEvidenceName.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
             this.lblEvidenceName.Location = new System.Drawing.Point(17, 35);
             this.lblEvidenceName.Name = "lblEvidenceName";
-            this.lblEvidenceName.Size = new System.Drawing.Size(132, 17);
+            this.lblEvidenceName.Size = new System.Drawing.Size(124, 16);
             this.lblEvidenceName.TabIndex = 43;
             this.lblEvidenceName.Text = "Evidence Reference:";
             // 
             // txtCaseName
             // 
-            this.txtCaseName.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtCaseName.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txtCaseName.Location = new System.Drawing.Point(155, 8);
             this.txtCaseName.Name = "txtCaseName";
-            this.txtCaseName.Size = new System.Drawing.Size(336, 22);
+            this.txtCaseName.Size = new System.Drawing.Size(343, 23);
             this.txtCaseName.TabIndex = 1;
             // 
             // lblCaseName
             // 
             this.lblCaseName.AutoSize = true;
-            this.lblCaseName.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblCaseName.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.lblCaseName.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
             this.lblCaseName.Location = new System.Drawing.Point(17, 11);
             this.lblCaseName.Name = "lblCaseName";
-            this.lblCaseName.Size = new System.Drawing.Size(106, 17);
+            this.lblCaseName.Size = new System.Drawing.Size(101, 16);
             this.lblCaseName.TabIndex = 41;
             this.lblCaseName.Text = "Case Reference:";
             // 
@@ -420,7 +427,8 @@
             // 
             this.grpDefaultPlatform.Controls.Add(this.btnCustom);
             this.grpDefaultPlatform.Controls.Add(this.lblPlatformDefault);
-            this.grpDefaultPlatform.Font = new System.Drawing.Font("Century Gothic", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.grpDefaultPlatform.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.grpDefaultPlatform.Font = new System.Drawing.Font("Bahnschrift", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.grpDefaultPlatform.Location = new System.Drawing.Point(13, 376);
             this.grpDefaultPlatform.Name = "grpDefaultPlatform";
             this.grpDefaultPlatform.Size = new System.Drawing.Size(485, 52);
@@ -432,7 +440,7 @@
             // 
             this.btnCustom.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("btnCustom.BackgroundImage")));
             this.btnCustom.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.btnCustom.Font = new System.Drawing.Font("Tahoma", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnCustom.Font = new System.Drawing.Font("Bahnschrift", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnCustom.Location = new System.Drawing.Point(454, 24);
             this.btnCustom.Name = "btnCustom";
             this.btnCustom.Size = new System.Drawing.Size(25, 23);
@@ -443,11 +451,12 @@
             // lblPlatformDefault
             // 
             this.lblPlatformDefault.AutoSize = true;
-            this.lblPlatformDefault.Font = new System.Drawing.Font("Century Gothic", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblPlatformDefault.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.lblPlatformDefault.Font = new System.Drawing.Font("Bahnschrift Light", 9.75F);
             this.lblPlatformDefault.Location = new System.Drawing.Point(6, 26);
             this.lblPlatformDefault.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lblPlatformDefault.Name = "lblPlatformDefault";
-            this.lblPlatformDefault.Size = new System.Drawing.Size(207, 17);
+            this.lblPlatformDefault.Size = new System.Drawing.Size(194, 16);
             this.lblPlatformDefault.TabIndex = 0;
             this.lblPlatformDefault.Text = "Default Settings (Recommended)";
             // 
@@ -472,7 +481,7 @@
             this.Controls.Add(this.pbLogo);
             this.Controls.Add(this.pnlMainInterface);
             this.Controls.Add(this.lblVersion);
-            this.Font = new System.Drawing.Font("Century Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.Font = new System.Drawing.Font("Bahnschrift Light", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
@@ -515,7 +524,6 @@
         private System.Windows.Forms.ComboBox cbGPGPU;
         private System.Windows.Forms.RadioButton rdoCPU;
         private System.Windows.Forms.OpenFileDialog openFileDialog;
-        private System.Windows.Forms.Label lblMode;
         private System.Windows.Forms.Button btnCarve;
         private System.Windows.Forms.Label lblVersion;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog;
