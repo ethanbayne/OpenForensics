@@ -829,7 +829,7 @@ namespace OpenForensics
         {
             bool picLoaded = false;
 
-            while(!picLoaded || imageCache.Count > 0 || !shouldStop)
+            while((!picLoaded || imageCache.Count > 0) && !shouldStop)
             {
                 if (imageCache.Count > 0)
                 {
@@ -845,7 +845,7 @@ namespace OpenForensics
 
                     imageCache.RemoveAt(0);
                 }
-                Thread.Sleep(75);
+                Thread.Sleep(100);
             }
         }
 
