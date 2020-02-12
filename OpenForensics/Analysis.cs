@@ -67,6 +67,18 @@ namespace OpenForensics
             }
         }
 
+        public struct cachedImage
+        {
+            public byte[] pictureData;
+            public string location;
+
+            public cachedImage(byte[] pictureData, string location)
+            {
+                this.pictureData = pictureData;
+                this.location = location;
+            }
+        }
+
         public struct resultRecord
         {
             public ulong start, end;
@@ -416,11 +428,7 @@ namespace OpenForensics
         private List<Engine> GPUCollection = new List<Engine>();
 
         private bool imagePreview;
-        private ImageList ilist = new ImageList();
-        private int thumbCount = 0;
-        private TaskFactory thumbnailQueue;
-        private int thumbnailQueueCount;
-        private object thumbnailLocker = new Object();
+        private List<cachedImage> imageCache = new List<cachedImage>();
 
 
         public Input InputSet
@@ -456,8 +464,8 @@ namespace OpenForensics
                 // Live Preview form adjustments
                 if(!imagePreview)
                 {
-                    lstThumbs.Visible = false;
-                    this.Size = new Size (this.Size.Width, this.Size.Height - (lstThumbs.Size.Height + 10));
+                    pbPreview.Visible = false;
+                    this.Size = new Size (this.Size.Width, this.Size.Height - (pbPreview.Size.Height + 10));
                     pnlControls.Location = new Point(0, 5);
                     this.CenterToScreen();
                 }
@@ -480,17 +488,6 @@ namespace OpenForensics
 
                 // Initial setup of GPU status
                 DrawGPUStatus();
-
-                ilist.ImageSize = new Size(120, 120);
-                ilist.ColorDepth = ColorDepth.Depth16Bit;
-
-                typeof(Control).GetProperty("DoubleBuffered", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(lstThumbs, true, null);
-                lstThumbs.LargeImageList = ilist;
-                lstThumbs.Scrollable = true;
-                lstThumbs.ListViewItemSorter = null;
-                lstThumbs.Sorting = SortOrder.None;
-                ListView_SetSpacing(lstThumbs, 120 + 10, 120 + 4 + 20);
-                lstThumbs.Refresh();
 
                 if (CarveFilePath == "")
                 {
@@ -524,6 +521,10 @@ namespace OpenForensics
                     Thread analysis = new Thread(new ThreadStart(FileAnalysis));
                     analysis.IsBackground = true;
                     analysis.Start();
+
+                    Thread pictureThread = new Thread(new ThreadStart(PicturePreview));
+                    pictureThread.IsBackground = true;
+                    pictureThread.Start();
                 }
                 else
                 {
@@ -824,167 +825,28 @@ namespace OpenForensics
             { }
         }
 
-        private Image getThumbnaiImage(int width, Image img)
+        private void PicturePreview()
         {
-            Image thumb = new Bitmap(width, width);
-            //Image tmpThumb = null;
+            bool picLoaded = false;
 
-            if (img.Width < width && img.Height < width)
+            while(!picLoaded || imageCache.Count > 0 || !shouldStop)
             {
-                using (Graphics drawThumb = Graphics.FromImage(thumb))
+                if (imageCache.Count > 0)
                 {
-                    drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
-                    drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                    drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                    int xOffset = (int)((width - img.Width) / 2);
-                    int yOffset = (int)((width - img.Height) / 2);
-                    drawThumb.DrawImage(img, xOffset, yOffset, img.Width, img.Height);
-                }
-            }
-            else
-            {
-                Image.GetThumbnailImageAbort myCallback = new Image.GetThumbnailImageAbort(ThumbnailCallback);
-
-                if (img.Width == img.Height)
-                {
-                    thumb = img.GetThumbnailImage(width, width, myCallback, IntPtr.Zero);
-                }
-                else
-                {
-                    int height = 0;
-                    int xOffset = 0;
-                    int yOffset = 0;
-
-                    if (img.Width < img.Height)
+                    picLoaded = true;
+                    try
                     {
-                        height = (int)(width * img.Width / img.Height);
-                        //tmpThumb = img.GetThumbnailImage(height, width, myCallback, IntPtr.Zero);
-                        xOffset = (int)((width - height) / 2);
-                    }
-
-                    if (img.Width > img.Height)
-                    {
-                        height = (int)(width * img.Height / img.Width);
-                        //tmpThumb = img.GetThumbnailImage(width, height, myCallback, IntPtr.Zero);
-                        yOffset = (int)((width - height) / 2);
-                    }
-
-                    using (Graphics drawThumb = Graphics.FromImage(thumb))
-                    {
-                        drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
-                        drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                        drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                        drawThumb.DrawImage(img, xOffset, yOffset, width, height);
-                    }
-                }
-            }
-            
-            return thumb;
-        }
-
-        public bool ThumbnailCallback()
-        {
-            return true;
-        }
-
-        private Task<Boolean> addThumb(byte[] image, string name)
-        {
-            try
-            { 
-                Interlocked.Increment(ref thumbnailQueueCount);
-                if (lstThumbs.InvokeRequired)
-                {
-                    Invoke((MethodInvoker)delegate
-                    {
-                        if (!shouldStop)
+                        using (var pic = new MemoryStream(imageCache[0].pictureData))
                         {
-                            Image memImage = Image.FromStream(new MemoryStream(image), false, false);
-                            ilist.Images.Add(getThumbnaiImage(ilist.ImageSize.Width, memImage));
-                            ListViewItem lvi = new ListViewItem(name);
-                            lock (thumbnailLocker)
-                            {
-                                lvi.ImageIndex = thumbCount;
-                                lstThumbs.BeginUpdate();
-                                lstThumbs.Items.Add(lvi);
-                                lstThumbs.EndUpdate();
-                                thumbCount++;
-                                if (thumbCount % 4 == 0)
-                                {
-                                    GoToLastThumbnail();
-                                    lstThumbs.Refresh();
-                                    Application.DoEvents();
-                                }
-                            }
-                        }
-                    });
-                }
-                else
-                {
-                    if (!shouldStop)
-                    {
-                        Image memImage = Image.FromStream(new MemoryStream(image), false, false);
-                        ilist.Images.Add(getThumbnaiImage(ilist.ImageSize.Width, memImage));
-                        ListViewItem lvi = new ListViewItem(name);
-                        lock (thumbnailLocker)
-                        {
-                            lvi.ImageIndex = thumbCount;
-                            lstThumbs.BeginUpdate();
-                            lstThumbs.Items.Add(lvi);
-                            lstThumbs.EndUpdate();
-                            thumbCount++;
-                            if (thumbCount % 4 == 0)
-                            {
-                                GoToLastThumbnail();
-                                lstThumbs.Refresh();
-                                Application.DoEvents();
-                            }
+                            pbPreview.Image = Image.FromStream(pic);
                         }
                     }
+                    catch (Exception) { }
+
+                    imageCache.RemoveAt(0);
                 }
-
-                Interlocked.Decrement(ref thumbnailQueueCount);
-                return Task.FromResult(true);
+                Thread.Sleep(75);
             }
-            catch (Exception)
-            {
-                Interlocked.Decrement(ref thumbnailQueueCount);
-                return Task.FromResult(false);
-            }
-        }
-
-        private void GoToLastThumbnail()
-        {
-            if (lstThumbs.InvokeRequired)
-            {
-                Invoke((MethodInvoker)delegate
-                {
-                    lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
-                });
-            }
-            else
-                lstThumbs.EnsureVisible(lstThumbs.Items.Count - 1);
-        }
-
-        private void lstThumbs_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            // Disabled -- Useless in current iteration
-            //try
-            //{
-            //    if (lstThumbs.SelectedItems.Count == 1)
-            //    {
-            //        using (Form form = new Form())
-            //        {
-            //            form.Text = "Image Preview";
-            //            form.Size = new Size(256, 256);
-            //            form.BackgroundImageLayout = ImageLayout.Stretch;
-            //            form.BackgroundImage = ilist.Images[lstThumbs.Items.IndexOf(lstThumbs.SelectedItems[0])];
-
-            //            form.ShowDialog();
-            //        }
-            //    }
-            //}
-            //catch (Exception)
-            //{ }
         }
 
         private void StopBtnUsable(bool state)
@@ -1008,6 +870,8 @@ namespace OpenForensics
             catch (Exception)
             { }
         }
+
+
 
         private void AfterAnalysisButtons(bool state, bool foundFiles)
         {
@@ -1113,13 +977,6 @@ namespace OpenForensics
 
             totalProcessed = 0;
             chunkCount = 0;                                 // Number of segments processed
-
-            if (imagePreview)
-            {
-                LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(Math.Min(4, lpCount / 2));
-                thumbnailQueue = new TaskFactory(scheduler);
-                thumbnailQueueCount = 0;
-            }
 
             double time = 0;
 
@@ -1292,15 +1149,12 @@ namespace OpenForensics
                 AfterAnalysisButtons(true, false);
 
             if (!shouldStop && imagePreview)
-                updateHeader("Analysis Complete. Processing image previews...");
+                updateHeader("Analysis Complete. Cycling remaining image previews...");
 
             GC.Collect();
 
-            while (!shouldStop && imagePreview && thumbnailQueueCount > 0)
+            while (!shouldStop && imagePreview)// && thumbnailQueueCount > 0)
                 Thread.Sleep(2000);
-
-            if (imagePreview)
-                GoToLastThumbnail();
 
             if (!shouldStop)
                 updateHeader("Analysis Complete!");
@@ -1699,12 +1553,7 @@ namespace OpenForensics
                             byte[] fileData = new byte[finish - start];
                             Array.Copy(buffer, start, fileData, 0, finish - start);
 
-                            //addThumb(fileData, fileID.ToString());
-
-                            thumbnailQueue.StartNew(async delegate
-                            {
-                                await addThumb(fileData, fileID.ToString());
-                            }, TaskCreationOptions.PreferFairness).Unwrap();
+                            imageCache.Add(new cachedImage(fileData, fileID.ToString()));
                         }
                     }
                 }
