@@ -49,6 +49,7 @@
             this.btnAnalysisLog = new System.Windows.Forms.Button();
             this.pnlControls = new System.Windows.Forms.Panel();
             this.pbPreview = new System.Windows.Forms.PictureBox();
+            this.lblImageStatus = new System.Windows.Forms.Label();
             this.grpGPUActivity.SuspendLayout();
             this.grpProcessed.SuspendLayout();
             this.pnlControls.SuspendLayout();
@@ -291,7 +292,7 @@
             this.pnlControls.Controls.Add(this.pbProgress);
             this.pnlControls.Controls.Add(this.lblProcess);
             this.pnlControls.Controls.Add(this.grpProcessed);
-            this.pnlControls.Location = new System.Drawing.Point(0, 432);
+            this.pnlControls.Location = new System.Drawing.Point(1, 454);
             this.pnlControls.Name = "pnlControls";
             this.pnlControls.Size = new System.Drawing.Size(574, 221);
             this.pnlControls.TabIndex = 12;
@@ -307,11 +308,21 @@
             this.pbPreview.TabIndex = 13;
             this.pbPreview.TabStop = false;
             // 
+            // lblImageStatus
+            // 
+            this.lblImageStatus.Location = new System.Drawing.Point(12, 429);
+            this.lblImageStatus.Name = "lblImageStatus";
+            this.lblImageStatus.Size = new System.Drawing.Size(551, 22);
+            this.lblImageStatus.TabIndex = 14;
+            this.lblImageStatus.Text = "Images Queued: 0";
+            this.lblImageStatus.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            // 
             // Analysis
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            this.ClientSize = new System.Drawing.Size(575, 655);
+            this.ClientSize = new System.Drawing.Size(575, 675);
+            this.Controls.Add(this.lblImageStatus);
             this.Controls.Add(this.pbPreview);
             this.Controls.Add(this.pnlControls);
             this.Font = new System.Drawing.Font("Bahnschrift", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -357,5 +368,6 @@
         private System.Windows.Forms.Button btnAnalysisLog;
         private System.Windows.Forms.Panel pnlControls;
         private System.Windows.Forms.PictureBox pbPreview;
+        private System.Windows.Forms.Label lblImageStatus;
     }
 }

@@ -562,6 +562,55 @@ namespace OpenForensics
             return watch.ElapsedTicks / (double)Stopwatch.Frequency;
         }
 
+        static bool HasSkin(Bitmap img)
+        {
+            int MinSkinPercentage = 25;
+            int total = 0, skin = 0;
+
+            //var startx = 0;
+            //var endx = img.Width;
+            //var starty = 0;
+            //var endy = img.Height;
+
+            //var startx = (int)(0.4 * img.Width);
+            //var endx = (int)(0.6 * img.Width);
+            //var starty = (int)(0.4 * img.Height);
+            //var endy = (int)(0.6 * img.Height);
+
+            //for (int y = starty; y < endy; y++)
+            //{
+            //    for (int x = startx; x < endx; x++)
+            //    {
+            //        var p = img.GetPixel(x, y);
+            //        var s = IsSkin(p);
+            //        if (s) skin++;
+            //        total++;
+            //    }
+            //}
+
+            //(int)((img.Height/pointsY)*(y+1))
+            int pointsY = 6;
+            int pointsX = 6;
+
+            for (int y = 0; y < pointsY; y++)
+            {
+                for (int x = 0; x < pointsX; x++)
+                {
+                    var p = img.GetPixel((int)((img.Width / pointsX) * (x + 1)), (int)((img.Height / pointsY) * (y + 1)));
+                    var s = IsSkin(p);
+                    if (s) skin++;
+                    total++;
+                }
+            }
+
+            return ((double)skin / total) > (MinSkinPercentage / 100.0);
+        }
+
+        static bool IsSkin(Color p)
+        {
+            return p.R > 60 && (p.G < p.R * 0.85) && (p.B < p.R * 0.7) && (p.G > p.R * 0.4) && (p.B > p.R * 0.2);
+        }
+
         #endregion
 
 
@@ -844,9 +893,34 @@ namespace OpenForensics
                     catch (Exception) { }
 
                     imageCache.RemoveAt(0);
+                    updateImageStatus(imageCache.Count);
                 }
                 Thread.Sleep(100);
             }
+
+            imageCache.Clear();
+            GC.Collect();
+        }
+        private void updateImageStatus(int cacheSize)
+        {
+            try
+            {
+                if (lblImageStatus.InvokeRequired)
+                {
+                    Invoke((MethodInvoker)delegate
+                    {
+                        lblImageStatus.Text = "Images Queued: " + cacheSize;
+                        lblImageStatus.Refresh();
+                    });
+                }
+                else
+                {
+                    lblImageStatus.Text = "Images Queued: " + cacheSize;
+                    lblImageStatus.Refresh();
+                }
+            }
+            catch (Exception)
+            { }
         }
 
         private void StopBtnUsable(bool state)
@@ -1148,12 +1222,12 @@ namespace OpenForensics
             else
                 AfterAnalysisButtons(true, false);
 
-            if (!shouldStop && imagePreview)
+            if (!shouldStop && imagePreview && imageCache.Count != 0)
                 updateHeader("Analysis Complete. Cycling remaining image previews...");
 
             GC.Collect();
 
-            while (!shouldStop && imagePreview)// && thumbnailQueueCount > 0)
+            while (!shouldStop && imagePreview && imageCache.Count != 0)
                 Thread.Sleep(2000);
 
             if (!shouldStop)
@@ -1553,7 +1627,12 @@ namespace OpenForensics
                             byte[] fileData = new byte[finish - start];
                             Array.Copy(buffer, start, fileData, 0, finish - start);
 
-                            imageCache.Add(new cachedImage(fileData, fileID.ToString()));
+                            try
+                            {
+                                if (HasSkin(new Bitmap(new MemoryStream(fileData))))
+                                    imageCache.Add(new cachedImage(fileData, fileID.ToString()));
+                            }
+                            catch (Exception) { }
                         }
                     }
                 }
