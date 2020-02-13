@@ -428,7 +428,7 @@ namespace OpenForensics
         private List<Engine> GPUCollection = new List<Engine>();
 
         private bool imagePreview;
-        private List<cachedImage> imageCache = new List<cachedImage>();
+        private ConcurrentQueue<cachedImage> imageCache = new ConcurrentQueue<cachedImage>();
 
 
         public Input InputSet
@@ -876,24 +876,24 @@ namespace OpenForensics
 
         private void PicturePreview()
         {
-            bool picLoaded = false;
+            int previewErrors = 0;
 
-            while((!picLoaded || imageCache.Count > 0) && !shouldStop)
+            while((pbProgress.Value != 100 || imageCache.Count > 0) && !shouldStop)
             {
                 if (imageCache.Count > 0)
                 {
-                    picLoaded = true;
                     try
                     {
-                        using (var pic = new MemoryStream(imageCache[0].pictureData))
+                        cachedImage tempImg;
+                        imageCache.TryDequeue(out tempImg);
+                        using (var pic = new MemoryStream(tempImg.pictureData))
                         {
                             pbPreview.Image = Image.FromStream(pic);
                         }
                     }
-                    catch (Exception) { }
+                    catch (Exception) { previewErrors++; }
 
-                    imageCache.RemoveAt(0);
-                    updateImageStatus(imageCache.Count);
+                    updateImageStatus(imageCache.Count, previewErrors);
                 }
                 Thread.Sleep(100);
             }
@@ -901,7 +901,7 @@ namespace OpenForensics
             imageCache.Clear();
             GC.Collect();
         }
-        private void updateImageStatus(int cacheSize)
+        private void updateImageStatus(int cacheSize, int previewErrors)
         {
             try
             {
@@ -909,13 +909,13 @@ namespace OpenForensics
                 {
                     Invoke((MethodInvoker)delegate
                     {
-                        lblImageStatus.Text = "Images Queued: " + cacheSize;
+                        lblImageStatus.Text = "Images Queued: " + cacheSize + " (Preview Errors: " + previewErrors + ")";
                         lblImageStatus.Refresh();
                     });
                 }
                 else
                 {
-                    lblImageStatus.Text = "Images Queued: " + cacheSize;
+                    lblImageStatus.Text = "Images Queued: " + cacheSize + " (Preview Errors: " + previewErrors + ")";
                     lblImageStatus.Refresh();
                 }
             }
@@ -1629,8 +1629,8 @@ namespace OpenForensics
 
                             try
                             {
-                                if (HasSkin(new Bitmap(new MemoryStream(fileData))))
-                                    imageCache.Add(new cachedImage(fileData, fileID.ToString()));
+                                //if (HasSkin(new Bitmap(new MemoryStream(fileData))))
+                                    imageCache.Enqueue(new cachedImage(fileData, fileID.ToString()));
                             }
                             catch (Exception) { }
                         }

@@ -314,7 +314,7 @@
             this.lblImageStatus.Name = "lblImageStatus";
             this.lblImageStatus.Size = new System.Drawing.Size(551, 22);
             this.lblImageStatus.TabIndex = 14;
-            this.lblImageStatus.Text = "Images Queued: 0";
+            this.lblImageStatus.Text = "Images Queued: 0 (Preview Errors: 0)";
             this.lblImageStatus.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // Analysis
