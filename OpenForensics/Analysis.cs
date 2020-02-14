@@ -69,10 +69,10 @@ namespace OpenForensics
 
         public struct cachedImage : IDisposable
         {
-            public Bitmap picture;
+            public Image picture;
             public string location;
 
-            public cachedImage(Bitmap picture, string location)
+            public cachedImage(Image picture, string location)
             {
                 this.picture = picture;
                 this.location = location;
@@ -860,6 +860,66 @@ namespace OpenForensics
             { }
         }
 
+        private Image getThumbnaiImage(Bitmap img, int width)
+        {
+            Image thumb = new Bitmap(width, width);
+
+            if (img.Width < width && img.Height < width)
+            {
+                using (Graphics drawThumb = Graphics.FromImage(thumb))
+                {
+                    drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
+                    drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                    drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                    int xOffset = (int)((width - img.Width) / 2);
+                    int yOffset = (int)((width - img.Height) / 2);
+                    drawThumb.DrawImage(img, xOffset, yOffset, img.Width, img.Height);
+                }
+            }
+            else
+            {
+                Image.GetThumbnailImageAbort myCallback = new Image.GetThumbnailImageAbort(ThumbnailCallback);
+
+                if (img.Width == img.Height)
+                {
+                    thumb = img.GetThumbnailImage(width, width, myCallback, IntPtr.Zero);
+                }
+                else
+                {
+                    int height = 0;
+                    int xOffset = 0;
+                    int yOffset = 0;
+
+                    if (img.Width < img.Height)
+                    {
+                        height = (int)(width * img.Width / img.Height);
+                        xOffset = (int)((width - height) / 2);
+                    }
+
+                    if (img.Width > img.Height)
+                    {
+                        height = (int)(width * img.Height / img.Width);
+                        yOffset = (int)((width - height) / 2);
+                    }
+
+                    using (Graphics drawThumb = Graphics.FromImage(thumb))
+                    {
+                        drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
+                        drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                        drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                        drawThumb.DrawImage(img, xOffset, yOffset, width, height);
+                    }
+                }
+            }
+
+            return thumb;
+        }
+
+        public bool ThumbnailCallback()
+        {
+            return true;
+        }
+
         private void PicturePreview()
         {
             while((pbProgress.Value != 100 || imageCache.Count > 0) && !shouldStop)
@@ -961,19 +1021,15 @@ namespace OpenForensics
 
         private void RefreshForm()
         {
-            try
+            if (this.InvokeRequired)
             {
-                if (this.InvokeRequired)
+                Invoke((MethodInvoker)delegate
                 {
-                    Invoke((MethodInvoker)delegate
-                    {
-                        this.Refresh();
-                    });
-                }
-                else
                     this.Refresh();
+                });
             }
-            catch (Exception) { }
+            else
+                this.Refresh();
         }
 
         private void btnStop_Click(object sender, EventArgs e)
@@ -1613,9 +1669,12 @@ namespace OpenForensics
 
                             try
                             {
-                                Bitmap tmpImg = new Bitmap(new MemoryStream(fileData));
-                                if (!skinDetect || HasSkin(tmpImg))
-                                    imageCache.Enqueue(new cachedImage(tmpImg, fileID.ToString()));
+                                using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
+                                    if (!skinDetect || HasSkin(tmpImg))
+                                    {
+                                        Image tmpThumb = getThumbnaiImage(tmpImg, pbPreview.Width);
+                                        imageCache.Enqueue(new cachedImage(tmpThumb, fileID.ToString()));
+                                    }
                             }
                             catch (Exception) { }
                         }
