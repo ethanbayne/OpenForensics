@@ -383,6 +383,7 @@ namespace OpenForensics
             public List<string> targetFooter { get; set; }
             public List<int> targetLength { get; set; }
             public bool imagePreview { get; set; }
+            public bool skinDetect { get; set; }
         }
 
         private volatile bool shouldStop = false;
@@ -428,6 +429,7 @@ namespace OpenForensics
         private List<Engine> GPUCollection = new List<Engine>();
 
         private bool imagePreview;
+        private bool skinDetect;
         private ConcurrentQueue<cachedImage> imageCache = new ConcurrentQueue<cachedImage>();
 
 
@@ -449,6 +451,7 @@ namespace OpenForensics
                 targetFooter = value.targetFooter;
                 targetLength = value.targetLength;
                 imagePreview = value.imagePreview;
+                skinDetect = value.skinDetect;
             }
         }
 
@@ -465,7 +468,7 @@ namespace OpenForensics
                 if(!imagePreview)
                 {
                     pbPreview.Visible = false;
-                    this.Size = new Size (this.Size.Width, this.Size.Height - (pbPreview.Size.Height + 10));
+                    this.Size = new Size (this.Size.Width, this.Size.Height - (pbPreview.Size.Height + 30));
                     pnlControls.Location = new Point(0, 5);
                     this.CenterToScreen();
                 }
@@ -865,7 +868,6 @@ namespace OpenForensics
                         pbPreview.Image = tempImg.picture;
                     }
                     catch (Exception) { }
-
                     updateImageStatus(imageCache.Count);
                 }
                 Thread.Sleep(100);
@@ -954,15 +956,19 @@ namespace OpenForensics
 
         private void RefreshForm()
         {
-            if (this.InvokeRequired)
+            try
             {
-                Invoke((MethodInvoker)delegate
+                if (this.InvokeRequired)
                 {
+                    Invoke((MethodInvoker)delegate
+                    {
+                        this.Refresh();
+                    });
+                }
+                else
                     this.Refresh();
-                });
             }
-            else
-                this.Refresh();
+            catch (Exception) { }
         }
 
         private void btnStop_Click(object sender, EventArgs e)
@@ -1577,7 +1583,7 @@ namespace OpenForensics
                     Interlocked.Increment(ref results[fileIndex]);
 
                     // If the file is a jpg, try and generate a thumbnail
-                    if (imagePreview && targetName[fileIndex] == "jpg")
+                    if (imagePreview && (targetName[fileIndex] == "jpg" || targetName[fileIndex] == "bmp" || targetName[fileIndex] == "gif" || targetName[fileIndex] == "png" || targetName[fileIndex] == "tiff"))
                     {
                         int start = resultLoc[i];
                         int finish = 0;
@@ -1602,9 +1608,9 @@ namespace OpenForensics
 
                             try
                             {
-                                Bitmap tmpImg = new Bitmap(new MemoryStream(fileData));
-                                if (HasSkin(tmpImg))
-                                    imageCache.Enqueue(new cachedImage(tmpImg, fileID.ToString()));
+                                using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
+                                    if (!skinDetect || HasSkin(tmpImg))
+                                        imageCache.Enqueue(new cachedImage(new Bitmap(tmpImg), fileID.ToString()));
                             }
                             catch (Exception) { }
                         }

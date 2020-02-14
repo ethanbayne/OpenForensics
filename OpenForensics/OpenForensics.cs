@@ -60,6 +60,7 @@ namespace OpenForensics
         private string carvableFileRecord = "";
 
         private bool imagePreview = false;
+        private bool skinDetect = true;
 
         // Arrays for all search target types
         private List<string> targetName = new List<string>();
@@ -296,6 +297,12 @@ namespace OpenForensics
         private void chkImagePreview_CheckedChanged(object sender, EventArgs e)
         {
             imagePreview = chkImagePreview.Checked;
+            chkSkin.Enabled = chkImagePreview.Checked;
+        }
+
+        private void chkSkin_CheckedChanged(object sender, EventArgs e)
+        {
+            skinDetect = chkSkin.Checked;
         }
 
         #endregion
@@ -838,9 +845,11 @@ namespace OpenForensics
             input.targetFooter = targetFooter;
             input.targetLength = targetLength;
             input.imagePreview = imagePreview;
+            input.skinDetect = skinDetect;
 
             anFrm.InputSet = input;
             anFrm.Show();
         }
+
     }
 }
