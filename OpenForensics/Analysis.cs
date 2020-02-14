@@ -67,7 +67,7 @@ namespace OpenForensics
             }
         }
 
-        public struct cachedImage
+        public struct cachedImage : IDisposable
         {
             public Bitmap picture;
             public string location;
@@ -76,6 +76,11 @@ namespace OpenForensics
             {
                 this.picture = picture;
                 this.location = location;
+            }
+
+            public void Dispose()
+            {
+                picture.Dispose();
             }
         }
 
@@ -1608,9 +1613,9 @@ namespace OpenForensics
 
                             try
                             {
-                                using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
-                                    if (!skinDetect || HasSkin(tmpImg))
-                                        imageCache.Enqueue(new cachedImage(new Bitmap(tmpImg), fileID.ToString()));
+                                Bitmap tmpImg = new Bitmap(new MemoryStream(fileData));
+                                if (!skinDetect || HasSkin(tmpImg))
+                                    imageCache.Enqueue(new cachedImage(tmpImg, fileID.ToString()));
                             }
                             catch (Exception) { }
                         }
