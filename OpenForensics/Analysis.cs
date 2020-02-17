@@ -861,11 +861,8 @@ namespace OpenForensics
             { }
         }
 
-        public Bitmap ResizeBitmap(Image source, int maxWidth, int maxHeight)
+        public Bitmap ResizeBitmap(Bitmap source, int maxWidth, int maxHeight)
         {
-            if (source == null)
-                throw new ArgumentNullException("source");
-
             int width = source.Width;
             int height = source.Height;
             float scale = 1;
@@ -891,16 +888,20 @@ namespace OpenForensics
 
             var bmp = new Bitmap(width, height);
 
-            using (var g = Graphics.FromImage(bmp))
+            if (scale < 1)
             {
-                g.InterpolationMode = InterpolationMode.Low;
-                g.CompositingMode = CompositingMode.SourceCopy;
-                g.CompositingQuality = CompositingQuality.HighSpeed;
-                g.DrawImage(source, new Rectangle(0, 0, width, height));
-                g.Save();
+                using (var drawThumb = Graphics.FromImage(bmp))
+                {
+                    drawThumb.InterpolationMode = InterpolationMode.Low;
+                    drawThumb.CompositingMode = CompositingMode.SourceCopy;
+                    drawThumb.CompositingQuality = CompositingQuality.HighSpeed;
+                    drawThumb.DrawImage(source, new Rectangle(0, 0, width, height));
+                    drawThumb.Save();
+                }
+                return bmp;
             }
-
-            return bmp;
+            else
+                return source;
         }
 
         private void PicturePreview()
