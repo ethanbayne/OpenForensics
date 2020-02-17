@@ -861,11 +861,14 @@ namespace OpenForensics
             { }
         }
 
-        public Bitmap ResizeBitmap(Bitmap source, int maxWidth, int maxHeight)
+        public static Bitmap ResizeBitmap(Bitmap source, int maxWidth, int maxHeight)
         {
             int width = source.Width;
             int height = source.Height;
             float scale = 1;
+
+            if (width < maxWidth && height < maxHeight)
+                return source;
 
             if (width > height)
             {
@@ -888,20 +891,15 @@ namespace OpenForensics
 
             var bmp = new Bitmap(width, height);
 
-            if (scale < 1)
+            using (var drawThumb = Graphics.FromImage(bmp))
             {
-                using (var drawThumb = Graphics.FromImage(bmp))
-                {
-                    drawThumb.InterpolationMode = InterpolationMode.Low;
-                    drawThumb.CompositingMode = CompositingMode.SourceCopy;
-                    drawThumb.CompositingQuality = CompositingQuality.HighSpeed;
-                    drawThumb.DrawImage(source, new Rectangle(0, 0, width, height));
-                    drawThumb.Save();
-                }
-                return bmp;
+                drawThumb.InterpolationMode = InterpolationMode.Low;
+                drawThumb.CompositingMode = CompositingMode.SourceCopy;
+                drawThumb.CompositingQuality = CompositingQuality.HighSpeed;
+                drawThumb.DrawImage(source, new Rectangle(0, 0, width, height));
+                drawThumb.Save();
             }
-            else
-                return source;
+            return bmp;
         }
 
         private void PicturePreview()
@@ -1628,7 +1626,7 @@ namespace OpenForensics
                     Interlocked.Increment(ref results[fileIndex]);
 
                     // If the file is a jpg, try and generate a thumbnail
-                    if (imagePreview && (targetName[fileIndex] == "jpg" || targetName[fileIndex] == "bmp" || targetName[fileIndex] == "gif" || targetName[fileIndex] == "png" || targetName[fileIndex] == "tiff"))
+                    if (imagePreview && (targetName[fileIndex] == "jpg"))// || targetName[fileIndex] == "bmp" || targetName[fileIndex] == "gif" || targetName[fileIndex] == "png" || targetName[fileIndex] == "tiff"))
                     {
                         int start = resultLoc[i];
                         int finish = 0;
@@ -1656,8 +1654,8 @@ namespace OpenForensics
                                 using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
                                     if (!skinDetect || HasSkin(tmpImg))
                                     {
-                                        Image tmpThumb = ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height);
-                                        imageCache.Enqueue(new cachedImage(tmpThumb, fileID.ToString()));
+                                        Image previewImg = new Bitmap (ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height));
+                                        imageCache.Enqueue(new cachedImage(previewImg, fileID.ToString()));
                                     }
                             }
                             catch (Exception) { }
