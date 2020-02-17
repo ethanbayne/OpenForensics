@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Management;
 using System.Runtime.InteropServices;
@@ -890,16 +889,13 @@ namespace OpenForensics
 
             using (var resizeBmp = Graphics.FromImage(bmp))
             {
-                resizeBmp.InterpolationMode = InterpolationMode.Low;
-                resizeBmp.CompositingMode = CompositingMode.SourceCopy;
-                resizeBmp.CompositingQuality = CompositingQuality.HighSpeed;
                 resizeBmp.DrawImage(source, new Rectangle(0, 0, width, height));
                 resizeBmp.Save();
             }
             return bmp;
         }
 
-        private void PicturePreview()
+        private async void PicturePreview()
         {
             while ((pbProgress.Value != 100 || imageCache.Count > 0) && !shouldStop)
             {
@@ -910,11 +906,12 @@ namespace OpenForensics
                         cachedImage tempImg;
                         imageCache.TryDequeue(out tempImg);
                         pbPreview.Image = tempImg.picture;
+                        pbPreview.Refresh();
+                        await Task.Delay(100);
                     }
                     catch (Exception) { }
                     updateImageStatus(imageCache.Count);
                 }
-                Thread.Sleep(100);
             }
 
             imageCache.Clear();
@@ -1051,7 +1048,7 @@ namespace OpenForensics
         #region Analysis Command
 
         // Main analysis function
-        private void FileAnalysis()
+        private async void FileAnalysis()
         {
             #region Common Setup
 
@@ -1249,7 +1246,7 @@ namespace OpenForensics
             GC.Collect();
 
             while (!shouldStop && imagePreview && imageCache.Count != 0)
-                Thread.Sleep(1000);
+                await Task.Delay(1000);
 
             if (!shouldStop)
                 updateHeader("Analysis Complete!");
