@@ -66,10 +66,10 @@ namespace OpenForensics
 
         public struct cachedImage : IDisposable
         {
-            public Image picture;
+            public Bitmap picture;
             public string location;
 
-            public cachedImage(Image picture, string location)
+            public cachedImage(Bitmap picture, string location)
             {
                 this.picture = picture;
                 this.location = location;
@@ -433,7 +433,6 @@ namespace OpenForensics
         private bool imagePreview;
         private bool skinDetect;
         private ConcurrentQueue<cachedImage> imageCache = new ConcurrentQueue<cachedImage>();
-
 
         public Input InputSet
         {
@@ -906,7 +905,6 @@ namespace OpenForensics
                         cachedImage tempImg;
                         imageCache.TryDequeue(out tempImg);
                         pbPreview.Image = tempImg.picture;
-                        pbPreview.Refresh();
                         await Task.Delay(100);
                     }
                     catch (Exception) { }
@@ -1649,10 +1647,7 @@ namespace OpenForensics
                             {
                                 using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
                                     if (!skinDetect || HasSkin(tmpImg))
-                                    {
-                                        Image previewImg = new Bitmap(ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height));
-                                        imageCache.Enqueue(new cachedImage(previewImg, fileID.ToString()));
-                                    }
+                                        imageCache.Enqueue(new cachedImage(new Bitmap(ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height)), fileID.ToString()));
                             }
                             catch (Exception) { }
                         }
