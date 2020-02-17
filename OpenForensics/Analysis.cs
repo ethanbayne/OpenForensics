@@ -529,8 +529,8 @@ namespace OpenForensics
                     analysis.Start();
 
                     Thread pictureThread = new Thread(new ThreadStart(PicturePreview));
-                    pictureThread.IsBackground = true;
                     pictureThread.Start();
+                    pictureThread.Priority = ThreadPriority.AboveNormal;
                 }
                 else
                 {
@@ -886,15 +886,15 @@ namespace OpenForensics
             width = (int)(source.Width * scale);
             height = (int)(source.Height * scale);
 
-            var bmp = new Bitmap(width, height);
+            var bmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
 
-            using (var drawThumb = Graphics.FromImage(bmp))
+            using (var resizeBmp = Graphics.FromImage(bmp))
             {
-                drawThumb.InterpolationMode = InterpolationMode.Low;
-                drawThumb.CompositingMode = CompositingMode.SourceCopy;
-                drawThumb.CompositingQuality = CompositingQuality.HighSpeed;
-                drawThumb.DrawImage(source, new Rectangle(0, 0, width, height));
-                drawThumb.Save();
+                resizeBmp.InterpolationMode = InterpolationMode.Low;
+                resizeBmp.CompositingMode = CompositingMode.SourceCopy;
+                resizeBmp.CompositingQuality = CompositingQuality.HighSpeed;
+                resizeBmp.DrawImage(source, new Rectangle(0, 0, width, height));
+                resizeBmp.Save();
             }
             return bmp;
         }
@@ -1030,7 +1030,7 @@ namespace OpenForensics
 
         private void btnAnalysisLog_Click(object sender, EventArgs e)
         {
-            System.Diagnostics.Process.Start(saveLocation + "LogFile.txt");
+            Process.Start(saveLocation + "LogFile.txt");
         }
 
         // Clean up before closing form
