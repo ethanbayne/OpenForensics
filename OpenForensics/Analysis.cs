@@ -18,6 +18,7 @@ using System.Text.RegularExpressions;
 
 using System.Drawing;
 using System.Reflection;
+using System.Drawing.Drawing2D;
 
 namespace OpenForensics
 {
@@ -860,64 +861,46 @@ namespace OpenForensics
             { }
         }
 
-        private Image getThumbnaiImage(Bitmap img, int width)
+        public Bitmap ResizeBitmap(Image source, int maxWidth, int maxHeight)
         {
-            Image thumb = new Bitmap(width, width);
+            if (source == null)
+                throw new ArgumentNullException("source");
 
-            if (img.Width < width && img.Height < width)
+            int width = source.Width;
+            int height = source.Height;
+            float scale = 1;
+
+            if (width > height)
             {
-                using (Graphics drawThumb = Graphics.FromImage(thumb))
-                {
-                    drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
-                    drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                    drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                    int xOffset = (int)((width - img.Width) / 2);
-                    int yOffset = (int)((width - img.Height) / 2);
-                    drawThumb.DrawImage(img, xOffset, yOffset, img.Width, img.Height);
-                }
+                if (width > maxWidth)
+                    scale = (float)maxWidth / (float)width;
+                else if (height > maxHeight)
+                    scale = (float)maxHeight / (float)height;
             }
             else
             {
-                Image.GetThumbnailImageAbort myCallback = new Image.GetThumbnailImageAbort(ThumbnailCallback);
-
-                if (img.Width == img.Height)
-                {
-                    thumb = img.GetThumbnailImage(width, width, myCallback, IntPtr.Zero);
-                }
-                else
-                {
-                    int height = 0;
-                    int xOffset = 0;
-                    int yOffset = 0;
-
-                    if (img.Width < img.Height)
-                    {
-                        height = (int)(width * img.Width / img.Height);
-                        xOffset = (int)((width - height) / 2);
-                    }
-
-                    if (img.Width > img.Height)
-                    {
-                        height = (int)(width * img.Height / img.Width);
-                        yOffset = (int)((width - height) / 2);
-                    }
-
-                    using (Graphics drawThumb = Graphics.FromImage(thumb))
-                    {
-                        drawThumb.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Low;
-                        drawThumb.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                        drawThumb.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
-                        drawThumb.DrawImage(img, xOffset, yOffset, width, height);
-                    }
-                }
+                if (height > maxHeight)
+                    scale = (float)maxHeight / (float)height;
+                else if (width > maxWidth)
+                    scale = (float)maxWidth / (float)width;
             }
 
-            return thumb;
-        }
+            // Figure out the new size.
+            width = (int)(source.Width * scale);
+            height = (int)(source.Height * scale);
 
-        public bool ThumbnailCallback()
-        {
-            return true;
+            var bmp = new Bitmap(width, height);
+
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.InterpolationMode = InterpolationMode.Low;
+                g.CompositingMode = CompositingMode.SourceCopy;
+                g.CompositingQuality = CompositingQuality.HighSpeed;
+                g.DrawImage(source, new Rectangle(0, 0, width, height));
+                g.Save();
+            }
+
+            return bmp;
         }
 
         private void PicturePreview()
@@ -1672,7 +1655,7 @@ namespace OpenForensics
                                 using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
                                     if (!skinDetect || HasSkin(tmpImg))
                                     {
-                                        Image tmpThumb = getThumbnaiImage(tmpImg, pbPreview.Width);
+                                        Image tmpThumb = ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height);
                                         imageCache.Enqueue(new cachedImage(tmpThumb, fileID.ToString()));
                                     }
                             }
