@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Diagnostics;
-using System.Threading;
-using System.Windows.Forms;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Xml;
-using Cudafy;
+﻿using Cudafy;
 using Cudafy.Host;
 using Cudafy.Translator;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
 using System.Management;
+using System.Threading;
+using System.Windows.Forms;
+using System.Xml;
 
 namespace OpenForensics
 {
@@ -44,8 +43,9 @@ namespace OpenForensics
         // Version 1.76b - Further refactoring and concurrency improvements with visualisation introduction.
         // Version 1.78b - Preparing visualisation branch merge into master by enabling optional image preview processing
         // Version 1.80b - Minor UI updates and improvements
+        // Version 1.85b - Modified image preview to present flash cards rather than grid. Integrated simple skin detection algorithm.
 
-        private string version = "v. 1.80b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.85b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
@@ -293,7 +293,7 @@ namespace OpenForensics
                 }
             }
         }
-        
+
         private void chkImagePreview_CheckedChanged(object sender, EventArgs e)
         {
             imagePreview = chkImagePreview.Checked;

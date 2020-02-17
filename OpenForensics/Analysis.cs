@@ -1,24 +1,21 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
+using System.Management;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Threading.Tasks.Schedulers;
-
-using System.Runtime.InteropServices;
-using Microsoft.Win32.SafeHandles;
-using System.ComponentModel;
-using System.Management;
-using System.Collections.Concurrent;
+using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
-using System.Text.RegularExpressions;
-
-using System.Drawing;
-using System.Reflection;
-using System.Drawing.Drawing2D;
 
 namespace OpenForensics
 {
@@ -91,7 +88,7 @@ namespace OpenForensics
             public float size;
             public string sizeformat, tag, filetype;
 
-            public resultRecord(ulong start, ulong end, float size, string sizeformat, string tag,  string filetype)
+            public resultRecord(ulong start, ulong end, float size, string sizeformat, string tag, string filetype)
             {
                 this.start = start;
                 this.end = end;
@@ -130,7 +127,7 @@ namespace OpenForensics
         {
             private FileStream DDStream;
             private static object locker = new Object();
-            private ulong fileSize; 
+            private ulong fileSize;
             private int peek;
             private byte[] sectionEnd;
             private bool physicalDrive = false;
@@ -236,7 +233,7 @@ namespace OpenForensics
                             else
                                 queue.Enqueue(Process(DDStream, buffer, x * readLength, workLoad));
                         }
-                        
+
                         // Create new scheduler to read data. Use readQueues to manage levels of concurrency.
                         LimitedConcurrencyLevelTaskScheduler scheduler = new LimitedConcurrencyLevelTaskScheduler(readQueues);
                         TaskFactory factory = new TaskFactory(scheduler);
@@ -290,7 +287,7 @@ namespace OpenForensics
                     return readLength;
                 }
             }
-            
+
             // Function for carving file from source device.
             public byte[] RetrieveFile(long startLocation, long endLocation)
             {
@@ -471,10 +468,10 @@ namespace OpenForensics
             try
             {
                 // Live Preview form adjustments
-                if(!imagePreview)
+                if (!imagePreview)
                 {
                     pbPreview.Visible = false;
-                    this.Size = new Size (this.Size.Width, this.Size.Height - (pbPreview.Size.Height + 30));
+                    this.Size = new Size(this.Size.Width, this.Size.Height - (pbPreview.Size.Height + 30));
                     pnlControls.Location = new Point(0, 5);
                     this.CenterToScreen();
                 }
@@ -585,14 +582,14 @@ namespace OpenForensics
             {
                 for (int x = 0; x < pointsX; x++)
                 {
-                    var imgPixel = img.GetPixel((int)(((img.Width / pointsX) * (x + 1))-1), (int)(((img.Height / pointsY) * (y + 1))-1));
+                    var imgPixel = img.GetPixel((int)(((img.Width / pointsX) * (x + 1)) - 1), (int)(((img.Height / pointsY) * (y + 1)) - 1));
                     bool isSkin = imgPixel.R > 60 && (imgPixel.G < imgPixel.R * 0.85) && (imgPixel.B < imgPixel.R * 0.7) && (imgPixel.G > imgPixel.R * 0.4) && (imgPixel.B > imgPixel.R * 0.2);
-                    if (isSkin) 
+                    if (isSkin)
                         skinFound++;
                     pixelTotal++;
                 }
             }
-            
+
             bool result = ((double)skinFound / pixelTotal) > (MinSkinPercentage / 100.0);
 
             return result;
@@ -623,7 +620,7 @@ namespace OpenForensics
             int gpuCount = gpuLabel.Length;
             int gpuPerRow = gpuCount;
             int rows = 1;
-            
+
             if (gpuCount > 4)
                 rows = 2;
             if (rows > 1)
@@ -644,7 +641,7 @@ namespace OpenForensics
             if (rows == 2)
                 rowStyle[1].Height = rowHeight;
 
-            for (int i = 0; i < gpuLabel.Length; i++)                
+            for (int i = 0; i < gpuLabel.Length; i++)
                 tblGPU.Controls.Add(gpuLabel[i], i, 0);
         }
 
@@ -904,7 +901,7 @@ namespace OpenForensics
 
         private void PicturePreview()
         {
-            while((pbProgress.Value != 100 || imageCache.Count > 0) && !shouldStop)
+            while ((pbProgress.Value != 100 || imageCache.Count > 0) && !shouldStop)
             {
                 if (imageCache.Count > 0)
                 {
@@ -981,7 +978,7 @@ namespace OpenForensics
                         btnCarve.Enabled = foundFiles;
                         if (foundFiles)
                             btnCarve.BackColor = Color.LightGreen;
-                        
+
                         btnCarve.Refresh();
                         btnAnalysisLog.Refresh();
                     });
@@ -1034,8 +1031,8 @@ namespace OpenForensics
         private void btnAnalysisLog_Click(object sender, EventArgs e)
         {
             System.Diagnostics.Process.Start(saveLocation + "LogFile.txt");
-        }        
-        
+        }
+
         // Clean up before closing form
         private void Carve_FormClosing(object sender, FormClosingEventArgs e)
         {
@@ -1109,7 +1106,8 @@ namespace OpenForensics
                     for (int nCPU = 0; nCPU < lpCount; nCPU++)
                     {
                         int tmpCPU = nCPU;
-                        ProcessingThreads[tmpCPU] = new Thread(() => {
+                        ProcessingThreads[tmpCPU] = new Thread(() =>
+                        {
                             CPUThread(tmpCPU, dataRead);
                             Interlocked.Increment(ref completedThreads);
                             if (completedThreads == lpCount)
@@ -1140,7 +1138,7 @@ namespace OpenForensics
                 updateHeader("Analysis Started using " + gpuText);
 
                 // Create a GPU object for each GPU selected
-                foreach(int GPUid in gpus)
+                foreach (int GPUid in gpus)
                 {
                     Engine gpu = new Engine(GPUid, gpuCoreCount, target, targetEnd, lookup, chunkSize);
                     GPUCollection.Add(gpu);
@@ -1168,7 +1166,7 @@ namespace OpenForensics
                     // Method 1 -- Explicit Thread Launching -- Fastest
                     int completedThreads = 0;
                     ManualResetEvent threadsDone = new ManualResetEvent(false);
-                    
+
                     // Launch processing threads
                     Thread[] ProcessingThreads = new Thread[GPUCollection.Count * gpuCoreCount];
                     for (int nGpu = 0; nGpu < GPUCollection.Count; nGpu++)
@@ -1177,10 +1175,11 @@ namespace OpenForensics
                         {
                             int tmpGPU = nGpu;
                             int tmpCore = nCore;
-                            ProcessingThreads[tmpGPU * tmpCore + tmpCore] = new Thread(() => {
+                            ProcessingThreads[tmpGPU * tmpCore + tmpCore] = new Thread(() =>
+                            {
                                 GPUThread(tmpGPU, tmpCore, dataRead);
                                 Interlocked.Increment(ref completedThreads);
-                                if(completedThreads== GPUCollection.Count * gpuCoreCount)
+                                if (completedThreads == GPUCollection.Count * gpuCoreCount)
                                     threadsDone.Set();
                             });
                             ProcessingThreads[tmpGPU * tmpCore + tmpCore].IsBackground = true;
@@ -1259,9 +1258,9 @@ namespace OpenForensics
             RefreshForm();
 
             StopBtnUsable(false);
-            
+
             #endregion
-            }
+        }
 
         #region Result Prep
 
@@ -1614,7 +1613,7 @@ namespace OpenForensics
         {
             int i = (threadNo * (resultLoc.Length / procShare));
             int end = ((threadNo + 1) * (resultLoc.Length / procShare));
-            
+
             //BackgroundWorker imageGenerator = new BackgroundWorker();
 
             while (i < end && !shouldStop)
@@ -1654,7 +1653,7 @@ namespace OpenForensics
                                 using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
                                     if (!skinDetect || HasSkin(tmpImg))
                                     {
-                                        Image previewImg = new Bitmap (ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height));
+                                        Image previewImg = new Bitmap(ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height));
                                         imageCache.Enqueue(new cachedImage(previewImg, fileID.ToString()));
                                     }
                             }
@@ -1792,11 +1791,11 @@ namespace OpenForensics
             carveProcessed = 0;
             //double timez = MeasureTime(() =>
             //{
-                Parallel.For(0, lpCount, async i =>
-                {
-                    await carveThread(i, ref dataread);
-                });
-                Task.WaitAll();
+            Parallel.For(0, lpCount, async i =>
+            {
+                await carveThread(i, ref dataread);
+            });
+            Task.WaitAll();
             //});
 
             //MessageBox.Show(timez.ToString());
@@ -1807,18 +1806,18 @@ namespace OpenForensics
             int currentFile = 0;
             while ((currentFile = Interlocked.Increment(ref carveProcessed)) <= carvableFiles.Count && !shouldStop)
             {
-                if (carvableFiles[currentFile-1].end != 0)
+                if (carvableFiles[currentFile - 1].end != 0)
                 {
                     updateGPUAct(cpu, 2);
-                    string filePath = saveLocation + carvableFiles[currentFile-1].filetype + "/";
+                    string filePath = saveLocation + carvableFiles[currentFile - 1].filetype + "/";
                     if (!Directory.Exists(filePath))
                         Directory.CreateDirectory(filePath);
-                    if (!File.Exists(filePath + carvableFiles[currentFile-1].start.ToString() + "." + carvableFiles[currentFile-1].filetype))
+                    if (!File.Exists(filePath + carvableFiles[currentFile - 1].start.ToString() + "." + carvableFiles[currentFile - 1].filetype))
                     {
                         try
                         {
-                            byte[] fileData = dataread.RetrieveFile((long)carvableFiles[currentFile-1].start, (long)carvableFiles[currentFile-1].end);
-                            File.WriteAllBytes(filePath + carvableFiles[currentFile-1].start.ToString() + carvableFiles[currentFile-1].tag + "." + carvableFiles[currentFile-1].filetype, fileData);
+                            byte[] fileData = dataread.RetrieveFile((long)carvableFiles[currentFile - 1].start, (long)carvableFiles[currentFile - 1].end);
+                            File.WriteAllBytes(filePath + carvableFiles[currentFile - 1].start.ToString() + carvableFiles[currentFile - 1].tag + "." + carvableFiles[currentFile - 1].filetype, fileData);
                         }
                         catch { }
                     }
@@ -1839,7 +1838,7 @@ namespace OpenForensics
         {
             // Page Size (int16, offset 16) 
             byte[] dbPageLength = new byte[2];
-            Array.Copy(buffer, count+16, dbPageLength, 0, 2);
+            Array.Copy(buffer, count + 16, dbPageLength, 0, 2);
             Array.Reverse(dbPageLength);
             int pageLength = BitConverter.ToInt16(dbPageLength, 0);
             if (pageLength == 1)
@@ -1852,7 +1851,7 @@ namespace OpenForensics
             int pageCount = BitConverter.ToInt32(dbPageCount, 0);
 
             // Total Freelist Pages (int32, offset 36)
-            if(pageCount==0)
+            if (pageCount == 0)
             {
                 byte[] dbFreelistPageCount = new byte[4];
                 Array.Copy(buffer, count + 36, dbFreelistPageCount, 0, 4);

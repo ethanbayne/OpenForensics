@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Windows.Forms;
 using System.Management;
+using System.Windows.Forms;
 
 namespace OpenForensics
 {
