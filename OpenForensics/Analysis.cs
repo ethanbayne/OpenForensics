@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Management;
 using System.Runtime.InteropServices;
@@ -432,7 +433,7 @@ namespace OpenForensics
 
         private bool imagePreview;
         private bool skinDetect;
-        private ConcurrentQueue<cachedImage> imageCache = new ConcurrentQueue<cachedImage>();
+        private BlockingCollection<cachedImage> imageCache = new BlockingCollection<cachedImage>();
 
         public Input InputSet
         {
@@ -481,8 +482,21 @@ namespace OpenForensics
                 else
                 {
                     int maxGPUThread = (int)((maxGPUMem * 0.8) / (chunkSize + ((targetHeader.Count * 2) * resultCache)));
-                    gpuCoreCount = Math.Min(lpCount / gpus.Count, maxGPUThread);
-                    //gpuCoreCount = 1;   // Force GPU concurrency to a certain value.
+
+                    // Share logical CPU cores between GPUs employed.
+                    if (imagePreview)
+                    {
+                        gpuCoreCount = Math.Min((lpCount - 0) / gpus.Count, maxGPUThread);          // Experimenting with processing balance between image preview and searching
+                        procShare = Math.Min(Math.Max((lpCount - 0) / gpuCoreCount / gpus.Count, 1), lpCount);
+                    }
+                    else
+                    {
+                        gpuCoreCount = Math.Min(lpCount / gpus.Count, maxGPUThread);
+                        procShare = Math.Min(Math.Max(lpCount / gpuCoreCount / gpus.Count, 1), lpCount);
+                        //procShare = Math.Min(Math.Max(lpCount / gpus.Count, 1), lpCount);  // Divide between employed GPUs
+                    }
+
+                    //procShare = 1; gpuCoreCount = 1; // Force logical CPU cores per GPU
 
                     if (gpus.Count > 1)
                         techUsed = " (" + GPGPU + " - " + gpus.Count + " GPUs - running " + gpuCoreCount + " threads each)";
@@ -528,7 +542,6 @@ namespace OpenForensics
 
                     Thread pictureThread = new Thread(new ThreadStart(PicturePreview));
                     pictureThread.Start();
-                    pictureThread.Priority = ThreadPriority.AboveNormal;
                 }
                 else
                 {
@@ -884,7 +897,7 @@ namespace OpenForensics
             width = (int)(source.Width * scale);
             height = (int)(source.Height * scale);
 
-            var bmp = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            var bmp = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
 
             using (var resizeBmp = Graphics.FromImage(bmp))
             {
@@ -896,23 +909,20 @@ namespace OpenForensics
 
         private async void PicturePreview()
         {
-            while ((pbProgress.Value != 100 || imageCache.Count > 0) && !shouldStop)
+            foreach (cachedImage tempImg in imageCache.GetConsumingEnumerable())
             {
-                if (imageCache.Count > 0)
+                try
                 {
-                    try
-                    {
-                        cachedImage tempImg;
-                        imageCache.TryDequeue(out tempImg);
-                        pbPreview.Image = tempImg.picture;
-                        await Task.Delay(100);
-                    }
-                    catch (Exception) { }
-                    updateImageStatus(imageCache.Count);
+                    pbPreview.Image = tempImg.picture;
+                    await Task.Delay(100);
                 }
+                catch (Exception) { }
+                updateImageStatus(imageCache.Count);
+
+                if (shouldStop)
+                    break;
             }
 
-            imageCache.Clear();
             GC.Collect();
         }
         private void updateImageStatus(int cacheSize)
@@ -1139,12 +1149,6 @@ namespace OpenForensics
                     GPUCollection.Add(gpu);
                 }
 
-                // Share logical CPU cores between GPUs employed.
-                procShare = Math.Min(Math.Max(lpCount / gpuCoreCount / GPUCollection.Count, 1), lpCount);
-                //procShare = Math.Min(Math.Max(lpCount / GPUCollection.Count, 1), lpCount);  // Divide between employed GPUs
-
-                //procShare = 1; gpuCoreCount = 1; // Force logical CPU cores per GPU
-
                 // Start stopwatch, open file defined by user
                 time = MeasureTime(() =>
                 {
@@ -1220,6 +1224,9 @@ namespace OpenForensics
 
             // When all threads have finished, close file
             dataRead.CloseFile();
+
+            // Signal end of image caching
+            imageCache.CompleteAdding();
 
             List<foundRecord> tmpFoundRecords = new List<foundRecord>();
             tmpFoundRecords.AddRange(foundRecords.ToArray());
@@ -1647,7 +1654,7 @@ namespace OpenForensics
                             {
                                 using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
                                     if (!skinDetect || HasSkin(tmpImg))
-                                        imageCache.Enqueue(new cachedImage(new Bitmap(ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height)), fileID.ToString()));
+                                        imageCache.Add(new cachedImage(new Bitmap(ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height)), fileID.ToString()));
                             }
                             catch (Exception) { }
                         }

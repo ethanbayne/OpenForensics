@@ -143,7 +143,8 @@ namespace OpenForensics
             OFToolTips.SetToolTip(this.btnClearKeywords, "Clear all keywords in the keyword list.");
             OFToolTips.SetToolTip(this.btnFileOpen, "Open file to analyse.");
             OFToolTips.SetToolTip(this.btnDriveOpen, "Open physical drive to analyse.");
-            OFToolTips.SetToolTip(this.chkImagePreview, "Generate Image Previews whilst processing. [High RAM Usage with large datasets!]");
+            OFToolTips.SetToolTip(this.chkImagePreview, "Generate image previews whilst processing. [CPU and Memory intensive!]");
+            OFToolTips.SetToolTip(this.chkSkin, "Filter image previews through skin detection algorithm. [CPU and Memory intensive!]");
         }
 
         #endregion
