@@ -1647,12 +1647,13 @@ namespace OpenForensics
                         if (finish != 0)// && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
                         {
                             ulong fileID = (count + (ulong)start);
-                            byte[] fileData = new byte[finish - start];
-                            Array.Copy(buffer, start, fileData, 0, finish - start);
+                            //byte[] fileData = new byte[finish - start];
+                            //Array.Copy(buffer, start, fileData, 0, finish - start);
 
                             try
                             {
-                                using (Bitmap tmpImg = new Bitmap(new MemoryStream(fileData)))
+                                using (MemoryStream stream = new MemoryStream(buffer, start, finish - start))
+                                using (Bitmap tmpImg = (Bitmap)Image.FromStream(stream)) //This is hogging the CPU (~78% of the clocks!)
                                     if (!skinDetect || HasSkin(tmpImg))
                                         imageCache.Add(new cachedImage(new Bitmap(ResizeBitmap(tmpImg, pbPreview.Width, pbPreview.Height)), fileID.ToString()));
                             }
