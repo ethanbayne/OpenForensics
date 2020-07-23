@@ -11,7 +11,7 @@ This prototype tool was built using C# and Cudafy.NET (https://cudafy.codeplex.c
 # Basic Usage (v.1.78b onwards)
    1. Provide a case reference and evidence reference. ___(Optional)___
    2. Select either a physical drive or a file to perform physical searching on.
-   3. Select targets. _(either file-types or keywords)_
+   3. Select file-types or keyword targets.
    4. Choose processing technique. ___(Optional - GPU usage recommended)___
    5. Choose whether you would like to generate a live preview of JPG images found during searching. ___(Optional - High RAM usage with large datasets and may decrease searching speed)___
    6. Click Analyse.
@@ -38,7 +38,7 @@ File-types are populated from the FileTypes.xml file. OpenForensics will load th
    5. __MaxLengthMB__ ___(Optional)___ - Specifies the maximum file length for the type of file _(Default: 10 MiB)_.
 
 # Open-source License
-OpenForensics Copyright © 2016 - 2019 Ethan Bayne
+OpenForensics Copyright © 2016 - 2020 Ethan Bayne
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
 
