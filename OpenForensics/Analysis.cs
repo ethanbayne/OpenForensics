@@ -1035,7 +1035,15 @@ namespace OpenForensics
 
         private void btnAnalysisLog_Click(object sender, EventArgs e)
         {
-            Process.Start(saveLocation + "LogFile.txt");
+            try
+            {
+                Process.Start(saveLocation + "LogFile.txt");
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Cannot read log file in extraction folder, please run analysis again.", "Error reading log file", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                updateHeader("Cannot read log file!");
+            }
         }
 
         // Clean up before closing form
@@ -1771,18 +1779,26 @@ namespace OpenForensics
 
             AfterAnalysisButtons(false, false);
 
-            carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
-            dataReader dataRead = new dataReader(FilePath, longestTarget);
-            carveResults(dataRead);
-            dataRead.CloseFile();
+            try
+            {
+                carvableFiles = loadCarvableLocations<List<resultRecord>>(saveLocation + CarveFilePath);
+                dataReader dataRead = new dataReader(FilePath, longestTarget);
+                carveResults(dataRead);
+                dataRead.CloseFile();
 
-            if (!shouldStop)
-                updateHeader("Extraction Complete!");
-            else
-                updateHeader("Extraction Halted by User!");
+                if (!shouldStop)
+                    updateHeader("Extraction Complete!");
+                else
+                    updateHeader("Extraction Halted by User!");
 
-            StopBtnUsable(false);
-            AfterAnalysisButtons(true, true);
+                StopBtnUsable(false);
+                AfterAnalysisButtons(true, true);
+            }
+            catch(Exception)
+            {
+                MessageBox.Show("Cannot read data location map in extraction folder", "Error reading data location map", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                updateHeader("Cannot read data location map!");
+            }
         }
 
         // Main file carving thread. Buffer is divided between logical cores assigned to file carve.
