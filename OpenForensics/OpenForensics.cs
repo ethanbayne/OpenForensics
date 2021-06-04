@@ -44,8 +44,9 @@ namespace OpenForensics
         // Version 1.78b - Preparing visualisation branch merge into master by enabling optional image preview processing
         // Version 1.80b - Minor UI updates and improvements
         // Version 1.85b - Modified image preview to present flash cards rather than grid. Integrated simple skin detection algorithm.
+        // Version 1.86b - Minor UI updates and refactoring. Using more modern NET Framework version - 4.7.2
 
-        private string version = "v. 1.85b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.86b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
@@ -56,7 +57,6 @@ namespace OpenForensics
         private string CaseName = "";
         private string EvidenceName = "";
         private string saveLocation = "";
-        private string fileName = "";
         private string carvableFileRecord = "";
 
         private bool imagePreview = false;
@@ -284,7 +284,6 @@ namespace OpenForensics
                 txtFile.Text = openFileDialog.InitialDirectory + openFileDialog.FileName;
                 if (!FileOpenedElsewhere(openFileDialog.FileName.ToString()))
                 {
-                    fileName = openFileDialog.FileName.ToString();
                     btnFileOpen.BackColor = Color.DarkSeaGreen;
                     btnDriveOpen.BackColor = SystemColors.Control;
                 }

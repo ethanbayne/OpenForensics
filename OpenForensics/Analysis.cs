@@ -411,7 +411,7 @@ namespace OpenForensics
         private Label[] gpuLabel;
 
         // Hard coded chunk size and result cache size
-        private uint chunkSize = 100 * 1048576;
+        private uint chunkSize = 128 * 1048576; // 
         private uint resultCache = 1048576;
 
         private Byte[][] target;

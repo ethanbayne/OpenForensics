@@ -1,0 +1,6 @@
+2021-06-03 16:43:27.979 +01:00 [INF] MSBuild registered from C:\Program Files\dotnet\sdk\5.0.300\
+2021-06-03 16:43:30.020 +01:00 [INF] Initializing upgrade step Select an entrypoint
+2021-06-03 16:43:30.023 +01:00 [INF] Setting entrypoint to only project in solution: C:\Users\ethan\source\repos\ethanbayne\OpenForensics\OpenForensics\OpenForensics.csproj
+2021-06-03 16:43:30.029 +01:00 [INF] Initializing upgrade step Select project to upgrade
+2021-06-03 16:43:30.086 +01:00 [INF] Initializing upgrade step Back up project
+2021-06-03 16:43:58.186 +01:00 [INF] Saving upgrade progress file at C:\Users\ethan\source\repos\ethanbayne\OpenForensics\.upgrade-assistant

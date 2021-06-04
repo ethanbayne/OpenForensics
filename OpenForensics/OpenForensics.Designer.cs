@@ -53,6 +53,7 @@
             this.lblVersion = new System.Windows.Forms.Label();
             this.folderBrowserDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.pnlMainInterface = new System.Windows.Forms.Panel();
+            this.chkSkin = new System.Windows.Forms.CheckBox();
             this.chkImagePreview = new System.Windows.Forms.CheckBox();
             this.txtEvidenceName = new System.Windows.Forms.TextBox();
             this.lblEvidenceName = new System.Windows.Forms.Label();
@@ -62,7 +63,6 @@
             this.txtCaseName = new System.Windows.Forms.TextBox();
             this.lblCaseName = new System.Windows.Forms.Label();
             this.pbLogo = new System.Windows.Forms.PictureBox();
-            this.chkSkin = new System.Windows.Forms.CheckBox();
             this.grpTargetFile.SuspendLayout();
             this.grpFilePath.SuspendLayout();
             this.grpCustomPlatform.SuspendLayout();
@@ -374,6 +374,20 @@
             this.pnlMainInterface.Size = new System.Drawing.Size(512, 473);
             this.pnlMainInterface.TabIndex = 43;
             // 
+            // chkSkin
+            // 
+            this.chkSkin.AutoSize = true;
+            this.chkSkin.Enabled = false;
+            this.chkSkin.FlatStyle = System.Windows.Forms.FlatStyle.System;
+            this.chkSkin.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.chkSkin.Location = new System.Drawing.Point(166, 439);
+            this.chkSkin.Name = "chkSkin";
+            this.chkSkin.Size = new System.Drawing.Size(115, 21);
+            this.chkSkin.TabIndex = 44;
+            this.chkSkin.Text = "Skin Detection";
+            this.chkSkin.UseVisualStyleBackColor = true;
+            this.chkSkin.CheckedChanged += new System.EventHandler(this.chkSkin_CheckedChanged);
+            // 
             // chkImagePreview
             // 
             this.chkImagePreview.AutoSize = true;
@@ -473,22 +487,6 @@
             this.pbLogo.TabIndex = 44;
             this.pbLogo.TabStop = false;
             this.pbLogo.Click += new System.EventHandler(this.pbLogo_Click);
-            // 
-            // chkSkin
-            // 
-            this.chkSkin.AutoSize = true;
-            this.chkSkin.Checked = true;
-            this.chkSkin.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.chkSkin.Enabled = false;
-            this.chkSkin.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.chkSkin.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.chkSkin.Location = new System.Drawing.Point(166, 439);
-            this.chkSkin.Name = "chkSkin";
-            this.chkSkin.Size = new System.Drawing.Size(115, 21);
-            this.chkSkin.TabIndex = 44;
-            this.chkSkin.Text = "Skin Detection";
-            this.chkSkin.UseVisualStyleBackColor = true;
-            this.chkSkin.CheckedChanged += new System.EventHandler(this.chkSkin_CheckedChanged);
             // 
             // OpenForensics
             // 

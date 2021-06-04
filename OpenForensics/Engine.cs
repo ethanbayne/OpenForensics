@@ -22,7 +22,6 @@ namespace OpenForensics
         public uint chunkSize;
         private uint resultCache = 1048576;
 
-        private uint bufferSize;
         private int initialState;
         private int[][] resultCount;
 
@@ -81,7 +80,6 @@ namespace OpenForensics
             dev_targetEndLength = gpu.CopyToDevice<int>(targetEndLength);
 
             initialState = target.Length + 1;
-            bufferSize = chunkSize;
 
             // Allocate the memory on the GPU for buffer and results
             dev_buffer = new byte[gpuCoreCount][];
@@ -174,7 +172,6 @@ namespace OpenForensics
         {
             try
             {
-                bufferSize = (uint)buffer.Length;
                 gpu.SetCurrentContext();
                 gpu.CopyToDevice<byte>(buffer, dev_buffer[gpuCore]);
 
