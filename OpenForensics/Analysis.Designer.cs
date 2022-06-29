@@ -67,10 +67,10 @@
             // 
             this.lblHeader.AutoSize = true;
             this.lblHeader.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblHeader.Font = new System.Drawing.Font("Bahnschrift", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblHeader.Font = new System.Drawing.Font("Bahnschrift SemiLight", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblHeader.Location = new System.Drawing.Point(11, 6);
             this.lblHeader.Name = "lblHeader";
-            this.lblHeader.Size = new System.Drawing.Size(153, 23);
+            this.lblHeader.Size = new System.Drawing.Size(155, 23);
             this.lblHeader.TabIndex = 1;
             this.lblHeader.Text = "Carving Started...";
             // 
@@ -79,7 +79,7 @@
             this.lblProgress.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.lblProgress.BackColor = System.Drawing.SystemColors.Control;
             this.lblProgress.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblProgress.Font = new System.Drawing.Font("Bahnschrift SemiLight", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblProgress.Font = new System.Drawing.Font("Bahnschrift Light", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblProgress.Location = new System.Drawing.Point(505, 62);
             this.lblProgress.Name = "lblProgress";
             this.lblProgress.Size = new System.Drawing.Size(57, 20);
@@ -91,7 +91,7 @@
             // 
             this.lblProcess.AutoSize = true;
             this.lblProcess.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblProcess.Font = new System.Drawing.Font("Bahnschrift SemiLight", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblProcess.Font = new System.Drawing.Font("Bahnschrift Light", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblProcess.Location = new System.Drawing.Point(11, 62);
             this.lblProcess.Name = "lblProcess";
             this.lblProcess.Size = new System.Drawing.Size(85, 18);
@@ -102,7 +102,7 @@
             // 
             this.grpGPUActivity.Controls.Add(this.tblGPU);
             this.grpGPUActivity.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.grpGPUActivity.Font = new System.Drawing.Font("Bahnschrift", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.grpGPUActivity.Font = new System.Drawing.Font("Bahnschrift SemiLight", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.grpGPUActivity.Location = new System.Drawing.Point(174, 86);
             this.grpGPUActivity.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.grpGPUActivity.Name = "grpGPUActivity";
@@ -143,7 +143,7 @@
             this.grpProcessed.Controls.Add(this.lblFound);
             this.grpProcessed.Controls.Add(this.lblSegments);
             this.grpProcessed.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.grpProcessed.Font = new System.Drawing.Font("Bahnschrift", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.grpProcessed.Font = new System.Drawing.Font("Bahnschrift SemiLight", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.grpProcessed.Location = new System.Drawing.Point(11, 86);
             this.grpProcessed.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.grpProcessed.Name = "grpProcessed";
@@ -201,10 +201,10 @@
             // 
             this.lblTimeRemaining.AutoSize = true;
             this.lblTimeRemaining.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblTimeRemaining.Font = new System.Drawing.Font("Bahnschrift SemiLight", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblTimeRemaining.Font = new System.Drawing.Font("Bahnschrift Light", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblTimeRemaining.Location = new System.Drawing.Point(6, 40);
             this.lblTimeRemaining.Name = "lblTimeRemaining";
-            this.lblTimeRemaining.Size = new System.Drawing.Size(86, 13);
+            this.lblTimeRemaining.Size = new System.Drawing.Size(87, 13);
             this.lblTimeRemaining.TabIndex = 3;
             this.lblTimeRemaining.Text = "Time Remaining:";
             // 
@@ -212,10 +212,10 @@
             // 
             this.lblTimeElapsed.AutoSize = true;
             this.lblTimeElapsed.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblTimeElapsed.Font = new System.Drawing.Font("Bahnschrift SemiLight", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblTimeElapsed.Font = new System.Drawing.Font("Bahnschrift Light", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblTimeElapsed.Location = new System.Drawing.Point(6, 23);
             this.lblTimeElapsed.Name = "lblTimeElapsed";
-            this.lblTimeElapsed.Size = new System.Drawing.Size(74, 13);
+            this.lblTimeElapsed.Size = new System.Drawing.Size(75, 13);
             this.lblTimeElapsed.TabIndex = 2;
             this.lblTimeElapsed.Text = "Time Elapsed:";
             // 
@@ -223,10 +223,10 @@
             // 
             this.lblFound.AutoSize = true;
             this.lblFound.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblFound.Font = new System.Drawing.Font("Bahnschrift SemiLight", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblFound.Font = new System.Drawing.Font("Bahnschrift Light", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblFound.Location = new System.Drawing.Point(6, 71);
             this.lblFound.Name = "lblFound";
-            this.lblFound.Size = new System.Drawing.Size(88, 13);
+            this.lblFound.Size = new System.Drawing.Size(89, 13);
             this.lblFound.TabIndex = 1;
             this.lblFound.Text = "Traces Detected:";
             // 
@@ -234,10 +234,10 @@
             // 
             this.lblSegments.AutoSize = true;
             this.lblSegments.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblSegments.Font = new System.Drawing.Font("Bahnschrift SemiLight", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblSegments.Font = new System.Drawing.Font("Bahnschrift Light", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSegments.Location = new System.Drawing.Point(6, 56);
             this.lblSegments.Name = "lblSegments";
-            this.lblSegments.Size = new System.Drawing.Size(86, 13);
+            this.lblSegments.Size = new System.Drawing.Size(87, 13);
             this.lblSegments.TabIndex = 0;
             this.lblSegments.Text = "Segments Done:";
             // 
@@ -246,6 +246,7 @@
             this.lstThumbs.BackColor = System.Drawing.SystemColors.ControlDarkDark;
             this.lstThumbs.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lstThumbs.ForeColor = System.Drawing.SystemColors.Window;
+            this.lstThumbs.HideSelection = false;
             this.lstThumbs.Location = new System.Drawing.Point(12, 12);
             this.lstThumbs.MultiSelect = false;
             this.lstThumbs.Name = "lstThumbs";

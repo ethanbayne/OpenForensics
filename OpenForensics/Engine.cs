@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Cudafy;
+using Cudafy.Atomics;
+using Cudafy.Host;
+using Cudafy.Translator;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using Cudafy;
-using Cudafy.Host;
-using Cudafy.Atomics;
-using Cudafy.Translator;
 
 namespace OpenForensics
 {
@@ -48,7 +48,7 @@ namespace OpenForensics
             gpu.SetCurrentContext();
             gpu.FreeAll();
             LoadModule();
-            
+
             gpu.EnableMultithreading();
             for (int i = 0; i < gpuCoreCount; i++)
                 gpu.CreateStream(i);
@@ -75,7 +75,7 @@ namespace OpenForensics
 
             int[] targetEndLength = new int[targetEnd.Length];
             for (int x = 0; x < targetEndLength.Length; x++)
-                if(targetEnd[x] != null)
+                if (targetEnd[x] != null)
                     targetEndLength[x] = targetEnd[x].Length;
             dev_targetEndLength = new int[targetEnd.Length];
             dev_targetEndLength = gpu.CopyToDevice<int>(targetEndLength);
@@ -122,7 +122,7 @@ namespace OpenForensics
             int foundCount = 0;
             int n = buffer.Length;
 
-            for (int i = 0; i < n; i ++)                    // Loop to scan full file segment
+            for (int i = 0; i < n; i++)                    // Loop to scan full file segment
             {
                 int state = initialState;
                 int pos = i;
@@ -135,7 +135,7 @@ namespace OpenForensics
                     {
                         if ((state - 1) % 2 == 0)
                         {
-                            results[state-1]++;
+                            results[state - 1]++;
                             resultsID[foundCount] = (byte)state;
                             resultsLoc[foundCount] = i;
                             foundCount++;
@@ -145,7 +145,7 @@ namespace OpenForensics
                             int fileEnd = i + targetEnd[((state + 1) / 2) - 1].Length;
                             if (buffer[fileEnd] != 0x38 && buffer[fileEnd + 1] != 0x38 && buffer[fileEnd + 1] != 0x3B)
                             {
-                                results[state-1]++;
+                                results[state - 1]++;
                                 resultsID[foundCount] = (byte)state;
                                 resultsLoc[foundCount] = i;
                                 foundCount++;
@@ -307,7 +307,7 @@ namespace OpenForensics
 
                 while (pos < n)
                 {
-                    state = lookup[state,buffer[pos]];
+                    state = lookup[state, buffer[pos]];
                     if (state == 0) { break; }
                     if (state < initialState)
                     {
@@ -334,7 +334,7 @@ namespace OpenForensics
             }
 
             thread.SyncThreads();                                                   // Sync GPU threads
-            
+
         }
 
         #endregion

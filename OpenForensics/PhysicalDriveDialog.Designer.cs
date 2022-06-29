@@ -42,7 +42,6 @@
             this.lblTracks = new System.Windows.Forms.Label();
             this.lblSectors = new System.Windows.Forms.Label();
             this.lblCylinders = new System.Windows.Forms.Label();
-            this.lblSignature = new System.Windows.Forms.Label();
             this.lblPartitions = new System.Windows.Forms.Label();
             this.lblSelect = new System.Windows.Forms.Label();
             this.cmbHdd = new System.Windows.Forms.ComboBox();
@@ -54,7 +53,7 @@
             // 
             this.btnSelect.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.btnSelect.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnSelect.Location = new System.Drawing.Point(122, 303);
+            this.btnSelect.Location = new System.Drawing.Point(122, 285);
             this.btnSelect.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.btnSelect.Name = "btnSelect";
             this.btnSelect.Size = new System.Drawing.Size(87, 28);
@@ -67,7 +66,7 @@
             // 
             this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.btnCancel.Font = new System.Drawing.Font("Bahnschrift SemiLight", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnCancel.Location = new System.Drawing.Point(217, 303);
+            this.btnCancel.Location = new System.Drawing.Point(217, 285);
             this.btnCancel.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(87, 28);
@@ -81,7 +80,7 @@
             this.lblFirmware.AutoSize = true;
             this.lblFirmware.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblFirmware.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblFirmware.Location = new System.Drawing.Point(12, 178);
+            this.lblFirmware.Location = new System.Drawing.Point(12, 160);
             this.lblFirmware.Name = "lblFirmware";
             this.lblFirmware.Size = new System.Drawing.Size(61, 14);
             this.lblFirmware.TabIndex = 36;
@@ -103,9 +102,9 @@
             this.lblTracksPerCyl.AutoSize = true;
             this.lblTracksPerCyl.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblTracksPerCyl.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblTracksPerCyl.Location = new System.Drawing.Point(12, 277);
+            this.lblTracksPerCyl.Location = new System.Drawing.Point(12, 259);
             this.lblTracksPerCyl.Name = "lblTracksPerCyl";
-            this.lblTracksPerCyl.Size = new System.Drawing.Size(109, 14);
+            this.lblTracksPerCyl.Size = new System.Drawing.Size(111, 14);
             this.lblTracksPerCyl.TabIndex = 34;
             this.lblTracksPerCyl.Text = "Tracks per Cylinder:";
             // 
@@ -114,9 +113,9 @@
             this.lblSectorsPerTrack.AutoSize = true;
             this.lblSectorsPerTrack.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblSectorsPerTrack.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblSectorsPerTrack.Location = new System.Drawing.Point(12, 261);
+            this.lblSectorsPerTrack.Location = new System.Drawing.Point(12, 243);
             this.lblSectorsPerTrack.Name = "lblSectorsPerTrack";
-            this.lblSectorsPerTrack.Size = new System.Drawing.Size(102, 14);
+            this.lblSectorsPerTrack.Size = new System.Drawing.Size(104, 14);
             this.lblSectorsPerTrack.TabIndex = 33;
             this.lblSectorsPerTrack.Text = "Sectors per Track:";
             // 
@@ -125,9 +124,9 @@
             this.lblBytesPerSect.AutoSize = true;
             this.lblBytesPerSect.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblBytesPerSect.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblBytesPerSect.Location = new System.Drawing.Point(12, 245);
+            this.lblBytesPerSect.Location = new System.Drawing.Point(12, 227);
             this.lblBytesPerSect.Name = "lblBytesPerSect";
-            this.lblBytesPerSect.Size = new System.Drawing.Size(96, 14);
+            this.lblBytesPerSect.Size = new System.Drawing.Size(98, 14);
             this.lblBytesPerSect.TabIndex = 32;
             this.lblBytesPerSect.Text = "Bytes per Sector:";
             // 
@@ -147,7 +146,7 @@
             this.lblHeads.AutoSize = true;
             this.lblHeads.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblHeads.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblHeads.Location = new System.Drawing.Point(160, 203);
+            this.lblHeads.Location = new System.Drawing.Point(160, 185);
             this.lblHeads.Name = "lblHeads";
             this.lblHeads.Size = new System.Drawing.Size(42, 14);
             this.lblHeads.TabIndex = 30;
@@ -160,7 +159,7 @@
             this.lblSerial.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSerial.Location = new System.Drawing.Point(12, 121);
             this.lblSerial.Name = "lblSerial";
-            this.lblSerial.Size = new System.Drawing.Size(49, 14);
+            this.lblSerial.Size = new System.Drawing.Size(50, 14);
             this.lblSerial.TabIndex = 28;
             this.lblSerial.Text = "Serial #:";
             // 
@@ -169,7 +168,7 @@
             this.lblTracks.AutoSize = true;
             this.lblTracks.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblTracks.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblTracks.Location = new System.Drawing.Point(160, 219);
+            this.lblTracks.Location = new System.Drawing.Point(160, 201);
             this.lblTracks.Name = "lblTracks";
             this.lblTracks.Size = new System.Drawing.Size(45, 14);
             this.lblTracks.TabIndex = 27;
@@ -180,7 +179,7 @@
             this.lblSectors.AutoSize = true;
             this.lblSectors.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblSectors.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblSectors.Location = new System.Drawing.Point(12, 219);
+            this.lblSectors.Location = new System.Drawing.Point(12, 201);
             this.lblSectors.Name = "lblSectors";
             this.lblSectors.Size = new System.Drawing.Size(51, 14);
             this.lblSectors.TabIndex = 26;
@@ -191,22 +190,11 @@
             this.lblCylinders.AutoSize = true;
             this.lblCylinders.FlatStyle = System.Windows.Forms.FlatStyle.System;
             this.lblCylinders.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblCylinders.Location = new System.Drawing.Point(12, 203);
+            this.lblCylinders.Location = new System.Drawing.Point(12, 185);
             this.lblCylinders.Name = "lblCylinders";
             this.lblCylinders.Size = new System.Drawing.Size(59, 14);
             this.lblCylinders.TabIndex = 25;
             this.lblCylinders.Text = "Cylinders:";
-            // 
-            // lblSignature
-            // 
-            this.lblSignature.AutoSize = true;
-            this.lblSignature.FlatStyle = System.Windows.Forms.FlatStyle.System;
-            this.lblSignature.Font = new System.Drawing.Font("Bahnschrift Light", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lblSignature.Location = new System.Drawing.Point(12, 162);
-            this.lblSignature.Name = "lblSignature";
-            this.lblSignature.Size = new System.Drawing.Size(61, 14);
-            this.lblSignature.TabIndex = 24;
-            this.lblSignature.Text = "Signature:";
             // 
             // lblPartitions
             // 
@@ -226,7 +214,7 @@
             this.lblSelect.Font = new System.Drawing.Font("Bahnschrift", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSelect.Location = new System.Drawing.Point(12, 9);
             this.lblSelect.Name = "lblSelect";
-            this.lblSelect.Size = new System.Drawing.Size(188, 19);
+            this.lblSelect.Size = new System.Drawing.Size(192, 19);
             this.lblSelect.TabIndex = 21;
             this.lblSelect.Text = "Select a drive to analyse:";
             // 
@@ -269,7 +257,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(316, 344);
+            this.ClientSize = new System.Drawing.Size(316, 318);
             this.Controls.Add(this.lblFirmware);
             this.Controls.Add(this.lblInterface);
             this.Controls.Add(this.lblTracksPerCyl);
@@ -282,7 +270,6 @@
             this.Controls.Add(this.lblTracks);
             this.Controls.Add(this.lblSectors);
             this.Controls.Add(this.lblCylinders);
-            this.Controls.Add(this.lblSignature);
             this.Controls.Add(this.lblPartitions);
             this.Controls.Add(this.lblModel);
             this.Controls.Add(this.lblSelect);
@@ -317,7 +304,6 @@
         private System.Windows.Forms.Label lblTracks;
         private System.Windows.Forms.Label lblSectors;
         private System.Windows.Forms.Label lblCylinders;
-        private System.Windows.Forms.Label lblSignature;
         private System.Windows.Forms.Label lblPartitions;
         private System.Windows.Forms.Label lblSelect;
         private System.Windows.Forms.ComboBox cmbHdd;
