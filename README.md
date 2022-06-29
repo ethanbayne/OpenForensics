@@ -38,7 +38,7 @@ File-types are populated from the FileTypes.xml file. OpenForensics will load th
    5. __MaxLengthMB__ ___(Optional)___ - Specifies the maximum file length for the type of file _(Default: 10 MiB)_.
 
 # Open-source License
-OpenForensics Copyright © 2016 - 2020 Ethan Bayne
+OpenForensics Copyright © 2016 Ethan Bayne
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
 
