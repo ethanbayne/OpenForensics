@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Windows.Forms;
 using System.Management;
+using System.Windows.Forms;
 
 namespace OpenForensics
 {
@@ -34,10 +34,8 @@ namespace OpenForensics
                     lblModel.Text = "Model: " + moDisk["Model"].ToString();
                     lblSerial.Text = "Serial: " + moDisk["SerialNumber"].ToString();
                     lblInterface.Text = "Interface: " + moDisk["InterfaceType"].ToString();
-                    lblCapacity.Text = "Capacity: " + moDisk["Size"].ToString() + " bytes (" + Math.Round(((((double)Convert.ToDouble(moDisk["Size"]) / 1024) / 1024) / 1024), 2) + " GB)";
+                    lblCapacity.Text = "Capacity: " + Math.Round(((((double)Convert.ToDouble(moDisk["Size"]) / 1024) / 1024) / 1024), 2) + " GB";
                     lblPartitions.Text = "Partitions: " + moDisk["Partitions"].ToString();
-                    try { lblSignature.Text = "Signature: " + moDisk["Signature"].ToString(); }
-                    catch { }
                     lblFirmware.Text = "Firmware: " + moDisk["FirmwareRevision"].ToString();
                     lblCylinders.Text = "Cylinders: " + moDisk["TotalCylinders"].ToString();
                     lblSectors.Text = "Sectors: " + moDisk["TotalSectors"].ToString();
@@ -57,7 +55,6 @@ namespace OpenForensics
                     lblInterface.Text = "Interface: ";
                     lblCapacity.Text = "Capacity: ";
                     lblPartitions.Text = "Partitions: ";
-                    lblSignature.Text = "Signature: ";
                     lblFirmware.Text = "Firmware: ";
                     lblCylinders.Text = "Cylinders: ";
                     lblSectors.Text = "Sectors: ";

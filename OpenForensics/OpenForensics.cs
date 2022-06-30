@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Diagnostics;
-using System.Threading;
-using System.Windows.Forms;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Xml;
-using Cudafy;
+﻿using Cudafy;
 using Cudafy.Host;
 using Cudafy.Translator;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
 using System.Management;
+using System.Threading;
+using System.Windows.Forms;
+using System.Xml;
 
 namespace OpenForensics
 {
@@ -44,8 +43,9 @@ namespace OpenForensics
         // Version 1.76b - Further refactoring and concurrency improvements with visualisation introduction.
         // Version 1.78b - Preparing visualisation branch merge into master by enabling optional image preview processing
         // Version 1.80b - Minor UI updates and improvements
+        // Version 1.85b - Merging Skin Detection feature and other minor improvements from Flashcard experiments
 
-        private string version = "v. 1.80b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.85b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
@@ -60,6 +60,7 @@ namespace OpenForensics
         private string carvableFileRecord = "";
 
         private bool imagePreview = false;
+        private bool skinDetect = true;
 
         // Arrays for all search target types
         private List<string> targetName = new List<string>();
@@ -142,7 +143,8 @@ namespace OpenForensics
             OFToolTips.SetToolTip(this.btnClearKeywords, "Clear all keywords in the keyword list.");
             OFToolTips.SetToolTip(this.btnFileOpen, "Open file to analyse.");
             OFToolTips.SetToolTip(this.btnDriveOpen, "Open physical drive to analyse.");
-            OFToolTips.SetToolTip(this.chkImagePreview, "Generate Image Previews whilst processing. [High RAM Usage with large datasets!]");
+            OFToolTips.SetToolTip(this.chkImagePreview, "Generate image previews whilst processing. [CPU and Memory intensive!]");
+            OFToolTips.SetToolTip(this.chkSkin, "Filter image previews through skin detection algorithm. [CPU and Memory intensive!]");
         }
 
         #endregion
@@ -292,10 +294,16 @@ namespace OpenForensics
                 }
             }
         }
-        
+
         private void chkImagePreview_CheckedChanged(object sender, EventArgs e)
         {
             imagePreview = chkImagePreview.Checked;
+            chkSkin.Enabled = chkImagePreview.Checked;
+        }
+
+        private void chkSkin_CheckedChanged(object sender, EventArgs e)
+        {
+            skinDetect = chkSkin.Checked;
         }
 
         #endregion
@@ -838,6 +846,7 @@ namespace OpenForensics
             input.targetFooter = targetFooter;
             input.targetLength = targetLength;
             input.imagePreview = imagePreview;
+            input.skinDetect = skinDetect;
 
             anFrm.InputSet = input;
             anFrm.Show();
