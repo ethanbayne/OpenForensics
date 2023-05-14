@@ -109,12 +109,9 @@
   <Format>
     <Type>Misc</Type>
     <Name>zip</Name>
-    <MaxLengthMB>10</MaxLengthMB>
-    <!--<EOF>504B</EOF>-->
+    <MaxLengthMB>100</MaxLengthMB>
+    <EOF>504B0506</EOF>
     <Value>504B0304</Value>
-    <Value>504B0506</Value>
-    <Value>504B0708</Value>
-    <Value>504B030414000100630000000000</Value>
   </Format>
   <Format>
     <Type>Misc</Type>

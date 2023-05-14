@@ -55,24 +55,29 @@ namespace OpenForensics
 
         public struct foundRecord
         {
-            public ulong location;
+            public ulong location, complexFileLoc;
             public int patternID;
+            public string notes;
 
-            public foundRecord(ulong location, int patternID)
+            public foundRecord(ulong location, int patternID, ulong complexFileLoc, string notes)
             {
                 this.location = location;
                 this.patternID = patternID;
+                this.complexFileLoc = complexFileLoc;
+                this.notes = notes;
             }
         }
 
         public struct resultRecord
         {
+            public int fileID;
             public ulong start, end;
             public float size;
             public string sizeformat, tag, filetype;
 
-            public resultRecord(ulong start, ulong end, float size, string sizeformat, string tag, string filetype)
+            public resultRecord(int fileID, ulong start, ulong end, float size, string sizeformat, string tag, string filetype)
             {
+                this.fileID = fileID;
                 this.start = start;
                 this.end = end;
                 this.size = size;
@@ -81,8 +86,9 @@ namespace OpenForensics
                 this.filetype = filetype;
             }
 
-            public resultRecord(ulong start, string tag, string filetype)
+            public resultRecord(int fileID, ulong start, string tag, string filetype)
             {
+                this.fileID = fileID;
                 this.start = start;
                 end = 0;
                 size = 0;
@@ -96,7 +102,7 @@ namespace OpenForensics
                 if (end == 0)
                     return start.ToString() + " \t\t " + tag + " " + filetype;
                 else
-                    return start.ToString() + " \t\t " + end.ToString() + " \t\t " + Math.Round(size, 4).ToString() + " " + sizeformat + " \t\t " + tag + " " + filetype;
+                    return start.ToString() + " \t\t " + end.ToString() + " \t\t " + Math.Round(size, 2).ToString() + " " + sizeformat + " \t\t " + tag + " " + filetype;
             }
         }
 
@@ -1384,34 +1390,57 @@ namespace OpenForensics
                     List<resultRecord> foundLocs = new List<resultRecord>();
                     tmpFoundLocs.AddRange(foundResults.ToArray());
                     tmpFoundLocs.Sort((s1, s2) => s1.start.CompareTo(s2.start));
-                    for (int i = 0; i < tmpFoundLocs.Count;)
+
+                    RemoveDuplicates(tmpFoundLocs);
+
+                    void RemoveDuplicates(List<resultRecord> locations)
                     {
-                        if (i < (tmpFoundLocs.Count - 1) && tmpFoundLocs[i].start == tmpFoundLocs[i + 1].start)
+                        bool hasDuplicates = false;
+
+                        for (int i = 0; i < locations.Count;)
                         {
-                            if (tmpFoundLocs[i].tag.Contains("partial") && tmpFoundLocs[i].tag.Contains("fragmented"))
-                                foundLocs.Add(tmpFoundLocs[i + 1]);
-                            else if (tmpFoundLocs[i + 1].tag.Contains("partial") && tmpFoundLocs[i + 1].tag.Contains("fragmented"))
-                                foundLocs.Add(tmpFoundLocs[i]);
-                            else if (tmpFoundLocs[i].end > tmpFoundLocs[i + 1].end)
-                                foundLocs.Add(tmpFoundLocs[i]);
+                            if (i < (locations.Count - 1) && locations[i].start == locations[i + 1].start)
+                            {
+                                if (locations[i].end > locations[i + 1].end)
+                                    foundLocs.Add(locations[i]);
+                                else
+                                    foundLocs.Add(locations[i + 1]);
+
+                                duplicates++;
+                                i += 2;
+                                hasDuplicates = true;
+                            }
+                            else if (i < (locations.Count - 1) && locations[i].end == locations[i + 1].end)
+                            {
+                                if (locations[i].start < locations[i + 1].start)
+                                    foundLocs.Add(locations[i]);
+                                else
+                                    foundLocs.Add(locations[i + 1]);
+
+                                duplicates++;
+                                i += 2;
+                                hasDuplicates = true;
+                            }
                             else
-                                foundLocs.Add(tmpFoundLocs[i + 1]);
+                            {
+                                foundLocs.Add(locations[i]);
+                                if (locations[i].end != 0)
+                                    carvableFiles.Add(locations[i]);
+                                i++;
+                            }
 
-                            duplicates++;
-                            i += 2;
+                            resultsNew[foundLocs[foundLocs.Count - 1].fileID]++;
                         }
-                        else
+
+                        if (hasDuplicates)
                         {
-                            foundLocs.Add(tmpFoundLocs[i]);
-                            if (tmpFoundLocs[i].end != 0)
-                                carvableFiles.Add(tmpFoundLocs[i]);
-                            i++;
+                            resultsNew = new int[results.Length];
+                            locations.Clear();
+                            locations.AddRange(foundLocs.ToArray());
+                            foundLocs.Clear();
+                            RemoveDuplicates(locations);
                         }
-
-                        int nameIndex = targetName.IndexOf(foundLocs[foundLocs.Count - 1].filetype.ToString());
-                        resultsNew[nameIndex]++;
                     }
-                    tmpFoundLocs.Clear();
 
                     file.WriteLine("Statistics:");
                     file.WriteLine("-----------------------------");
@@ -1723,35 +1752,40 @@ namespace OpenForensics
 
             while (i < end && !shouldStop)
             {
-                // +1 to file type "traces" if header and collate resultID and resultLoc to foundRecords
+                int fileIndex = ((resultID[i] + 1) / 2) - 1;
+                string fileName = targetName[fileIndex];
+
+                int headerLoc = resultLoc[i];
+                ulong complexFileLoc = 0;
+                string fileNotes = "";
+
+                Boolean validFile = true;
+
+                // +1 to file type "traces" if header
                 if (resultID[i] % 2 != 0)
                 {
-                    int fileIndex = ((resultID[i] + 1) / 2) - 1;
                     Interlocked.Increment(ref results[fileIndex]);
 
                     // If the file is a jpg, try and generate a thumbnail
-                    if (imagePreview && (targetName[fileIndex] == "jpg"))// || targetName[fileIndex] == "bmp" || targetName[fileIndex] == "gif" || targetName[fileIndex] == "png" || targetName[fileIndex] == "tiff"))
+                    if (imagePreview && fileName == "jpg")// || targetName[fileIndex] == "bmp" || targetName[fileIndex] == "gif" || targetName[fileIndex] == "png" || targetName[fileIndex] == "tiff"))
                     {
-                        int start = resultLoc[i];
-                        int finish = 0;
-
-                        int footerType = FindFooterID(targetName[fileIndex]);
+                        int footerID = FindFooterID(targetName[fileIndex]);
+                        int footerLoc = 0;
 
                         for (int j = i; j < resultID.Length && !shouldStop; j++)
                         {
-                            if (resultID[j] == footerType)
+                            if (resultID[j] == footerID)
                             {
-                                finish = resultLoc[j];
+                                footerLoc = resultLoc[j];
                                 break;
                             }
                         }
-
                         // If file end found and file size > 300KB, then add a thumbnail from the data whilst in memory.
-                        if (finish != 0)// && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
+                        if (footerLoc != 0)// && (finish - start) > 300000) // Commented out the >300KB filter for Visualisation Experiment
                         {
-                            ulong fileID = (count + (ulong)start);
-                            byte[] fileData = new byte[finish - start];
-                            Array.Copy(buffer, start, fileData, 0, finish - start);
+                            ulong fileID = (count + (ulong)headerLoc);
+                            byte[] fileData = new byte[footerLoc - headerLoc];
+                            Array.Copy(buffer, headerLoc, fileData, 0, footerLoc - headerLoc);
 
                             //addThumb(fileData, fileID.ToString());
 
@@ -1759,10 +1793,122 @@ namespace OpenForensics
                             {
                                 await addThumb(fileData, fileID.ToString());
                             }, TaskCreationOptions.PreferFairness).Unwrap();
+
+                        }
+                    }
+                    // Zip file carving functionality adapted and integrated using Mikolaj Mroz's work entitled:
+                    // "Developing File Extraction Methods for Open-Source Forensics Software in C#"
+                    // Mikolaj Mroz, Abertay University
+                    if (fileName == "zip")
+                    {
+                        uint currentPos = (uint)headerLoc;
+                        Boolean cfhFound = false;
+
+                        Boolean oOffice = false;
+                        Boolean msOffice = false;
+
+                        // Until the Central File Header is found...
+                        while (!cfhFound)
+                        {
+                            if (buffer[currentPos + 2] != 0x03 && buffer[currentPos + 3] != 0x04)
+                            { complexFileLoc = count + currentPos; break; }
+
+                            // Got room before the end of the buffer for reading this info? Also check to see if analysed already
+                            if (currentPos > buffer.Length - 100)
+                                break;
+                            // Read the compressed file size info and other zip info that impacts positioning
+                            ushort genFlag = BitConverter.ToUInt16(buffer, (int)(currentPos + 6));
+                            uint compressedFileSize = BitConverter.ToUInt32(buffer, (int)currentPos + 18);
+                            ushort filenameLength = BitConverter.ToUInt16(buffer, (int)currentPos + 26);
+                            ushort extraInfo = BitConverter.ToUInt16(buffer, (int)currentPos + 28);
+
+                            // Is the compressedFileSize valid for the expected max filesize?
+                            if (compressedFileSize > targetLength[fileIndex])
+                            { validFile = false; break; }
+
+                            // Is the filesize uncharacteristically big?
+                            if (filenameLength > 100)
+                            { validFile = false; break; }
+
+                            // Find and analyse any related filenames stored in the Local File Header
+                            byte[] bufferSegment = new byte[32];
+                            Buffer.BlockCopy(buffer, (int)currentPos + 30, bufferSegment, 0, bufferSegment.Length);
+                            string bufferString = System.Text.Encoding.Default.GetString(bufferSegment);
+                            if (bufferString == "mimetypeapplication/vnd.sun.xml.")
+                            {
+                                oOffice = true;
+                                byte[] oOFileTypeReader = new byte[7];
+                                Buffer.BlockCopy(buffer, (int)currentPos + 62, oOFileTypeReader, 0, oOFileTypeReader.Length);
+                                string oOFileType = System.Text.Encoding.Default.GetString(oOFileTypeReader);
+                                if (oOFileType.StartsWith("calc"))
+                                    fileNotes = "sxc";
+                                else if (oOFileType.StartsWith("impress"))
+                                    fileNotes = "sxi";
+                                else if (oOFileType.StartsWith("writer"))
+                                    fileNotes = "sxw";
+                                else
+                                    fileNotes = "sx"; // Possible OpenOffice doc
+                            }
+                            else
+                            {
+                                bufferSegment = new byte[filenameLength];
+                                Buffer.BlockCopy(buffer, (int)currentPos + 30, bufferSegment, 0, bufferSegment.Length);
+                                bufferString = System.Text.Encoding.Default.GetString(bufferSegment);
+                                if (bufferString.StartsWith("content.xml"))
+                                {
+                                    oOffice = true; // Still possibly an OpenOffice doc
+                                    fileNotes = "sx";
+                                }
+                                else if (bufferString.Contains(".class") || bufferString.Contains(".jar") || bufferString.Contains(".java"))
+                                    fileNotes = "jar";
+                                else if (bufferString.Contains("[Content_Types].xml"))
+                                    msOffice = true;
+                                else if (bufferString.Contains("ppt/slides") && msOffice)
+                                    fileNotes = "pptx";
+                                else if (bufferString.Contains("word/document.xml") && msOffice)
+                                    fileNotes = "docx";
+                                else if (bufferString.Contains("xl/workbook.xml") && msOffice)
+                                    fileNotes = "xlsx";
+                                else
+                                    fileNotes = "zip";
+                            }
+
+                            // Time to leap to the end of the file...
+                            currentPos += (uint)(30 + filenameLength + extraInfo + compressedFileSize);
+
+                            // Check if there's enough buffer to perform further analysis, if not, store the current count to aid identify a header after
+                            if (currentPos > buffer.Length - 23)
+                            { complexFileLoc = count + currentPos; break; }
+
+                            // Are you my long lost Central File Header?
+                            int[] cfhCheckLocs = new int[4] { 0, 8, 12, 20 };
+                            int cfhShift;
+                            for (cfhShift = 0; cfhShift < cfhCheckLocs.Length; cfhShift++)
+                                if (buffer[currentPos + cfhCheckLocs[cfhShift] + 2] == 0x01 && buffer[currentPos + cfhCheckLocs[cfhShift] + 3] == 0x02)
+                                {
+                                    currentPos += (uint)cfhCheckLocs[cfhShift];
+                                    complexFileLoc = count + currentPos;
+                                    cfhFound = true;
+                                    break;
+                                }
                         }
                     }
                 }
-                foundRecords.Add(new foundRecord(count + (ulong)resultLoc[i], resultID[i]));
+                else   // Footer file operations
+                {
+                    if (fileName == "zip")
+                    {
+                        // Read the EOCD file size, then shuffle to the true end of the file
+                        ushort commentLength = BitConverter.ToUInt16(buffer, headerLoc + 20);
+                        headerLoc += 22 + commentLength;
+                    }
+                    else if (fileName == "docx")
+                        headerLoc += targetEnd[fileIndex].Length + 18;
+                    else
+                        headerLoc += targetEnd[fileIndex].Length;
+                }
+                if (validFile)
+                    foundRecords.Add(new foundRecord(count + (ulong)headerLoc, resultID[i], complexFileLoc, fileNotes));
                 i++;
             }
 
@@ -1779,39 +1925,34 @@ namespace OpenForensics
 
             while (i < end)
             {
+                int fileIndex;
+                string fileExt;
+                int skipFW = 1;
+
                 if (foundRecords[i].patternID % 2 != 0)
                 {
                     int headerType = (int)foundRecords[i].patternID;
-                    int fileIndex = ((headerType + 1) / 2) - 1;
+                    fileIndex = ((headerType + 1) / 2) - 1;
                     int footerType = FindFooterID(targetName[fileIndex]);
+                    if (foundRecords[i].notes != "")
+                        fileExt = Regex.Replace(foundRecords[i].notes, @"\-.*$", string.Empty);
+                    else
+                        fileExt = Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty);
 
                     if (targetEnd[fileIndex] != null)
                     {
-                        ulong fileEnd = 0;
-                        ulong searchRange = foundRecords[i].location + (ulong)targetLength[fileIndex];
-
                         for (int j = (i + 1); j < foundRecords.Count; j++)
                         {
-                            if (foundRecords[j].patternID == footerType)
+                            if (foundRecords[j].patternID == footerType && foundRecords[j].location > foundRecords[i].complexFileLoc)
                             {
-                                fileEnd = foundRecords[j].location + (ulong)targetEnd[fileIndex].Length;
-                                fileEnd = footerAdjust(fileEnd, targetName[fileIndex]);
-
-                                RecordFileLocation(fileIndex, foundRecords[i].location, fileEnd, "");
-                                break;
-                            }
-
-                            if (foundRecords[j].location > searchRange)
-                            {
-                                RecordFileLocation(fileIndex, foundRecords[i].location, 0, "incomplete");
+                                RecordFileLocation(fileIndex, foundRecords[i].location, foundRecords[j].location, fileExt, "");
+                                skipFW = (j - i) + 1;
                                 break;
                             }
                         }
                     }
-                    else
-                        RecordFileLocation(fileIndex, foundRecords[i].location, 0, "non-carvable");
                 }
-                i++;
+                i += skipFW;
             }
 
             return Task.FromResult(true);
@@ -1831,12 +1972,12 @@ namespace OpenForensics
         }
 
         // Records file location information from information passed by processing threads.
-        private void RecordFileLocation(int fileIndex, ulong start, ulong finish, string tag)
+        private void RecordFileLocation(int fileID, ulong start, ulong finish, string fileType, string tag)
         {
             if (finish != 0)
             {
                 float fileSize = (finish - start);
-                string sizeFormat = "bytes";
+                string sizeFormat = "B";
                 if (fileSize > 1024)
                 {
                     fileSize = fileSize / 1024;
@@ -1853,12 +1994,12 @@ namespace OpenForensics
                     sizeFormat = "GB";
                 }
 
-                resultRecord newEntry = new resultRecord(start, finish, fileSize, sizeFormat, tag, Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty));
+                resultRecord newEntry = new resultRecord(fileID, start, finish, fileSize, sizeFormat, tag, fileType);
                 foundResults.Add(newEntry);
             }
             else
             {
-                resultRecord newEntry = new resultRecord(start, tag, Regex.Replace(targetName[fileIndex], @"\-.*$", string.Empty));
+                resultRecord newEntry = new resultRecord(fileID, start, tag, fileType);
                 foundResults.Add(newEntry);
             }
         }
@@ -1979,7 +2120,7 @@ namespace OpenForensics
             ulong fileEnd = footer;
 
             if (fileType == "zip")
-                fileEnd += 20;
+                fileEnd += 18;
             else if (fileType == "docx")
                 fileEnd += 18;
 

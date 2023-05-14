@@ -44,8 +44,9 @@ namespace OpenForensics
         // Version 1.78b - Preparing visualisation branch merge into master by enabling optional image preview processing
         // Version 1.80b - Minor UI updates and improvements
         // Version 1.85b - Merging Skin Detection feature and other minor improvements from Flashcard experiments
+        // Version 1.9b - Zip file carving supported - curtesy to Mikolaj Mroz's work.
 
-        private string version = "v. 1.85b";   // VERSION INFORMATION TO DISPLAY
+        private string version = "v. 1.9b";   // VERSION INFORMATION TO DISPLAY
 
         private string TestType;             // Value for Platform Type Selected
         private bool multiGPU = false;
