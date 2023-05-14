@@ -1434,6 +1434,7 @@ namespace OpenForensics
 
                         if (hasDuplicates)
                         {
+                            carvableFiles.Clear();
                             resultsNew = new int[results.Length];
                             locations.Clear();
                             locations.AddRange(foundLocs.ToArray());
@@ -1946,7 +1947,8 @@ namespace OpenForensics
                             if (foundRecords[j].patternID == footerType && foundRecords[j].location > foundRecords[i].complexFileLoc)
                             {
                                 RecordFileLocation(fileIndex, foundRecords[i].location, foundRecords[j].location, fileExt, "");
-                                skipFW = (j - i) + 1;
+                                if (targetName[fileIndex] == "zip")
+                                    skipFW = (j - i) + 1;
                                 break;
                             }
                         }
